@@ -66,6 +66,31 @@ jobs:
       - name: Web build
         run: npm run build -w @profiterol/web
 
+  deploy-files:
+    name: Production files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint shell scripts
+        run: shellcheck scripts/*.sh docker/backup/entrypoint.sh docker/nginx/prod/40-reload-certificates.sh
+      - name: Production compose file is valid
+        run: |
+          cp .env.production.example .env
+          docker compose -f docker-compose.prod.yml config --quiet
+      - name: Production nginx config is valid
+        run: |
+          mkdir -p /tmp/le/live/example.com
+          openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=example.com \
+            -keyout /tmp/le/live/example.com/privkey.pem -out /tmp/le/live/example.com/fullchain.pem
+          docker run --rm -e DOMAIN=example.com -e EXTRA_DOMAINS=www.example.com \
+            -v "$PWD/docker/nginx/prod/default.conf.template:/etc/nginx/templates/default.conf.template:ro" \
+            -v "$PWD/docker/nginx/prod/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro" \
+            -v "$PWD/docker/nginx/prod/proxy.conf:/etc/nginx/snippets/proxy.conf:ro" \
+            -v /tmp/le:/etc/letsencrypt:ro \
+            nginx:1.27-alpine /docker-entrypoint.sh nginx -t
+      - name: Backup image builds
+        run: docker build -f docker/backup/Dockerfile .
+
   docker:
     name: Docker images
     runs-on: ubuntu-latest

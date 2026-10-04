@@ -20,6 +20,10 @@ docker compose up --build
 
 On first start the API runs the database migrations, then creates the admin user, default settings, a Projects and a Blog collection with sample items, and a demo home page in both languages.
 
+## Put it online
+
+See **[DEPLOY.md](./DEPLOY.md)**: HTTPS with Let's Encrypt, nightly backups and restores, updates from GitHub Actions, and notes for hosting in Iran.
+
 ## Run locally without Docker
 
 You need Node 20+ and a Postgres database.

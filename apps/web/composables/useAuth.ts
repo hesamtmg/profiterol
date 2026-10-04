@@ -6,7 +6,7 @@ interface AdminUser {
 }
 
 export function useAuth() {
-  const token = useCookie<string | null>('pt_token', { sameSite: 'lax', maxAge: 60 * 60 * 24 * 7 });
+  const token = useTokenCookie();
   const user = useState<AdminUser | null>('auth-user', () => null);
   const api = useApi();
 

@@ -7,3 +7,6 @@ uploads/
 .env
 *.log
 .DS_Store
+# Production data on the server
+backups/
+docker/certbot/

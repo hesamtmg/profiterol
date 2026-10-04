@@ -62,12 +62,18 @@ async function resolve(): Promise<Resolved | null> {
 
 const { data: settings } = await useSiteSettings();
 const { data: resolved, error } = await useAsyncData(() => `route:${locale}:${slug.value}`, resolve);
-if (error.value || !resolved.value) {
+if (error.value) {
+  // The API could not be reached (e.g. it is restarting during an update): answer 503 so search
+  // engines retry later instead of treating the page as gone.
+  throw createError({ statusCode: 503, statusMessage: 'Temporarily unavailable', fatal: true });
+}
+if (!resolved.value) {
   throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
 }
 
 const siteName = computed(() => settings.value?.siteName?.[locale] ?? settings.value?.siteName?.en ?? '');
-const requestUrl = useRequestURL();
+// Behind nginx: use the visitor-facing host and protocol (https) for hreflang and og:image links.
+const requestUrl = useRequestURL({ xForwardedHost: true, xForwardedProto: true });
 
 /** Links to this same content in every language, for the language switch and hreflang. */
 const alternates = computed(() => {

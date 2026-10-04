@@ -162,14 +162,23 @@ New:
 - [x] API end-to-end tests against a real Postgres (`npm run test:e2e -w @profiterol/api`), run in CI
 - [ ] Component tests for blocks (Vitest) and Playwright tests for the editor
 - [ ] Content-Security-Policy for the site and admin
+- [x] Login cookie is marked Secure when the site runs on HTTPS
 - [ ] Store the JWT in an httpOnly cookie, with CSRF protection, instead of a JS-readable cookie
 - [ ] Helmet, request size limits and CORS rules on the API
 - [ ] Accessibility pass: focus states, contrast checks in the theme editor, reduced motion (done for the marquee)
 - [ ] Lighthouse budget: LCP < 2.5s on mobile
 
 ## Phase 12: Deployment and operations
-- [ ] Production compose: TLS (Let's Encrypt via certbot or Caddy), HTTP→HTTPS, HSTS
-- [ ] Nightly `pg_dump` backups plus uploads backup, with a tested restore
-- [ ] Health checks for api/web in compose; restart policies (done)
-- [ ] Logs and metrics (pino + Loki/Grafana, or a hosted option)
-- [ ] Zero-downtime deploys (build images in CI, push to a registry, `docker compose pull && up -d`)
+See [DEPLOY.md](./DEPLOY.md).
+- [x] Production compose (`docker-compose.prod.yml`): HTTPS with Let's Encrypt (certbot, automatic renewal), HTTP→HTTPS, HTTP/2, HSTS and security headers, other host names redirected to the main domain
+- [x] Required secrets: the stack refuses to start while a password, JWT secret or domain is missing
+- [x] Nightly `pg_dump` backups plus uploads archive, old ones pruned, restore script with confirmation; backup → data loss → restore tested end to end
+- [x] Health checks for db, api, web and nginx; restart policies; log rotation
+- [x] CI builds images and pushes them to GitHub Container Registry (`latest` + commit SHA); optional SSH deploy on every push to `main`
+- [x] `scripts/deploy.sh`: backup, pull or build, restart, wait until healthy; roll back with `TAG=<sha>`; `--no-pull` for servers without registry access
+- [x] Friendly bilingual "back in a moment" page (503 + Retry-After) while containers restart; tested: 1 of 310 requests affected during an update
+- [x] CI checks the production files: shellcheck, compose config, nginx config, backup image
+- [ ] True zero-downtime updates (two app copies side by side, blue/green)
+- [ ] Off-site backup copies (rsync/rclone/S3) and backup-failure alerts
+- [ ] Uptime monitoring and metrics (e.g. Uptime Kuma, Grafana)
+- [ ] Postgres tuning for the server's memory; connection pooling if traffic grows
