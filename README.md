@@ -40,6 +40,8 @@ npm run dev:web
 1. Add its definition (fields + defaults) to `packages/blocks/src/registry.ts`.
 2. Create `apps/web/components/blocks/YourBlock.vue`. It receives the block's props as `p` and the current `locale`.
    Use container-query variants (`@3xl:`) instead of `md:` so the editor's tablet and mobile previews work.
+   Wrap text in `<EditableText :value="p.title" path="title" />` so it can be edited in place on the canvas
+   (use `multiline` for long text and paths like `items.2.text` inside lists).
 3. Register it in `apps/web/components/blocks/index.ts`.
 
 The API validation and the editor's property form come from the definition automatically.

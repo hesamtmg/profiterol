@@ -99,6 +99,8 @@ async function save() {
   if (!page.value || saving.value) return false;
   saving.value = true;
   message.value = null;
+  // Changes typed while the request is in flight stay unsaved.
+  const sent = snapshot();
   try {
     const updated = await api<AdminPage>(`/admin/pages/${page.value.id}`, {
       method: 'PATCH',
@@ -112,7 +114,7 @@ async function save() {
       },
     });
     page.value = updated;
-    savedSnapshot.value = snapshot();
+    savedSnapshot.value = sent;
     message.value = { kind: 'ok', text: 'Saved' };
     return true;
   } catch (err) {
@@ -121,6 +123,51 @@ async function save() {
   } finally {
     saving.value = false;
   }
+}
+
+const autosave = useAutosave({ snapshot, dirty, busy: saving, save });
+
+/** Text typed directly on the canvas. */
+function inlineEdit(block: BlockNode, path: string, value: string) {
+  setAtPath(block.props, path, value);
+}
+
+/** True when the block is set to hide on the device being previewed. */
+function hiddenOnDevice(block: BlockNode) {
+  const showOn = block.props.showOn;
+  return (showOn === 'mobile' && device.value !== 'mobile') || (showOn === 'desktop' && device.value === 'mobile');
+}
+
+// ---------- Dropping an image file onto a block ----------
+
+const { upload, uploading, error: uploadError } = useUpload();
+const dropTarget = ref<string | null>(null);
+let dropTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** The first top-level image field of a block, which a dropped photo replaces. */
+function imageFieldOf(block: BlockNode) {
+  return getBlock(block.type)?.fields.find((f) => f.type === 'image');
+}
+
+function onBlockDragOver(block: BlockNode, e: DragEvent) {
+  if (!imageFieldOf(block) || !Array.from(e.dataTransfer?.types ?? []).includes('Files')) return;
+  e.preventDefault();
+  dropTarget.value = block.id;
+  // dragover repeats while the file is over the block; when it stops, the file has left.
+  clearTimeout(dropTimer);
+  dropTimer = setTimeout(() => (dropTarget.value = null), 200);
+}
+
+async function onBlockDrop(block: BlockNode, e: DragEvent) {
+  const field = imageFieldOf(block);
+  const file = imageFrom(e.dataTransfer);
+  dropTarget.value = null;
+  if (!field || !file) return;
+  e.preventDefault();
+  select(block.id);
+  const media = await upload(file);
+  if (media) block.props[field.key] = media.url;
+  else message.value = { kind: 'error', text: uploadError.value };
 }
 
 async function publish() {
@@ -342,9 +389,15 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
       <button type="button" class="btn-icon" title="Undo (Ctrl+Z)" :disabled="!canUndo" @click="undo"><i class="mdi mdi-undo text-lg" /></button>
       <button type="button" class="btn-icon" title="Redo (Ctrl+Shift+Z)" :disabled="!canRedo" @click="redo"><i class="mdi mdi-redo text-lg" /></button>
 
-      <span class="w-28 text-end text-xs" :class="message?.kind === 'error' ? 'text-red-600' : 'text-slate-400'">
-        <template v-if="saving">Saving…</template>
+      <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500" title="Save automatically a few seconds after each change">
+        <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> Autosave
+      </label>
+      <span class="w-36 text-end text-xs" :class="message?.kind === 'error' ? 'text-red-600' : 'text-slate-400'">
+        <template v-if="saving || uploading">{{ uploading ? 'Uploading…' : 'Saving…' }}</template>
         <template v-else-if="dirty">Unsaved changes</template>
+        <template v-else-if="hasUnpublished && autosave.lastSavedAt.value">
+          Saved {{ autosave.lastSavedAt.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} · not live
+        </template>
         <template v-else-if="hasUnpublished">Saved · not live</template>
         <template v-else>Live</template>
       </span>
@@ -459,6 +512,8 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
                 class="group/blk relative cursor-pointer outline-offset-[-4px]"
                 :class="selectedId === element.id ? 'z-10 outline outline-4 outline-sky-500' : 'hover:outline hover:outline-2 hover:outline-sky-400/70'"
                 @click="select(element.id)"
+                @dragover="onBlockDragOver(element, $event)"
+                @drop="onBlockDrop(element, $event)"
               >
                 <div
                   class="absolute start-6 top-6 z-20 items-center gap-0.5 rounded-full bg-slate-900 p-1 text-white shadow-xl"
@@ -474,7 +529,24 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
                   <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" title="Duplicate" @click="duplicate(element.id)"><i class="mdi mdi-content-copy" /></button>
                   <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-red-500" title="Delete" @click="remove(element.id)"><i class="mdi mdi-trash-can-outline" /></button>
                 </div>
-                <BlockView :block="element" :locale="locale" />
+                <span
+                  v-if="element.props.showOn"
+                  class="absolute end-6 top-6 z-20 rounded-full bg-amber-300 px-3 py-1 text-[11px] font-medium text-amber-950 shadow"
+                  dir="ltr"
+                >
+                  <i class="mdi" :class="element.props.showOn === 'mobile' ? 'mdi-cellphone' : 'mdi-monitor'" />
+                  {{ element.props.showOn === 'mobile' ? 'Phones only' : 'Tablets and desktops only' }}
+                </span>
+                <div :class="{ 'opacity-30 grayscale': hiddenOnDevice(element) }">
+                  <BlockView :block="element" :locale="locale" editable @edit="(path, value) => inlineEdit(element, path, value)" />
+                </div>
+                <div
+                  v-if="dropTarget === element.id"
+                  class="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-card border-4 border-dashed border-sky-400 bg-sky-500/20 text-lg font-bold text-white"
+                  dir="ltr"
+                >
+                  <span class="rounded-full bg-sky-600 px-5 py-2 shadow-lg"><i class="mdi mdi-image-plus" /> Drop to use as {{ imageFieldOf(element)?.label.toLowerCase() }}</span>
+                </div>
                 <button
                   type="button"
                   class="absolute bottom-0 left-1/2 z-20 hidden h-8 w-8 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg group-hover/blk:flex"
@@ -564,6 +636,9 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
                 <i class="mdi mdi-content-duplicate" /> Copy blocks from {{ l.label }}
               </button>
             </div>
+            <p class="text-[11px] leading-relaxed text-slate-400">
+              Click any text on the page to edit it there. Drop a photo onto a block to use it as that block’s image.
+            </p>
             <p class="text-[11px] leading-relaxed text-slate-400">
               Shortcuts: Ctrl+S save · Ctrl+Z undo · Ctrl+Shift+Z redo · Delete removes the selected block · Esc deselects.
             </p>

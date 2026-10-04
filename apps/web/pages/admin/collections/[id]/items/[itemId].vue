@@ -76,12 +76,15 @@ async function load() {
 async function save() {
   busy.value = true;
   message.value = null;
+  // Keep the form as it is (the user may still be typing); changes made during the request stay unsaved.
+  const sent = snapshot();
   try {
     const updated = await api<AdminItem>(`/admin/collections/${cid}/items/${iid}`, {
       method: 'PATCH',
       body: { cover: cover.value, translations: locales.map((l) => drafts[l.code]) },
     });
-    fromItem(updated);
+    item.value = updated;
+    saved.value = sent;
     message.value = { kind: 'ok', text: 'Saved' };
     return true;
   } catch (err) {
@@ -91,6 +94,15 @@ async function save() {
     busy.value = false;
   }
 }
+
+// Published items go live on save, so only drafts are saved automatically.
+const autosave = useAutosave({
+  snapshot,
+  dirty,
+  busy,
+  save,
+  allowed: computed(() => item.value?.status === 'draft'),
+});
 
 async function setPublished(publish: boolean) {
   if (dirty.value && !(await save())) return;
@@ -152,6 +164,13 @@ onBeforeUnmount(() => {
       >
         {{ item.status === 'published' ? 'Published' : 'Draft' }}
       </span>
+      <label
+        v-if="item.status === 'draft'"
+        class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500"
+        title="Save drafts automatically a few seconds after each change"
+      >
+        <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> Autosave
+      </label>
       <span class="text-xs text-slate-400">{{ busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved' }}</span>
       <a v-if="item.status === 'published'" :href="liveUrl" target="_blank" class="btn-light"><i class="mdi mdi-open-in-new" /> View</a>
       <button type="button" class="btn-light" :disabled="busy || !dirty" @click="save">Save</button>

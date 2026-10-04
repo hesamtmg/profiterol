@@ -1,5 +1,7 @@
 <script setup lang="ts">
 /** One card in the amsr-portfolio style, shared by the card grid and collection lists. */
+import EditableText from './EditableText.vue';
+
 const props = defineProps<{
   variant: string;
   index: number;
@@ -10,7 +12,13 @@ const props = defineProps<{
   tags?: string[];
   date?: string | null;
   locale: string;
+  /** Prop paths for editing the title and text in place (card grid in the editor). */
+  titlePath?: string;
+  textPath?: string;
 }>();
+
+// Show an empty text line in the editor so it can be filled in place.
+const editing = Boolean(useBlockEditing());
 
 const formattedDate = computed(() => {
   if (!props.date) return '';
@@ -58,8 +66,8 @@ const formattedDate = computed(() => {
           <span v-for="t in tags" :key="t" class="rounded-full bg-white px-2.5 py-0.5 font-medium text-primary ring-1 ring-slate-200">{{ t }}</span>
           <span v-if="formattedDate" class="text-muted">{{ formattedDate }}</span>
         </div>
-        <h3 class="text-lg font-black">{{ title }}</h3>
-        <p v-if="text" class="mt-2 line-clamp-3 text-sm font-extralight leading-relaxed text-muted">{{ text }}</p>
+        <h3 class="text-lg font-black"><EditableText :value="title" :path="titlePath" /></h3>
+        <p v-if="text || (textPath && editing)" class="mt-2 line-clamp-3 text-sm font-extralight leading-relaxed text-muted"><EditableText :value="text" :path="textPath" multiline /></p>
       </div>
     </template>
 
@@ -73,8 +81,8 @@ const formattedDate = computed(() => {
       >
         {{ String(index + 1).padStart(2, '0') }}
       </div>
-      <h3 class="mt-5 text-lg font-black @3xl:text-xl">{{ title }}</h3>
-      <p v-if="text" class="mt-2 text-sm font-extralight leading-relaxed text-muted">{{ text }}</p>
+      <h3 class="mt-5 text-lg font-black @3xl:text-xl"><EditableText :value="title" :path="titlePath" /></h3>
+      <p v-if="text || (textPath && editing)" class="mt-2 text-sm font-extralight leading-relaxed text-muted"><EditableText :value="text" :path="textPath" multiline /></p>
       <span v-if="href && variant === 'raised'" class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
         <i class="mdi mdi-arrow-right transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
       </span>

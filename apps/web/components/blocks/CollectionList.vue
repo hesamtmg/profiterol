@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EditableText from '../site/EditableText.vue';
 /**
  * Cards for the latest published items of a collection. On the public site the API attaches
  * the items to the block (`data`), so pages render on the server; in the editor they are fetched here.
@@ -26,6 +27,7 @@ const props = defineProps<{
 }>();
 
 const api = useApi();
+const editing = Boolean(useBlockEditing()) && !props.embedded;
 const fetched = ref<CollectionListData | null>(null);
 const active = ref<string | null>(null);
 
@@ -52,15 +54,15 @@ watch(() => [props.p.collection, props.p.limit, props.p.tag, props.locale], load
     <div :class="embedded ? '' : 'panel px-6 py-10 @3xl:px-20 @3xl:py-16'">
       <div v-if="!embedded" class="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h2 class="text-2xl font-black @3xl:text-4xl">{{ p.title }}</h2>
-          <p v-if="p.subtitle" class="mt-2 max-w-2xl text-sm font-extralight text-muted @3xl:text-lg">{{ p.subtitle }}</p>
+          <h2 class="text-2xl font-black @3xl:text-4xl"><EditableText :value="p.title" path="title" /></h2>
+          <p v-if="p.subtitle || editing" class="mt-2 max-w-2xl text-sm font-extralight text-muted @3xl:text-lg"><EditableText :value="p.subtitle" path="subtitle" multiline placeholder="Subtitle" /></p>
         </div>
         <a
           v-if="p.buttonLabel && list?.collection"
           :href="list.collection.href"
           class="btn-pill border border-slate-200 hover:border-primary hover:text-primary"
         >
-          {{ p.buttonLabel }} <i class="mdi mdi-arrow-right rtl:rotate-180" />
+          <EditableText :value="p.buttonLabel" path="buttonLabel" /> <i class="mdi mdi-arrow-right rtl:rotate-180" />
         </a>
       </div>
 

@@ -309,10 +309,22 @@ const anchorField: FieldDef = {
   help: 'Letters, digits and dashes, e.g. services',
 };
 
+/** Every block can be limited to small or large screens. */
+const showOnField: FieldDef = {
+  key: 'showOn',
+  label: 'Show on',
+  type: 'select',
+  options: [
+    { value: '', label: 'All devices' },
+    { value: 'mobile', label: 'Phones only' },
+    { value: 'desktop', label: 'Tablets and desktops only' },
+  ],
+};
+
 export const blocks: BlockDef[] = definitions.map((b) => ({
   ...b,
-  fields: [...b.fields, anchorField],
-  defaults: { anchor: '', ...b.defaults },
+  fields: [...b.fields, anchorField, showOnField],
+  defaults: { anchor: '', showOn: '', ...b.defaults },
 }));
 
 export function getBlock(type: string): BlockDef | undefined {

@@ -45,7 +45,7 @@ This combines:
 - [ ] Page revisions: keep the last N versions and allow restoring one
 - [ ] Scheduled publishing (minicms `expire_time` / publish at)
 - [ ] Nested blocks (columns/containers holding other blocks)
-- [ ] Per-block visibility: hide on mobile or desktop
+- [x] Per-block visibility: show on all devices, phones only, or tablets and desktops only (badge and dimming in the editor's previews)
 - [ ] Per-block style options: background color/image, spacing, full-bleed vs panel
 - [ ] Duplicate a page; move pages into folders; parent/child URLs
 
@@ -77,9 +77,9 @@ This combines:
 - [x] "Copy blocks from the other language" to start a translation
 - [x] Undo / redo per language; keyboard shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Shift+Z, Delete, Esc)
 - [x] Unsaved-changes guard; Save and Publish buttons; live/draft status
-- [ ] **Inline text editing**: double-click text on the canvas to edit it in place
-- [ ] Autosave drafts every few seconds
-- [ ] Drag-and-drop media straight onto image fields
+- [x] **Inline text editing**: click any text on the canvas and type; the property panel and undo history follow along
+- [x] Autosave a few seconds after each change (pages, and collection items while they are drafts), with an on/off switch
+- [x] Drop a photo onto a block to use it as that block's image; drop or paste images into any image field, the media library window and the Media page
 - [ ] Rich text field (bold, italic, links, lists) with sanitized HTML output
 - [ ] Block presets / "sections": save a configured block and reuse it
 - [ ] Shareable draft preview link (signed token)
