@@ -1,0 +1,20 @@
+{
+  "name": "profiterol",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A Wix-style website builder: NestJS + Nuxt + Postgres",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @profiterol/blocks && npm run build -w @profiterol/api && npm run build -w @profiterol/web",
+    "dev:api": "npm run start:dev -w @profiterol/api",
+    "dev:web": "npm run dev -w @profiterol/web",
+    "seed": "npm run seed -w @profiterol/api",
+    "typecheck": "npm run build -w @profiterol/blocks && npm run typecheck -w @profiterol/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
