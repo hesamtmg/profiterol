@@ -1,6 +1,5 @@
 import { Body, Controller, Get, Injectable, Put, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { isSafeUrl } from '@profiterol/blocks';
 import { Type } from 'class-transformer';
 import {
   IsArray,
@@ -11,22 +10,11 @@ import {
   MaxLength,
   Validate,
   ValidateNested,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
 } from 'class-validator';
 import { Repository } from 'typeorm';
 import { AuthGuard, Roles } from '../auth/auth.guard';
+import { SafeUrl } from '../common/safe-url';
 import { Localized, SiteSettings } from './settings.entity';
-
-@ValidatorConstraint({ name: 'safeUrl' })
-class SafeUrl implements ValidatorConstraintInterface {
-  validate(value: unknown) {
-    return typeof value === 'string' && isSafeUrl(value);
-  }
-  defaultMessage() {
-    return 'must be a relative path or an http(s), mailto or tel link';
-  }
-}
 
 class MenuItemDto {
   @IsObject()

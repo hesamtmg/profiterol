@@ -4,6 +4,7 @@ const route = useRoute();
 
 const nav = [
   { to: '/admin', label: 'Pages', icon: 'mdi-file-document-multiple-outline' },
+  { to: '/admin/collections', label: 'Collections', icon: 'mdi-view-dashboard-variant-outline' },
   { to: '/admin/media', label: 'Media', icon: 'mdi-image-multiple-outline' },
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
 ];

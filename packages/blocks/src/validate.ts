@@ -101,3 +101,10 @@ export function withDefaults(node: BlockNode): Record<string, unknown> {
   const def = getBlock(node.type);
   return { ...(def?.defaults ?? {}), ...(node.props ?? {}) };
 }
+
+/** Validates a record of values (e.g. a collection item's custom fields) against field definitions. */
+export function validateFields(fields: FieldDef[], data: unknown, path = 'data'): ValidationError[] {
+  const errors: ValidationError[] = [];
+  checkProps(fields, data, path, errors);
+  return errors;
+}

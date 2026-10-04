@@ -20,9 +20,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { diskStorage } from 'multer';
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AuthGuard } from '../auth/auth.guard';
 import { config } from '../config';
+import { Media } from './media.entity';
 
 /** Allowed upload types. SVG is excluded because it can carry scripts. */
 const ALLOWED: Record<string, string> = {
@@ -35,30 +36,6 @@ const ALLOWED: Record<string, string> = {
   'video/webm': '.webm',
 };
 const MAX_BYTES = 20 * 1024 * 1024;
-
-@Entity('media')
-export class Media {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column()
-  filename: string;
-
-  @Column()
-  originalName: string;
-
-  @Column()
-  mime: string;
-
-  @Column()
-  size: number;
-
-  @Column()
-  url: string;
-
-  @CreateDateColumn({ type: 'timestamptz' })
-  createdAt: Date;
-}
 
 @Injectable()
 export class MediaService {

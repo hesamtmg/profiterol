@@ -39,3 +39,29 @@ test('theme tokens cannot break out of the style declaration', () => {
   assert.ok(!css.includes('}'));
   assert.ok(css.includes('--c-primary:redbodydisplay:none'));
 });
+
+test('collection field definitions: keys, reserved names and galleries', async () => {
+  const { validateFieldDefs, cleanFieldDef, galleryItemFields } = await import('../dist/esm/index.js');
+  const ok = [
+    { key: 'client', label: 'Client', type: 'text' },
+    cleanFieldDef({ key: 'gallery', label: 'Gallery', type: 'list' }),
+  ];
+  assert.deepEqual(validateFieldDefs(ok), []);
+  assert.deepEqual(ok[1].fields, galleryItemFields);
+
+  const bad = validateFieldDefs([
+    { key: 'title', label: 'Title', type: 'text' },
+    { key: 'Bad Key', label: 'x', type: 'text' },
+    { key: 'a', label: 'A', type: 'collection' },
+    { key: 'b', label: 'B', type: 'list', fields: [{ key: 'x', label: 'X', type: 'text' }] },
+  ]);
+  assert.deepEqual(bad.map((e) => e.path), ['fields[0].key', 'fields[1].key', 'fields[2].type', 'fields[3].fields']);
+});
+
+test('validateFields checks item data against a collection schema', async () => {
+  const { validateFields, cleanFieldDef } = await import('../dist/esm/index.js');
+  const fields = [{ key: 'year', label: 'Year', type: 'number' }, cleanFieldDef({ key: 'gallery', label: 'G', type: 'list' })];
+  assert.deepEqual(validateFields(fields, { year: 2024, gallery: [{ image: '/uploads/a.jpg', caption: 'x' }] }), []);
+  const errors = validateFields(fields, { year: '2024', gallery: [{ image: 'javascript:x' }], other: 1 });
+  assert.deepEqual(errors.map((e) => e.path).sort(), ['data.gallery[0].image', 'data.other', 'data.year']);
+});

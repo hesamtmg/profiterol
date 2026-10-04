@@ -12,6 +12,12 @@ const anchor = computed(() => {
 
 <template>
   <div :id="anchor" class="scroll-mt-24">
-    <component :is="blockComponents[block.type]" v-if="blockComponents[block.type]" :p="merged" :locale="locale" />
+    <component
+      :is="blockComponents[block.type]"
+      v-if="blockComponents[block.type]"
+      :p="merged"
+      :locale="locale"
+      v-bind="block.data ? { data: block.data } : {}"
+    />
   </div>
 </template>

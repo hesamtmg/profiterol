@@ -19,7 +19,7 @@ This combines:
 - [x] nginx: `/api` → Nest, `/uploads` straight from the volume, everything else → Nuxt; gzip, security headers, long cache for `/_nuxt`
 - [x] `.env.example` covering every setting
 - [ ] ESLint + Prettier config shared across the workspaces
-- [ ] CI (GitHub Actions): install, build, test, and Docker build on every PR
+- [x] CI (GitHub Actions): build, unit tests, API end-to-end tests against Postgres, migration drift check, web build, Docker build
 - [ ] Pre-commit hook (lint-staged)
 
 ## Phase 1: Core data and auth
@@ -27,7 +27,7 @@ This combines:
 - [x] JWT login (`POST /api/auth/login`), `GET /api/auth/me`, and an auth guard with `@Roles()`
 - [x] First admin created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` on first start
 - [x] Locales declared once (`packages/blocks/src/locales.ts`) instead of `*_en` columns
-- [ ] **TypeORM migrations** instead of `DB_SYNC=true` (generate the first migration from the current entities)
+- [x] **TypeORM migrations**, run automatically on start (`npm run migration:generate --name=X -w @profiterol/api` after changing an entity)
 - [ ] User management screen: invite, change role, deactivate
 - [ ] Password reset by email; optional 2FA (minicms had both)
 - [ ] Rate-limit login (`@nestjs/throttler`) and lock out after repeated failures
@@ -109,16 +109,21 @@ From **minicms**'s 12 section kinds:
 
 New:
 - [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider, embed (YouTube, Aparat)
-- [ ] **Collection list** block: shows items of any collection as cards (Phase 6)
+- [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
-- [ ] Generic `collections` + `collection_items` (JSONB fields + per-locale values) with a field-schema editor
-- [ ] Blog: posts, categories, tags, author, reading time, view count (port from minicms)
-- [ ] Projects / portfolio, shown as AMSR-style cards with a detail page
-- [ ] Team, FAQ, partners, careers (jobs + applications), feedback
-- [ ] Dynamic pages: `/blog/{slug}` and `/projects/{slug}` from a template page
+- [x] Generic collections and items: built-in title, address, summary, story, tags and cover, plus custom fields (short/long text, link, image, gallery, number, yes/no, color) with labels per language
+- [x] Field builder in the admin; values are checked against it on save
+- [x] Items have draft/published status, one version per language, and addresses unique per collection and language
+- [x] Blog collection seeded (posts with tags and an author field)
+- [ ] Blog extras: categories as their own list, reading time, view count (minicms had these)
+- [x] Projects collection seeded, shown as AMSR-style cards with a detail page (cover, story, details, gallery with lightbox, related items)
+- [ ] Team, FAQ, partners, careers (jobs + applications), feedback: create these as collections in the admin; careers applications need forms (Phase 8)
+- [x] Item pages at `/{locale}/{collection}/{item}` and an automatic index page at `/{locale}/{collection}`, in the sitemap and with hreflang
+- [ ] Let editors design the item page layout with blocks (template page)
 - [ ] Search across pages and items
-- [ ] Filtering and sorting on collection-list blocks
+- [x] Filter by tag (block setting and clickable chips)
+- [ ] Manual ordering and pagination
 
 ## Phase 7: Media library
 - [x] Upload (JPG, PNG, WebP, GIF, AVIF, MP4, WebM; 20 MB; no SVG), random file names, list, delete
@@ -151,7 +156,7 @@ New:
 - [ ] Sign-up and plans if this becomes a hosted product
 
 ## Phase 11: Quality and security
-- [ ] API e2e tests (Jest + Supertest against a test Postgres)
+- [x] API end-to-end tests against a real Postgres (`npm run test:e2e -w @profiterol/api`), run in CI
 - [ ] Component tests for blocks (Vitest) and Playwright tests for the editor
 - [ ] Content-Security-Policy for the site and admin
 - [ ] Store the JWT in an httpOnly cookie, with CSRF protection, instead of a JS-readable cookie

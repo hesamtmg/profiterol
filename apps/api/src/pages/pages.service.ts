@@ -2,17 +2,10 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import { InjectRepository } from '@nestjs/typeorm';
 import { BlockNode, isLocale, locales, validateBlocks } from '@profiterol/blocks';
 import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
+import { CollectionsService } from '../collections/collections.service';
+import { slugify, UNIQUE_VIOLATION } from '../common/slug';
 import { CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
 import { Page, PageTranslation } from './page.entity';
-
-function slugify(text: string): string {
-  const slug = text
-    .trim()
-    .toLowerCase()
-    .replace(/[^\p{L}\p{M}\p{N}‌]+/gu, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug || 'page';
-}
 
 @Injectable()
 export class PagesService {
@@ -20,6 +13,7 @@ export class PagesService {
     @InjectRepository(Page) private readonly pages: Repository<Page>,
     @InjectRepository(PageTranslation) private readonly translations: Repository<PageTranslation>,
     private readonly dataSource: DataSource,
+    private readonly collections: CollectionsService,
   ) {}
 
   list() {
@@ -121,7 +115,7 @@ export class PagesService {
       isHome: t.page.isHome,
       seoTitle: t.seoTitle || t.title,
       seoDescription: t.seoDescription,
-      blocks: t.publishedBlocks,
+      blocks: await this.expandBlocks(t.publishedBlocks ?? [], locale),
       alternates: siblings.map((s) => ({ locale: s.locale, slug: t.page.isHome ? '' : s.slug })),
       updatedAt: t.page.updatedAt,
     };
@@ -136,7 +130,23 @@ export class PagesService {
       .where('p.status = :status', { status: 'published' })
       .andWhere('t.publishedBlocks IS NOT NULL')
       .getRawMany<{ locale: string; slug: string; isHome: boolean; updatedAt: Date }>();
-    return rows.map((r) => ({ ...r, slug: r.isHome ? '' : r.slug }));
+    const pages = rows.map((r) => ({ locale: r.locale, slug: r.isHome ? '' : r.slug, updatedAt: r.updatedAt }));
+    return [...pages, ...(await this.collections.sitemapEntries())];
+  }
+
+  /** Attaches data that blocks need at render time, such as a collection list's items. */
+  private async expandBlocks(blocks: BlockNode[], locale: string): Promise<BlockNode[]> {
+    return Promise.all(
+      blocks.map(async (b) => {
+        if (b.type !== 'collection-list') return b;
+        const p = b.props as { collection?: string; limit?: number; tag?: string };
+        const data = await this.collections.listPublished(locale, String(p.collection ?? ''), {
+          limit: Number(p.limit) || 6,
+          tag: p.tag || undefined,
+        });
+        return { ...b, data };
+      }),
+    );
   }
 
   /** Appends -2, -3, … until the slug is unused in that locale. */
@@ -171,7 +181,7 @@ export class PagesService {
     try {
       return await this.dataSource.transaction(work);
     } catch (err) {
-      if (err instanceof QueryFailedError && (err as QueryFailedError & { code?: string }).code === '23505') {
+      if (err instanceof QueryFailedError && (err as QueryFailedError & { code?: string }).code === UNIQUE_VIOLATION) {
         throw new ConflictException('Another page already uses this slug in the same language');
       }
       throw err;

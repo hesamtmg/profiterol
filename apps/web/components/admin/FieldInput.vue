@@ -7,13 +7,17 @@ import MediaPicker from './MediaPicker.vue';
 const props = defineProps<{ field: FieldDef; dir?: string }>();
 const model = defineModel<unknown>();
 const picking = ref(false);
+const { list: collections, load: loadCollections } = useAdminCollections();
+if (props.field.type === 'collection') loadCollections().catch(() => undefined);
 const openItem = ref<number | null>(0);
 
 const list = computed(() => (Array.isArray(model.value) ? (model.value as Record<string, unknown>[]) : []));
 
 function addItem() {
+  // Read the index first: the model only reflects the new list after the parent re-renders.
+  const index = list.value.length;
   model.value = [...list.value, createListItem(props.field)];
-  openItem.value = list.value.length - 1;
+  openItem.value = index;
 }
 
 function removeItem(i: number) {
@@ -63,6 +67,10 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     </label>
     <select v-else-if="field.type === 'select'" v-model="model" class="input">
       <option v-for="o in field.options" :key="o.value" :value="o.value">{{ o.label }}</option>
+    </select>
+    <select v-else-if="field.type === 'collection'" v-model="model" class="input">
+      <option v-if="!collections?.length" disabled value="">No collections yet</option>
+      <option v-for="c in collections ?? []" :key="c.key" :value="c.key">{{ c.name.en || c.key }}</option>
     </select>
     <div v-else-if="field.type === 'color'" class="flex items-center gap-2">
       <input

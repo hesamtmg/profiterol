@@ -23,8 +23,8 @@ services:
     restart: unless-stopped
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-profiterol}:${POSTGRES_PASSWORD:-profiterol}@db:5432/${POSTGRES_DB:-profiterol}
-      # Creates tables from the entities. Switch to migrations before going to production (see CHECKLIST.md).
-      DB_SYNC: ${DB_SYNC:-true}
+      # Migrations run automatically on start. DB_SYNC=true skips them and builds tables from the entities (local experiments only).
+      DB_SYNC: ${DB_SYNC:-false}
       JWT_SECRET: ${JWT_SECRET:-please-change-this-secret}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@example.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}

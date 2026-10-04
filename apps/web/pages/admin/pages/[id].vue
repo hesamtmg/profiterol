@@ -546,7 +546,7 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
                 <div>
                   <label class="field-label">Address</label>
                   <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-                    /{{ locale }}/<input v-model="current.slug" class="input font-mono text-xs" />
+                    <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span><input v-model="current.slug" class="input font-mono text-xs" />
                   </div>
                 </div>
                 <div>

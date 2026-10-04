@@ -1,5 +1,6 @@
 import type { Component } from 'vue';
 import CardGrid from './CardGrid.vue';
+import CollectionList from './CollectionList.vue';
 import ContactFooter from './ContactFooter.vue';
 import Faq from './Faq.vue';
 import HeroCards from './HeroCards.vue';
@@ -12,6 +13,7 @@ import TextBlock from './TextBlock.vue';
 export const blockComponents: Record<string, Component> = {
   'hero-cards': HeroCards,
   'card-grid': CardGrid,
+  'collection-list': CollectionList,
   text: TextBlock,
   'image-text': ImageText,
   statement: Statement,

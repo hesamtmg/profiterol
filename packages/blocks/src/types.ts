@@ -7,7 +7,9 @@ export type FieldType =
   | 'select'
   | 'number'
   | 'boolean'
-  | 'list';
+  | 'list'
+  /** Picks one of the site's collections (stored as its key). */
+  | 'collection';
 
 export interface FieldOption {
   value: string;
@@ -27,6 +29,8 @@ export interface FieldDef {
   /** Upper bound for `list` length. */
   max?: number;
   help?: string;
+  /** Visitor-facing label per locale (collection fields), e.g. `{ fa: 'کارفرما' }`. Falls back to `label`. */
+  labels?: Record<string, string>;
 }
 
 export type BlockCategory = 'hero' | 'content' | 'cards' | 'media' | 'contact';
@@ -47,6 +51,8 @@ export interface BlockNode {
   id: string;
   type: string;
   props: Record<string, unknown>;
+  /** Added by the API when it serves a page, e.g. a collection list's items. Never stored. */
+  data?: unknown;
 }
 
 export interface ValidationError {
