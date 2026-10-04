@@ -83,3 +83,25 @@
     padding-inline-start: 0 !important;
   }
 }
+
+/* In-place text editing on the editor canvas. */
+.editable {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 1ch;
+  border-radius: 0.3rem;
+  outline: none;
+  cursor: text;
+  transition: box-shadow 0.15s, background-color 0.15s;
+}
+.editable:hover {
+  box-shadow: 0 0 0 2px rgb(14 165 233 / 0.45);
+}
+.editable:focus {
+  box-shadow: 0 0 0 2px rgb(14 165 233);
+  background: rgb(14 165 233 / 0.08);
+}
+.editable:empty::before {
+  content: attr(data-placeholder);
+  opacity: 0.4;
+}

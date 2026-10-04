@@ -1,32 +1,22 @@
 import { Body, Controller, Get, Injectable, Put, UseGuards } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { isSafeUrl } from '@profiterol/blocks';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsEmail,
   IsObject,
   IsOptional,
   IsString,
   MaxLength,
   Validate,
+  ValidateIf,
   ValidateNested,
-  ValidatorConstraint,
-  ValidatorConstraintInterface,
 } from 'class-validator';
 import { Repository } from 'typeorm';
 import { AuthGuard, Roles } from '../auth/auth.guard';
+import { SafeUrl } from '../common/safe-url';
 import { Localized, SiteSettings } from './settings.entity';
-
-@ValidatorConstraint({ name: 'safeUrl' })
-class SafeUrl implements ValidatorConstraintInterface {
-  validate(value: unknown) {
-    return typeof value === 'string' && isSafeUrl(value);
-  }
-  defaultMessage() {
-    return 'must be a relative path or an http(s), mailto or tel link';
-  }
-}
 
 class MenuItemDto {
   @IsObject()
@@ -70,6 +60,11 @@ class UpdateSettingsDto {
   @IsOptional()
   @IsObject()
   maintenanceText?: Localized;
+
+  @IsOptional()
+  @ValidateIf((o: UpdateSettingsDto) => o.notifyEmail !== '')
+  @IsEmail()
+  notifyEmail?: string;
 }
 
 @Injectable()
@@ -91,7 +86,15 @@ export class SettingsController {
   constructor(private readonly settings: SettingsService) {}
 
   @Get('public/settings')
-  get() {
+  async get() {
+    const { notifyEmail: _private, ...rest } = await this.settings.get();
+    return rest;
+  }
+
+  @Get('admin/settings')
+  @UseGuards(AuthGuard)
+  @Roles('admin')
+  getPrivate() {
     return this.settings.get();
   }
 

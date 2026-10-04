@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EditableText from '../site/EditableText.vue';
 /**
  * The expanding person cards from amsr-portfolio: the active card grows and shows its photo and text,
  * the others fold into colored strips with a big letter. Hovering a strip nudges it; clicking opens it.
@@ -61,20 +62,20 @@ const cards = computed(() => props.p.cards ?? []);
             class="absolute inset-x-0 bottom-0 flex flex-col items-start gap-4 p-6 transition-all duration-1000 @3xl:max-w-2xl @3xl:p-12"
             :class="i === active ? 'translate-y-0 opacity-100 delay-300' : 'pointer-events-none translate-y-8 opacity-0'"
           >
-            <h1 class="text-4xl font-black leading-tight @3xl:text-6xl">{{ card.title }}</h1>
-            <p class="text-base font-extralight leading-relaxed @3xl:text-xl">{{ card.text }}</p>
+            <h1 class="text-4xl font-black leading-tight @3xl:text-6xl"><EditableText :value="card.title" :path="`cards.${i}.title`" /></h1>
+            <p class="text-base font-extralight leading-relaxed @3xl:text-xl"><EditableText :value="card.text" :path="`cards.${i}.text`" multiline /></p>
             <a
               v-if="card.buttonLabel"
               :href="resolveHref(card.buttonLink, locale)"
               class="btn-pill bg-white text-dark hover:scale-105 hover:shadow-xl"
             >
-              {{ card.buttonLabel }}
+              <EditableText :value="card.buttonLabel" :path="`cards.${i}.buttonLabel`" />
               <i class="mdi mdi-arrow-right rtl:rotate-180" />
             </a>
           </div>
         </div>
       </div>
-      <Marquee v-if="p.marquee" :p="{ text: p.marquee, seconds: 30 }" bare />
+      <Marquee v-if="p.marquee" :p="{ text: p.marquee, seconds: 30 }" text-path="marquee" bare />
     </div>
   </section>
 </template>

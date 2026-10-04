@@ -10,6 +10,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { locales } from '@profiterol/blocks';
+import { SLUG_PATTERN } from '../common/slug';
 
 const localeCodes = locales.map((l) => l.code);
 
@@ -24,7 +25,7 @@ export class TranslationDto {
   /** Words joined by dashes or slashes; any script is allowed so Persian slugs work. */
   @IsString()
   @MaxLength(200)
-  @Matches(/^[\p{L}\p{M}\p{N}\u200c]+(?:[-/][\p{L}\p{M}\p{N}\u200c]+)*$/u, { message: 'slug may contain letters, digits, - and /' })
+  @Matches(SLUG_PATTERN, { message: 'slug may contain letters, digits, - and /' })
   slug: string;
 
   @IsOptional()

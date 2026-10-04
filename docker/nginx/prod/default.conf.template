@@ -1,0 +1,96 @@
+# Production nginx. The official image fills in ${DOMAIN} and ${EXTRA_DOMAINS} from the environment
+# at start-up; nginx's own variables ($host, $request_uri, …) are left alone.
+
+# Look containers up through Docker's DNS on every request (cached 10s) rather than once at start-up,
+# so containers recreated by an update are found at their new addresses.
+resolver 127.0.0.11 valid=10s ipv6=off;
+map $host $api_upstream { default http://api:3001; }
+map $host $web_upstream { default http://web:3000; }
+
+# Port 80: Let's Encrypt challenges, everything else goes to HTTPS.
+server {
+  # IPv4 only inside the container: Docker networks have no IPv6 by default, and Docker's
+  # published ports still accept IPv6 visitors on the host.
+  listen 80;
+  server_name ${DOMAIN} ${EXTRA_DOMAINS};
+  server_tokens off;
+
+  location /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+  }
+
+  # Docker health check; only ever answers "ok".
+  location = /nginx-health {
+    access_log off;
+    return 200 'ok';
+  }
+
+  location / {
+    return 301 https://${DOMAIN}$request_uri;
+  }
+}
+
+server {
+  listen 443 ssl;
+  http2 on;
+  server_name ${DOMAIN} ${EXTRA_DOMAINS};
+  server_tokens off;
+
+  ssl_certificate /etc/letsencrypt/live/${DOMAIN}/fullchain.pem;
+  ssl_certificate_key /etc/letsencrypt/live/${DOMAIN}/privkey.pem;
+  ssl_protocols TLSv1.2 TLSv1.3;
+  ssl_prefer_server_ciphers off;
+  ssl_session_cache shared:SSL:10m;
+  ssl_session_timeout 1d;
+  ssl_session_tickets off;
+
+  # Other names (e.g. www.) redirect to the main domain.
+  if ($host != "${DOMAIN}") {
+    return 301 https://${DOMAIN}$request_uri;
+  }
+
+  client_max_body_size 25m;
+
+  include /etc/nginx/snippets/security-headers.conf;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;
+
+  location /uploads/ {
+    alias /data/uploads/;
+    expires 30d;
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "public, immutable";
+    add_header Content-Security-Policy "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'" always;
+    try_files $uri =404;
+  }
+
+  # While the site or API restarts (a few seconds during an update), show a friendly page
+  # with 503 + Retry-After instead of nginx's bare "502 Bad Gateway".
+  error_page 502 504 =503 /_unavailable.html;
+  location = /_unavailable.html {
+    root /usr/share/nginx/errors;
+    internal;
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Retry-After 10 always;
+    add_header Cache-Control "no-store" always;
+  }
+
+  location /api/ {
+    proxy_pass $api_upstream;
+    include /etc/nginx/snippets/proxy.conf;
+  }
+
+  location /_nuxt/ {
+    proxy_pass $web_upstream;
+    include /etc/nginx/snippets/proxy.conf;
+    include /etc/nginx/snippets/security-headers.conf;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+  }
+
+  location / {
+    proxy_pass $web_upstream;
+    include /etc/nginx/snippets/proxy.conf;
+  }
+}

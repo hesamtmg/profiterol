@@ -9,9 +9,13 @@ function required(name: string, fallback?: string): string {
 export const config = {
   port: Number(process.env.PORT ?? 3001),
   databaseUrl: required('DATABASE_URL', 'postgres://profiterol:profiterol@localhost:5432/profiterol'),
+  // Off by default: tables are created and updated by migrations.
   dbSync: process.env.DB_SYNC === 'true',
   jwtSecret: required('JWT_SECRET', process.env.NODE_ENV === 'production' ? undefined : 'dev-only-secret'),
   adminEmail: process.env.ADMIN_EMAIL ?? 'admin@example.com',
   adminPassword: process.env.ADMIN_PASSWORD ?? 'admin12345',
   uploadDir: resolve(process.env.UPLOAD_DIR ?? './uploads'),
+  /** e.g. smtps://user:pass@smtp.example.com:465 — leave empty to keep form messages in the inbox only. */
+  smtpUrl: process.env.SMTP_URL ?? '',
+  smtpFrom: process.env.SMTP_FROM || 'Profiterol <no-reply@localhost>',
 };

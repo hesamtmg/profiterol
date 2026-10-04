@@ -13,9 +13,20 @@ async function load() {
   items.value = await api<MediaItem[]>('/admin/media');
 }
 
+const dragOver = ref(false);
+
+async function onDrop(e: DragEvent) {
+  dragOver.value = false;
+  await uploadFiles(Array.from(e.dataTransfer?.files ?? []));
+}
+
 async function upload(e: Event) {
   const input = e.target as HTMLInputElement;
-  const files = Array.from(input.files ?? []);
+  await uploadFiles(Array.from(input.files ?? []));
+  input.value = '';
+}
+
+async function uploadFiles(files: File[]) {
   uploading.value = true;
   error.value = '';
   for (const file of files) {
@@ -28,7 +39,6 @@ async function upload(e: Event) {
     }
   }
   uploading.value = false;
-  input.value = '';
 }
 
 async function remove(item: MediaItem) {
@@ -51,11 +61,17 @@ onMounted(load);
 </script>
 
 <template>
-  <div>
+  <div
+    class="min-h-[70vh] rounded-[2rem] transition"
+    :class="{ 'bg-sky-50 ring-4 ring-sky-300': dragOver }"
+    @dragover.prevent="dragOver = true"
+    @dragleave.self="dragOver = false"
+    @drop.prevent="onDrop"
+  >
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl font-black">Media</h1>
-        <p class="mt-1 text-sm font-light text-slate-500">JPG, PNG, WebP, GIF, AVIF, MP4 and WebM, up to 20 MB each.</p>
+        <p class="mt-1 text-sm font-light text-slate-500">JPG, PNG, WebP, GIF, AVIF, MP4 and WebM, up to 20 MB each. Drop files anywhere on this page to upload them.</p>
       </div>
       <label class="btn-dark cursor-pointer">
         <i class="mdi mdi-upload" /> {{ uploading ? 'Uploading…' : 'Upload files' }}

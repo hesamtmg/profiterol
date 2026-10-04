@@ -114,6 +114,53 @@ const definitions: BlockDef[] = [
     },
   },
   {
+    type: 'collection-list',
+    label: 'Collection list',
+    icon: 'mdi-view-dashboard-variant-outline',
+    category: 'cards',
+    description: 'Shows the latest published items of a collection (projects, blog posts…) as cards.',
+    fields: [
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'subtitle', label: 'Subtitle', type: 'textarea' },
+      { key: 'collection', label: 'Collection', type: 'collection' },
+      {
+        key: 'variant',
+        label: 'Card style',
+        type: 'select',
+        options: [
+          { value: 'photo', label: 'Photo cards' },
+          { value: 'raised', label: 'Raised cards with hover' },
+          { value: 'plain', label: 'Plain (icon + text)' },
+        ],
+      },
+      {
+        key: 'columns',
+        label: 'Columns',
+        type: 'select',
+        options: [
+          { value: '2', label: '2' },
+          { value: '3', label: '3' },
+          { value: '4', label: '4' },
+        ],
+      },
+      { key: 'limit', label: 'How many items', type: 'number' },
+      { key: 'tag', label: 'Only items with this tag', type: 'text' },
+      { key: 'showFilters', label: 'Show tag filters', type: 'boolean' },
+      { key: 'buttonLabel', label: '“See all” button label', type: 'text', help: 'Links to the collection’s own page. Leave empty to hide.' },
+    ],
+    defaults: {
+      title: 'Recent projects',
+      subtitle: '',
+      collection: 'projects',
+      variant: 'photo',
+      columns: '3',
+      limit: 6,
+      tag: '',
+      showFilters: false,
+      buttonLabel: 'See all',
+    },
+  },
+  {
     type: 'text',
     label: 'Text',
     icon: 'mdi-format-text',
@@ -178,14 +225,192 @@ const definitions: BlockDef[] = [
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'text', label: 'Text', type: 'textarea' },
       { key: 'image', label: 'Background image', type: 'image' },
+      { key: 'fixedImage', label: 'Fixed background (parallax)', type: 'boolean' },
       ...button,
     ],
     defaults: {
+      fixedImage: false,
       title: 'Speed is our key power',
       text: 'A sentence that sums up why people should choose you.',
       image: '',
       buttonLabel: 'Get in touch',
       buttonLink: '#contact',
+    },
+  },
+  {
+    type: 'video-hero',
+    label: 'Video hero',
+    icon: 'mdi-movie-open-outline',
+    category: 'hero',
+    description: 'A full-width muted video playing in the background, with a title and a button.',
+    fields: [
+      { key: 'video', label: 'Video (MP4 or WebM)', type: 'video' },
+      { key: 'poster', label: 'Image shown while loading', type: 'image' },
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'text', label: 'Text', type: 'textarea' },
+      ...button,
+      {
+        key: 'height',
+        label: 'Height',
+        type: 'select',
+        options: [
+          { value: 'tall', label: 'Tall' },
+          { value: 'medium', label: 'Medium' },
+        ],
+      },
+    ],
+    defaults: {
+      video: '',
+      poster: '',
+      title: 'Watch what we do',
+      text: 'A short line that sits on top of your video.',
+      buttonLabel: 'See our work',
+      buttonLink: '#projects',
+      height: 'tall',
+    },
+  },
+  {
+    type: 'carousel',
+    label: 'Carousel',
+    icon: 'mdi-view-carousel-outline',
+    category: 'media',
+    description: 'Slides with a photo, a heading and a button. Swipe, use the arrows, or let it play.',
+    fields: [
+      {
+        key: 'slides',
+        label: 'Slides',
+        type: 'list',
+        itemLabel: 'title',
+        max: 12,
+        fields: [
+          { key: 'image', label: 'Image', type: 'image' },
+          { key: 'title', label: 'Title', type: 'text' },
+          { key: 'text', label: 'Text', type: 'textarea' },
+          ...button,
+        ],
+      },
+      { key: 'autoplay', label: 'Play automatically', type: 'boolean' },
+      { key: 'seconds', label: 'Seconds per slide', type: 'number' },
+    ],
+    defaults: {
+      slides: [
+        { image: '', title: 'First slide', text: 'Add a photo and a few words.', buttonLabel: '', buttonLink: '' },
+        { image: '', title: 'Second slide', text: 'Slides change by themselves or with the arrows.', buttonLabel: '', buttonLink: '' },
+        { image: '', title: 'Third slide', text: 'On phones, swipe to move between them.', buttonLabel: '', buttonLink: '' },
+      ],
+      autoplay: true,
+      seconds: 6,
+    },
+  },
+  {
+    type: 'gallery',
+    label: 'Gallery',
+    icon: 'mdi-image-multiple-outline',
+    category: 'media',
+    description: 'A grid of photos that open full screen when clicked.',
+    fields: [
+      { key: 'title', label: 'Title', type: 'text' },
+      {
+        key: 'layout',
+        label: 'Layout',
+        type: 'select',
+        options: [
+          { value: 'grid', label: 'Even grid' },
+          { value: 'masonry', label: 'Masonry (keeps each photo’s shape)' },
+        ],
+      },
+      {
+        key: 'columns',
+        label: 'Columns',
+        type: 'select',
+        options: [
+          { value: '2', label: '2' },
+          { value: '3', label: '3' },
+          { value: '4', label: '4' },
+        ],
+      },
+      {
+        key: 'images',
+        label: 'Photos',
+        type: 'list',
+        itemLabel: 'caption',
+        max: 60,
+        fields: [
+          { key: 'image', label: 'Image', type: 'image' },
+          { key: 'caption', label: 'Caption', type: 'text' },
+        ],
+      },
+    ],
+    defaults: {
+      title: 'Gallery',
+      layout: 'grid',
+      columns: '3',
+      images: [],
+    },
+  },
+  {
+    type: 'video',
+    label: 'Video player',
+    icon: 'mdi-play-box-outline',
+    category: 'media',
+    description: 'An uploaded video, or a YouTube or Aparat link.',
+    fields: [
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'video', label: 'Uploaded video', type: 'video' },
+      { key: 'link', label: 'Or a YouTube / Aparat link', type: 'url' },
+      { key: 'poster', label: 'Cover image (uploaded videos)', type: 'image' },
+      { key: 'caption', label: 'Caption', type: 'text' },
+    ],
+    defaults: { title: '', video: '', link: '', poster: '', caption: '' },
+  },
+  {
+    type: 'contact-form',
+    label: 'Contact form',
+    icon: 'mdi-form-select',
+    category: 'contact',
+    description: 'A form visitors fill in. Messages arrive in the admin inbox and can be emailed to you.',
+    fields: [
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'text', label: 'Text', type: 'textarea' },
+      {
+        key: 'fields',
+        label: 'Form fields',
+        type: 'list',
+        itemLabel: 'label',
+        max: 20,
+        fields: [
+          { key: 'label', label: 'Label', type: 'text' },
+          {
+            key: 'type',
+            label: 'Type',
+            type: 'select',
+            options: [
+              { value: 'text', label: 'Short text' },
+              { value: 'email', label: 'Email' },
+              { value: 'tel', label: 'Phone' },
+              { value: 'textarea', label: 'Long text' },
+              { value: 'select', label: 'Choice' },
+            ],
+          },
+          { key: 'required', label: 'Required', type: 'boolean' },
+          { key: 'options', label: 'Choices (comma-separated)', type: 'text' },
+          { key: 'placeholder', label: 'Placeholder', type: 'text' },
+        ],
+      },
+      { key: 'submitLabel', label: 'Button label', type: 'text' },
+      { key: 'successMessage', label: 'Message after sending', type: 'textarea' },
+    ],
+    defaults: {
+      title: 'Send us a message',
+      text: 'We usually reply within one working day.',
+      fields: [
+        { label: 'Name', type: 'text', required: true, options: '', placeholder: '' },
+        { label: 'Email', type: 'email', required: true, options: '', placeholder: '' },
+        { label: 'Phone', type: 'tel', required: false, options: '', placeholder: '' },
+        { label: 'Message', type: 'textarea', required: true, options: '', placeholder: '' },
+      ],
+      submitLabel: 'Send',
+      successMessage: 'Thank you! We received your message.',
     },
   },
   {
@@ -262,10 +487,22 @@ const anchorField: FieldDef = {
   help: 'Letters, digits and dashes, e.g. services',
 };
 
+/** Every block can be limited to small or large screens. */
+const showOnField: FieldDef = {
+  key: 'showOn',
+  label: 'Show on',
+  type: 'select',
+  options: [
+    { value: '', label: 'All devices' },
+    { value: 'mobile', label: 'Phones only' },
+    { value: 'desktop', label: 'Tablets and desktops only' },
+  ],
+};
+
 export const blocks: BlockDef[] = definitions.map((b) => ({
   ...b,
-  fields: [...b.fields, anchorField],
-  defaults: { anchor: '', ...b.defaults },
+  fields: [...b.fields, anchorField, showOnField],
+  defaults: { anchor: '', showOn: '', ...b.defaults },
 }));
 
 export function getBlock(type: string): BlockDef | undefined {

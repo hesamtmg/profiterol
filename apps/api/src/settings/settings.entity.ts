@@ -37,6 +37,10 @@ export class SiteSettings {
   @Column({ type: 'jsonb', default: () => "'{}'" })
   maintenanceText: Localized;
 
+  /** Where new form messages are emailed (needs SMTP_URL). Empty means inbox only. */
+  @Column({ default: '' })
+  notifyEmail: string;
+
   @UpdateDateColumn({ type: 'timestamptz' })
   updatedAt: Date;
 }

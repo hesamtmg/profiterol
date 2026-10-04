@@ -10,6 +10,8 @@ async function bootstrap() {
   mkdirSync(config.uploadDir, { recursive: true });
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // Behind nginx: take the visitor's address from X-Forwarded-For (used to rate-limit forms).
+  app.set('trust proxy', 'loopback, linklocal, uniquelocal');
   app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   // nginx serves /uploads in Docker; this keeps local development working without it.

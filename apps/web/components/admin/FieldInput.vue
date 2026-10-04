@@ -7,13 +7,38 @@ import MediaPicker from './MediaPicker.vue';
 const props = defineProps<{ field: FieldDef; dir?: string }>();
 const model = defineModel<unknown>();
 const picking = ref(false);
+const dragOver = ref(false);
+const { upload, uploading, error: uploadError } = useUpload();
+
+async function uploadImage(file: File | null) {
+  dragOver.value = false;
+  if (!file) return;
+  const media = await upload(file);
+  if (media) model.value = media.url;
+}
+
+function onImageDrop(e: DragEvent) {
+  uploadImage(mediaFrom(e.dataTransfer, props.field.type === 'video' ? 'video' : 'image'));
+}
+
+/** Pasting a copied image (e.g. a screenshot) uploads it; pasting text works as usual. */
+function onImagePaste(e: ClipboardEvent) {
+  const file = imageFrom(e.clipboardData);
+  if (!file) return;
+  e.preventDefault();
+  uploadImage(file);
+}
+const { list: collections, load: loadCollections } = useAdminCollections();
+if (props.field.type === 'collection') loadCollections().catch(() => undefined);
 const openItem = ref<number | null>(0);
 
 const list = computed(() => (Array.isArray(model.value) ? (model.value as Record<string, unknown>[]) : []));
 
 function addItem() {
+  // Read the index first: the model only reflects the new list after the parent re-renders.
+  const index = list.value.length;
   model.value = [...list.value, createListItem(props.field)];
-  openItem.value = list.value.length - 1;
+  openItem.value = index;
 }
 
 function removeItem(i: number) {
@@ -64,6 +89,10 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     <select v-else-if="field.type === 'select'" v-model="model" class="input">
       <option v-for="o in field.options" :key="o.value" :value="o.value">{{ o.label }}</option>
     </select>
+    <select v-else-if="field.type === 'collection'" v-model="model" class="input">
+      <option v-if="!collections?.length" disabled value="">No collections yet</option>
+      <option v-for="c in collections ?? []" :key="c.key" :value="c.key">{{ c.name.en || c.key }}</option>
+    </select>
     <div v-else-if="field.type === 'color'" class="flex items-center gap-2">
       <input
         type="color"
@@ -74,15 +103,38 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
       <input v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="#00a998" />
     </div>
 
-    <div v-else-if="field.type === 'image'" class="flex items-center gap-2">
-      <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-        <img v-if="model" :src="model as string" alt="" class="h-full w-full object-cover" />
-        <span v-else class="flex h-full items-center justify-center text-slate-300"><i class="mdi mdi-image-outline text-xl" /></span>
+    <div
+      v-else-if="field.type === 'image' || field.type === 'video'"
+      class="rounded-2xl p-1 transition"
+      :class="dragOver ? 'bg-sky-50 ring-2 ring-sky-400' : ''"
+      @dragover.prevent="dragOver = true"
+      @dragleave="dragOver = false"
+      @drop.prevent="onImageDrop"
+    >
+      <div class="flex items-center gap-2">
+        <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+          <video v-if="model && field.type === 'video'" :src="model as string" muted preload="metadata" class="h-full w-full object-cover" />
+          <img v-else-if="model" :src="model as string" alt="" class="h-full w-full object-cover" />
+          <span v-else class="flex h-full items-center justify-center text-slate-300">
+            <i class="mdi text-xl" :class="field.type === 'video' ? 'mdi-movie-outline' : 'mdi-image-outline'" />
+          </span>
+          <span v-if="uploading" class="absolute inset-0 flex items-center justify-center bg-white/80 text-slate-500">
+            <i class="mdi mdi-loading mdi-spin text-xl" />
+          </span>
+        </div>
+        <input
+          v-model="model"
+          type="text"
+          class="input min-w-0 font-mono text-xs"
+          dir="ltr"
+:placeholder="field.type === 'video' ? 'Drop a video' : 'Drop an image'"
+          @paste="onImagePaste"
+        />
+        <button type="button" class="btn-light shrink-0 !px-3" title="Choose from media" @click="picking = true">
+          <i class="mdi mdi-folder-image" />
+        </button>
       </div>
-      <input v-model="model" type="text" class="input min-w-0 font-mono text-xs" dir="ltr" placeholder="/uploads/…" />
-      <button type="button" class="btn-light shrink-0 !px-3" title="Choose from media" @click="picking = true">
-        <i class="mdi mdi-folder-image" />
-      </button>
+      <p v-if="uploadError" class="mt-1 text-[11px] text-red-600">{{ uploadError }}</p>
       <MediaPicker v-if="picking" @close="picking = false" @pick="(url) => ((model = url), (picking = false))" />
     </div>
 

@@ -19,7 +19,7 @@ This combines:
 - [x] nginx: `/api` → Nest, `/uploads` straight from the volume, everything else → Nuxt; gzip, security headers, long cache for `/_nuxt`
 - [x] `.env.example` covering every setting
 - [ ] ESLint + Prettier config shared across the workspaces
-- [ ] CI (GitHub Actions): install, build, test, and Docker build on every PR
+- [x] CI (GitHub Actions): build, unit tests, API end-to-end tests against Postgres, migration drift check, web build, Docker build
 - [ ] Pre-commit hook (lint-staged)
 
 ## Phase 1: Core data and auth
@@ -27,7 +27,7 @@ This combines:
 - [x] JWT login (`POST /api/auth/login`), `GET /api/auth/me`, and an auth guard with `@Roles()`
 - [x] First admin created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` on first start
 - [x] Locales declared once (`packages/blocks/src/locales.ts`) instead of `*_en` columns
-- [ ] **TypeORM migrations** instead of `DB_SYNC=true` (generate the first migration from the current entities)
+- [x] **TypeORM migrations**, run automatically on start (`npm run migration:generate --name=X -w @profiterol/api` after changing an entity)
 - [ ] User management screen: invite, change role, deactivate
 - [ ] Password reset by email; optional 2FA (minicms had both)
 - [ ] Rate-limit login (`@nestjs/throttler`) and lock out after repeated failures
@@ -45,7 +45,7 @@ This combines:
 - [ ] Page revisions: keep the last N versions and allow restoring one
 - [ ] Scheduled publishing (minicms `expire_time` / publish at)
 - [ ] Nested blocks (columns/containers holding other blocks)
-- [ ] Per-block visibility: hide on mobile or desktop
+- [x] Per-block visibility: show on all devices, phones only, or tablets and desktops only (badge and dimming in the editor's previews)
 - [ ] Per-block style options: background color/image, spacing, full-bleed vs panel
 - [ ] Duplicate a page; move pages into folders; parent/child URLs
 
@@ -77,9 +77,9 @@ This combines:
 - [x] "Copy blocks from the other language" to start a translation
 - [x] Undo / redo per language; keyboard shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Shift+Z, Delete, Esc)
 - [x] Unsaved-changes guard; Save and Publish buttons; live/draft status
-- [ ] **Inline text editing**: double-click text on the canvas to edit it in place
-- [ ] Autosave drafts every few seconds
-- [ ] Drag-and-drop media straight onto image fields
+- [x] **Inline text editing**: click any text on the canvas and type; the property panel and undo history follow along
+- [x] Autosave a few seconds after each change (pages, and collection items while they are drafts), with an on/off switch
+- [x] Drop a photo onto a block to use it as that block's image; drop or paste images into any image field, the media library window and the Media page
 - [ ] Rich text field (bold, italic, links, lists) with sanitized HTML output
 - [ ] Block presets / "sections": save a configured block and reuse it
 - [ ] Shareable draft preview link (signed token)
@@ -98,27 +98,32 @@ From **amsr-portfolio**:
 From **minicms**'s 12 section kinds:
 - [x] Image + text, image on either side (kinds 3–6) (`image-text`)
 - [x] Text (`text`)
-- [ ] Video hero, autoplay muted (kind 1)
-- [ ] Three images (kind 2)
-- [ ] Fixed/parallax image left/right (kinds 5–6)
-- [ ] Contact form (kind 7). Needs Phase 8.
-- [ ] Info/request form (kind 8) and complex form (kind 9)
-- [ ] Video player (kind 10)
-- [ ] Carousel / slider (kind 11, plus the minicms sliders table)
-- [ ] Gallery grid with lightbox (kind 12)
+- [x] Video hero, autoplay muted, still for visitors who turn off motion (kind 1) (`video-hero`)
+- [x] Three images (kind 2): use the Gallery block with 3 columns
+- [x] Fixed/parallax background (kinds 5–6): “Fixed background” option on the Statement block
+- [x] Contact form (kind 7) (`contact-form`)
+- [x] Info/request and complex forms (kinds 8–9): the contact form's fields are editable (short/long text, email, phone, choice; required or not)
+- [x] Video player: uploaded video, or a YouTube / Aparat link (kind 10) (`video`)
+- [x] Carousel with arrows, dots, swipe and optional autoplay (kind 11) (`carousel`)
+- [x] Gallery, even grid or masonry, with a full-screen viewer and keyboard arrows (kind 12) (`gallery`)
 
 New:
-- [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider, embed (YouTube, Aparat)
-- [ ] **Collection list** block: shows items of any collection as cards (Phase 6)
+- [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider
+- [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
-- [ ] Generic `collections` + `collection_items` (JSONB fields + per-locale values) with a field-schema editor
-- [ ] Blog: posts, categories, tags, author, reading time, view count (port from minicms)
-- [ ] Projects / portfolio, shown as AMSR-style cards with a detail page
-- [ ] Team, FAQ, partners, careers (jobs + applications), feedback
-- [ ] Dynamic pages: `/blog/{slug}` and `/projects/{slug}` from a template page
+- [x] Generic collections and items: built-in title, address, summary, story, tags and cover, plus custom fields (short/long text, link, image, gallery, number, yes/no, color) with labels per language
+- [x] Field builder in the admin; values are checked against it on save
+- [x] Items have draft/published status, one version per language, and addresses unique per collection and language
+- [x] Blog collection seeded (posts with tags and an author field)
+- [ ] Blog extras: categories as their own list, reading time, view count (minicms had these)
+- [x] Projects collection seeded, shown as AMSR-style cards with a detail page (cover, story, details, gallery with lightbox, related items)
+- [ ] Team, FAQ, partners, careers (jobs + applications), feedback: create these as collections in the admin; careers applications need forms (Phase 8)
+- [x] Item pages at `/{locale}/{collection}/{item}` and an automatic index page at `/{locale}/{collection}`, in the sitemap and with hreflang
+- [ ] Let editors design the item page layout with blocks (template page)
 - [ ] Search across pages and items
-- [ ] Filtering and sorting on collection-list blocks
+- [x] Filter by tag (block setting and clickable chips)
+- [ ] Manual ordering and pagination
 
 ## Phase 7: Media library
 - [x] Upload (JPG, PNG, WebP, GIF, AVIF, MP4, WebM; 20 MB; no SVG), random file names, list, delete
@@ -129,10 +134,13 @@ New:
 - [ ] S3-compatible storage option (MinIO in Docker)
 
 ## Phase 8: Forms and inbox
-- [ ] Form-builder block (fields, required, validation) whose submissions go to the API
-- [ ] Inbox in the admin, with CSV export
-- [ ] Email notifications (SMTP) and optional SMS (minicms used IPPanel)
-- [ ] Spam protection: honeypot + rate limit + optional captcha
+- [x] Form block with editable fields; the API checks every answer against the published form (required, email, phone, choices, length), with messages in the visitor's language
+- [x] Inbox in the admin: unread badge, read/unread, reply by email, delete, CSV export (opens in Excel with Persian intact)
+- [x] Email notifications through SMTP (`SMTP_URL`) to the address set in Site settings
+- [ ] SMS notifications (minicms used IPPanel)
+- [x] Spam protection: hidden honeypot field, minimum fill time, 5 messages per 10 minutes per visitor
+- [ ] Optional captcha
+- [ ] File uploads in forms (e.g. CVs for career applications)
 
 ## Phase 9: Site settings and branding
 - [x] Site name per language, logo, favicon
@@ -151,17 +159,26 @@ New:
 - [ ] Sign-up and plans if this becomes a hosted product
 
 ## Phase 11: Quality and security
-- [ ] API e2e tests (Jest + Supertest against a test Postgres)
+- [x] API end-to-end tests against a real Postgres (`npm run test:e2e -w @profiterol/api`), run in CI
 - [ ] Component tests for blocks (Vitest) and Playwright tests for the editor
 - [ ] Content-Security-Policy for the site and admin
+- [x] Login cookie is marked Secure when the site runs on HTTPS
 - [ ] Store the JWT in an httpOnly cookie, with CSRF protection, instead of a JS-readable cookie
 - [ ] Helmet, request size limits and CORS rules on the API
 - [ ] Accessibility pass: focus states, contrast checks in the theme editor, reduced motion (done for the marquee)
 - [ ] Lighthouse budget: LCP < 2.5s on mobile
 
 ## Phase 12: Deployment and operations
-- [ ] Production compose: TLS (Let's Encrypt via certbot or Caddy), HTTP→HTTPS, HSTS
-- [ ] Nightly `pg_dump` backups plus uploads backup, with a tested restore
-- [ ] Health checks for api/web in compose; restart policies (done)
-- [ ] Logs and metrics (pino + Loki/Grafana, or a hosted option)
-- [ ] Zero-downtime deploys (build images in CI, push to a registry, `docker compose pull && up -d`)
+See [DEPLOY.md](./DEPLOY.md).
+- [x] Production compose (`docker-compose.prod.yml`): HTTPS with Let's Encrypt (certbot, automatic renewal), HTTP→HTTPS, HTTP/2, HSTS and security headers, other host names redirected to the main domain
+- [x] Required secrets: the stack refuses to start while a password, JWT secret or domain is missing
+- [x] Nightly `pg_dump` backups plus uploads archive, old ones pruned, restore script with confirmation; backup → data loss → restore tested end to end
+- [x] Health checks for db, api, web and nginx; restart policies; log rotation
+- [x] CI builds images and pushes them to GitHub Container Registry (`latest` + commit SHA); optional SSH deploy on every push to `main`
+- [x] `scripts/deploy.sh`: backup, pull or build, restart, wait until healthy; roll back with `TAG=<sha>`; `--no-pull` for servers without registry access
+- [x] Friendly bilingual "back in a moment" page (503 + Retry-After) while containers restart; tested: 1 of 310 requests affected during an update
+- [x] CI checks the production files: shellcheck, compose config, nginx config, backup image
+- [ ] True zero-downtime updates (two app copies side by side, blue/green)
+- [ ] Off-site backup copies (rsync/rclone/S3) and backup-failure alerts
+- [ ] Uptime monitoring and metrics (e.g. Uptime Kuma, Grafana)
+- [ ] Postgres tuning for the server's memory; connection pooling if traffic grows

@@ -39,3 +39,50 @@ test('theme tokens cannot break out of the style declaration', () => {
   assert.ok(!css.includes('}'));
   assert.ok(css.includes('--c-primary:redbodydisplay:none'));
 });
+
+test('collection field definitions: keys, reserved names and galleries', async () => {
+  const { validateFieldDefs, cleanFieldDef, galleryItemFields } = await import('../dist/esm/index.js');
+  const ok = [
+    { key: 'client', label: 'Client', type: 'text' },
+    cleanFieldDef({ key: 'gallery', label: 'Gallery', type: 'list' }),
+  ];
+  assert.deepEqual(validateFieldDefs(ok), []);
+  assert.deepEqual(ok[1].fields, galleryItemFields);
+
+  const bad = validateFieldDefs([
+    { key: 'title', label: 'Title', type: 'text' },
+    { key: 'Bad Key', label: 'x', type: 'text' },
+    { key: 'a', label: 'A', type: 'collection' },
+    { key: 'b', label: 'B', type: 'list', fields: [{ key: 'x', label: 'X', type: 'text' }] },
+  ]);
+  assert.deepEqual(bad.map((e) => e.path), ['fields[0].key', 'fields[1].key', 'fields[2].type', 'fields[3].fields']);
+});
+
+test('validateFields checks item data against a collection schema', async () => {
+  const { validateFields, cleanFieldDef } = await import('../dist/esm/index.js');
+  const fields = [{ key: 'year', label: 'Year', type: 'number' }, cleanFieldDef({ key: 'gallery', label: 'G', type: 'list' })];
+  assert.deepEqual(validateFields(fields, { year: 2024, gallery: [{ image: '/uploads/a.jpg', caption: 'x' }] }), []);
+  const errors = validateFields(fields, { year: '2024', gallery: [{ image: 'javascript:x' }], other: 1 });
+  assert.deepEqual(errors.map((e) => e.path).sort(), ['data.gallery[0].image', 'data.other', 'data.year']);
+});
+
+test('video links: only YouTube and Aparat are embedded', async () => {
+  const { videoEmbedUrl } = await import('../dist/esm/index.js');
+  assert.equal(videoEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  assert.equal(videoEmbedUrl('https://youtu.be/dQw4w9WgXcQ?t=3'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  assert.equal(videoEmbedUrl('https://www.youtube.com/shorts/abcDEF12345'), 'https://www.youtube-nocookie.com/embed/abcDEF12345');
+  assert.equal(videoEmbedUrl('https://www.aparat.com/v/x7Yz9'), 'https://www.aparat.com/video/video/embed/videohash/x7Yz9/vt/frame');
+  assert.equal(videoEmbedUrl('https://evil.example/watch?v=dQw4w9WgXcQ'), null);
+  assert.equal(videoEmbedUrl('javascript:alert(1)'), null);
+  assert.equal(videoEmbedUrl('https://youtube.com/watch?v=<script>'), null);
+});
+
+test('link safety: relative links and page addresses pass, hidden schemes do not', async () => {
+  const { isSafeUrl } = await import('../dist/esm/index.js');
+  for (const ok of ['', '/about', '#contact', 'contact', 'پروژه‌ها/مورد', 'https://example.com', 'mailto:a@b.co', 'tel:+98']) {
+    assert.equal(isSafeUrl(ok), true, ok);
+  }
+  for (const bad of ['javascript:alert(1)', 'JavaScript:x', 'java\tscript:x', ' \njavascript:x', 'data:text/html,x', 'vbscript:x']) {
+    assert.equal(isSafeUrl(bad), false, JSON.stringify(bad));
+  }
+});
