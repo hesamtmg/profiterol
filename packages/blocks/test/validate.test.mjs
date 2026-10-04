@@ -65,3 +65,24 @@ test('validateFields checks item data against a collection schema', async () => 
   const errors = validateFields(fields, { year: '2024', gallery: [{ image: 'javascript:x' }], other: 1 });
   assert.deepEqual(errors.map((e) => e.path).sort(), ['data.gallery[0].image', 'data.other', 'data.year']);
 });
+
+test('video links: only YouTube and Aparat are embedded', async () => {
+  const { videoEmbedUrl } = await import('../dist/esm/index.js');
+  assert.equal(videoEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  assert.equal(videoEmbedUrl('https://youtu.be/dQw4w9WgXcQ?t=3'), 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+  assert.equal(videoEmbedUrl('https://www.youtube.com/shorts/abcDEF12345'), 'https://www.youtube-nocookie.com/embed/abcDEF12345');
+  assert.equal(videoEmbedUrl('https://www.aparat.com/v/x7Yz9'), 'https://www.aparat.com/video/video/embed/videohash/x7Yz9/vt/frame');
+  assert.equal(videoEmbedUrl('https://evil.example/watch?v=dQw4w9WgXcQ'), null);
+  assert.equal(videoEmbedUrl('javascript:alert(1)'), null);
+  assert.equal(videoEmbedUrl('https://youtube.com/watch?v=<script>'), null);
+});
+
+test('link safety: relative links and page addresses pass, hidden schemes do not', async () => {
+  const { isSafeUrl } = await import('../dist/esm/index.js');
+  for (const ok of ['', '/about', '#contact', 'contact', 'پروژه‌ها/مورد', 'https://example.com', 'mailto:a@b.co', 'tel:+98']) {
+    assert.equal(isSafeUrl(ok), true, ok);
+  }
+  for (const bad of ['javascript:alert(1)', 'JavaScript:x', 'java\tscript:x', ' \njavascript:x', 'data:text/html,x', 'vbscript:x']) {
+    assert.equal(isSafeUrl(bad), false, JSON.stringify(bad));
+  }
+});

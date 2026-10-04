@@ -115,10 +115,19 @@ export class PagesService {
       isHome: t.page.isHome,
       seoTitle: t.seoTitle || t.title,
       seoDescription: t.seoDescription,
-      blocks: await this.expandBlocks(t.publishedBlocks ?? [], locale),
+      blocks: await this.expandBlocks(t.publishedBlocks ?? [], locale, t.page.id),
       alternates: siblings.map((s) => ({ locale: s.locale, slug: t.page.isHome ? '' : s.slug })),
       updatedAt: t.page.updatedAt,
     };
+  }
+
+  /** A block as visitors currently see it, e.g. to check a form submission against its fields. */
+  async findPublishedBlock(pageId: string, locale: string, blockId: string): Promise<BlockNode | null> {
+    const t = await this.translations.findOne({
+      where: { page: { id: pageId, status: 'published' }, locale },
+      relations: { page: true },
+    });
+    return t?.publishedBlocks?.find((b) => b.id === blockId) ?? null;
   }
 
   /** Published pages for the sitemap. */
@@ -135,9 +144,11 @@ export class PagesService {
   }
 
   /** Attaches data that blocks need at render time, such as a collection list's items. */
-  private async expandBlocks(blocks: BlockNode[], locale: string): Promise<BlockNode[]> {
+  private async expandBlocks(blocks: BlockNode[], locale: string, pageId: string): Promise<BlockNode[]> {
     return Promise.all(
       blocks.map(async (b) => {
+        // Forms post back to /public/forms/<page>/<block>, so they need to know their page.
+        if (b.type === 'contact-form') return { ...b, data: { pageId, blockId: b.id } };
         if (b.type !== 'collection-list') return b;
         const p = b.props as { collection?: string; limit?: number; tag?: string };
         const data = await this.collections.listPublished(locale, String(p.collection ?? ''), {

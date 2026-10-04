@@ -34,3 +34,8 @@ export function useUpload() {
 export function imageFrom(data: DataTransfer | null): File | null {
   return Array.from(data?.files ?? []).find((f) => f.type.startsWith('image/')) ?? null;
 }
+
+/** The first file of the given kind ('image' or 'video') in a drop or paste, if any. */
+export function mediaFrom(data: DataTransfer | null, kind: 'image' | 'video'): File | null {
+  return Array.from(data?.files ?? []).find((f) => f.type.startsWith(`${kind}/`)) ?? null;
+}

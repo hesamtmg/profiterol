@@ -3,6 +3,8 @@ export type FieldType =
   | 'textarea'
   | 'url'
   | 'image'
+  /** An uploaded MP4/WebM file (same rules as a link). */
+  | 'video'
   | 'color'
   | 'select'
   | 'number'

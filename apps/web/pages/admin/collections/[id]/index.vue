@@ -27,6 +27,7 @@ const typeOptions: { value: FieldType; label: string }[] = [
   { value: 'url', label: 'Link' },
   { value: 'image', label: 'Image' },
   { value: 'list', label: 'Image gallery' },
+  { value: 'video', label: 'Video' },
   { value: 'number', label: 'Number' },
   { value: 'boolean', label: 'Yes / no' },
   { value: 'color', label: 'Color' },

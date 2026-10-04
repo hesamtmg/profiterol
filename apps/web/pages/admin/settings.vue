@@ -6,7 +6,7 @@ import type { SiteSettings } from '~/composables/useSite';
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 const api = useApi();
-const settings = ref<SiteSettings | null>(null);
+const settings = ref<(SiteSettings & { notifyEmail: string }) | null>(null);
 const saving = ref(false);
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -23,7 +23,7 @@ const colorFields: { key: keyof ThemeTokens; label: string }[] = [
 const imageField = (key: string, label: string): FieldDef => ({ key, label, type: 'image' });
 
 async function load() {
-  const s = await api<SiteSettings>('/public/settings');
+  const s = await api<SiteSettings & { notifyEmail: string }>('/admin/settings');
   s.theme = { ...defaultTheme, ...s.theme };
   for (const l of locales) {
     s.siteName[l.code] ??= '';
@@ -41,10 +41,10 @@ async function save() {
   saving.value = true;
   message.value = null;
   try {
-    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText } = settings.value;
+    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail } = settings.value;
     await api('/admin/settings', {
       method: 'PUT',
-      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText },
+      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail },
     });
     message.value = { kind: 'ok', text: 'Settings saved' };
   } catch (err) {
@@ -110,6 +110,15 @@ onMounted(load);
             <button type="button" class="btn-icon hover:!text-red-600" @click="settings.menu.splice(i, 1)"><i class="mdi mdi-close" /></button>
           </div>
         </div>
+      </section>
+
+      <section class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">Form messages</h2>
+        <p class="mt-1 text-xs text-slate-400">
+          Every message is kept in the Inbox. To also receive it by email, enter an address; the server needs SMTP_URL set.
+        </p>
+        <label class="field-label mt-4" for="notify">Email new messages to</label>
+        <input id="notify" v-model="settings.notifyEmail" type="email" class="input max-w-sm" dir="ltr" placeholder="you@example.com" />
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">

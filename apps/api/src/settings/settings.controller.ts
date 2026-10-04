@@ -4,11 +4,13 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsEmail,
   IsObject,
   IsOptional,
   IsString,
   MaxLength,
   Validate,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Repository } from 'typeorm';
@@ -58,6 +60,11 @@ class UpdateSettingsDto {
   @IsOptional()
   @IsObject()
   maintenanceText?: Localized;
+
+  @IsOptional()
+  @ValidateIf((o: UpdateSettingsDto) => o.notifyEmail !== '')
+  @IsEmail()
+  notifyEmail?: string;
 }
 
 @Injectable()
@@ -79,7 +86,15 @@ export class SettingsController {
   constructor(private readonly settings: SettingsService) {}
 
   @Get('public/settings')
-  get() {
+  async get() {
+    const { notifyEmail: _private, ...rest } = await this.settings.get();
+    return rest;
+  }
+
+  @Get('admin/settings')
+  @UseGuards(AuthGuard)
+  @Roles('admin')
+  getPrivate() {
     return this.settings.get();
   }
 

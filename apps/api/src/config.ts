@@ -15,4 +15,7 @@ export const config = {
   adminEmail: process.env.ADMIN_EMAIL ?? 'admin@example.com',
   adminPassword: process.env.ADMIN_PASSWORD ?? 'admin12345',
   uploadDir: resolve(process.env.UPLOAD_DIR ?? './uploads'),
+  /** e.g. smtps://user:pass@smtp.example.com:465 — leave empty to keep form messages in the inbox only. */
+  smtpUrl: process.env.SMTP_URL ?? '',
+  smtpFrom: process.env.SMTP_FROM || 'Profiterol <no-reply@localhost>',
 };

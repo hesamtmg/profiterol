@@ -22,6 +22,7 @@ const details = computed(() =>
 );
 const longText = computed(() => props.entry.collection.fields.filter((f) => f.type === 'textarea' && has(item.value.data[f.key])));
 const images = computed(() => props.entry.collection.fields.filter((f) => f.type === 'image' && has(item.value.data[f.key])));
+const videos = computed(() => props.entry.collection.fields.filter((f) => f.type === 'video' && has(item.value.data[f.key])));
 const galleries = computed(() => props.entry.collection.fields.filter((f) => f.type === 'list' && has(item.value.data[f.key])));
 
 const date = computed(() => {
@@ -58,7 +59,7 @@ const lightbox = ref<string | null>(null);
     </section>
 
     <!-- Story + details -->
-    <section v-if="paragraphs(item.body).length || details.length || longText.length || images.length" class="px-3 py-3 @3xl:px-6">
+    <section v-if="paragraphs(item.body).length || details.length || longText.length || images.length || videos.length" class="px-3 py-3 @3xl:px-6">
       <div class="panel grid gap-10 px-6 py-10 @3xl:grid-cols-[2fr_1fr] @3xl:gap-16 @3xl:px-20 @3xl:py-16">
         <div class="min-w-0 space-y-5 text-base font-extralight leading-loose @3xl:text-lg">
           <p v-for="(para, i) in paragraphs(item.body)" :key="i" class="whitespace-pre-line">{{ para }}</p>
@@ -73,6 +74,15 @@ const lightbox = ref<string | null>(null);
             :alt="label(f)"
             loading="lazy"
             class="w-full rounded-[2rem] object-cover"
+          />
+          <video
+            v-for="f in videos"
+            :key="f.key"
+            :src="String(item.data[f.key])"
+            :aria-label="label(f)"
+            controls
+            preload="metadata"
+            class="w-full rounded-[2rem] bg-dark"
           />
         </div>
         <dl v-if="details.length" class="h-fit space-y-5 rounded-[2rem] bg-slate-50 p-7">

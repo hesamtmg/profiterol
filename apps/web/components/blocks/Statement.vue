@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import EditableText from '../site/EditableText.vue';
 const props = defineProps<{
-  p: { title: string; text: string; image: string; buttonLabel: string; buttonLink: string };
+  p: { title: string; text: string; image: string; fixedImage: boolean; buttonLabel: string; buttonLink: string };
   locale: string;
 }>();
 
@@ -16,7 +16,7 @@ const background = computed(() =>
   <section class="px-3 py-3 @3xl:px-6">
     <div
       class="flex min-h-[50vh] flex-col items-center justify-center rounded-[2rem] px-6 py-16 text-center text-white @3xl:rounded-card @3xl:px-20"
-      :style="{ background }"
+      :style="{ background, backgroundAttachment: p.fixedImage && p.image ? 'fixed' : undefined }"
     >
       <h2 class="max-w-4xl text-3xl font-black leading-tight @3xl:text-6xl"><EditableText :value="p.title" path="title" /></h2>
       <p class="mt-5 max-w-2xl text-base font-extralight opacity-90 @3xl:text-xl"><EditableText :value="p.text" path="text" multiline /></p>

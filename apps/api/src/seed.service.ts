@@ -166,6 +166,54 @@ const homeFa: BlockNode[] = [
   }),
 ];
 
+const contactEn: BlockNode[] = [
+  block('contact-form', {
+    title: 'Tell us about your project',
+    text: 'Fill in the form and we will get back to you within one working day.',
+    fields: [
+      { label: 'Name', type: 'text', required: true, options: '', placeholder: '' },
+      { label: 'Email', type: 'email', required: true, options: '', placeholder: 'you@example.com' },
+      { label: 'What do you need?', type: 'select', required: true, options: 'Website, Branding, Something else', placeholder: '' },
+      { label: 'Message', type: 'textarea', required: true, options: '', placeholder: '' },
+    ],
+    submitLabel: 'Send message',
+    successMessage: 'Thank you! We received your message and will reply soon.',
+  }),
+  block('contact-footer', {
+    anchor: 'contact',
+    title: 'Or reach us directly',
+    text: 'Prefer email or a phone call? That works too.',
+    email: 'hello@example.com',
+    phone: '+98 21 0000 0000',
+    address: 'Tehran, Iran',
+    copyright: '© Profiterol',
+  }),
+];
+
+const contactFa: BlockNode[] = [
+  block('contact-form', {
+    title: 'درباره پروژه‌تان بگویید',
+    text: 'فرم را پر کنید؛ ظرف یک روز کاری پاسخ می‌دهیم.',
+    fields: [
+      { label: 'نام', type: 'text', required: true, options: '', placeholder: '' },
+      { label: 'ایمیل', type: 'email', required: true, options: '', placeholder: 'you@example.com' },
+      { label: 'به چه چیزی نیاز دارید؟', type: 'select', required: true, options: 'وب‌سایت، برندینگ، چیز دیگر', placeholder: '' },
+      { label: 'پیام', type: 'textarea', required: true, options: '', placeholder: '' },
+    ],
+    submitLabel: 'ارسال پیام',
+    successMessage: 'متشکریم! پیام شما رسید و به‌زودی پاسخ می‌دهیم.',
+  }),
+  block('contact-footer', {
+    anchor: 'contact',
+    title: 'یا مستقیم با ما در تماس باشید',
+    text: 'ایمیل یا تلفن را ترجیح می‌دهید؟ آن هم خوب است.',
+    email: 'hello@example.com',
+    phone: '۰۲۱-۰۰۰۰۰۰۰۰',
+    address: 'تهران، ایران',
+    copyright: '© پروفیترول',
+  }),
+];
+
 /** On first start, creates the admin user, default settings and a demo home page. */
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
@@ -193,7 +241,7 @@ export class SeedService implements OnApplicationBootstrap {
           { label: { fa: 'خدمات', en: 'Services' }, href: '#services' },
           { label: { fa: 'پروژه‌ها', en: 'Projects' }, href: '#projects' },
           { label: { fa: 'پرسش‌ها', en: 'FAQ' }, href: '#faq' },
-          { label: { fa: 'تماس', en: 'Contact' }, href: '#contact' },
+          { label: { fa: 'تماس', en: 'Contact' }, href: 'contact' },
         ],
         maintenanceText: { fa: 'به زودی برمی‌گردیم.', en: 'We will be back soon.' },
       });
@@ -215,6 +263,15 @@ export class SeedService implements OnApplicationBootstrap {
       });
       await this.pages.publish(home.id);
       this.log.log('Created the demo home page');
+
+      const contact = await this.pages.create({
+        name: 'Contact',
+        translations: [
+          { locale: 'en', title: 'Contact', slug: 'contact', blocks: contactEn },
+          { locale: 'fa', title: 'تماس', slug: 'contact', blocks: contactFa },
+        ],
+      });
+      await this.pages.publish(contact.id);
     }
   }
 

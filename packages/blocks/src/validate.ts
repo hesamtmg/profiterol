@@ -8,11 +8,16 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** Allows relative paths, anchors, http(s), mailto and tel; rejects `javascript:` and friends. */
+/**
+ * Allows relative links (`/page`, `#anchor`, `about-us`), http(s), mailto and tel; rejects `javascript:` and
+ * any other scheme. Tabs, newlines and control characters are removed first, as browsers do, so a scheme
+ * cannot be hidden inside them.
+ */
 export function isSafeUrl(value: string): boolean {
-  const v = value.trim();
-  if (v === '' || v.startsWith('/') || v.startsWith('#')) return true;
-  return /^(https?:|mailto:|tel:)/i.test(v);
+  const v = value.replace(/[\u0000-\u0020\u007f]/g, '');
+  const scheme = v.match(/^([a-z][a-z0-9+.-]*):/i);
+  if (!scheme) return true;
+  return ['http', 'https', 'mailto', 'tel'].includes(scheme[1].toLowerCase());
 }
 
 function checkValue(field: FieldDef, value: unknown, path: string, errors: ValidationError[]): void {
@@ -40,7 +45,7 @@ function checkValue(field: FieldDef, value: unknown, path: string, errors: Valid
         return;
       }
       if (value.length > MAX_STRING) errors.push({ path, message: 'is too long' });
-      if ((field.type === 'url' || field.type === 'image') && !isSafeUrl(value)) {
+      if ((field.type === 'url' || field.type === 'image' || field.type === 'video') && !isSafeUrl(value)) {
         errors.push({ path, message: 'must be a relative path or an http(s), mailto or tel link' });
       }
       if (field.type === 'color' && value !== '' && !/^#[0-9a-f]{3,8}$/i.test(value)) {

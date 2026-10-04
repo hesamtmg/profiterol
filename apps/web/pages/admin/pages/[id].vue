@@ -144,14 +144,24 @@ const { upload, uploading, error: uploadError } = useUpload();
 const dropTarget = ref<string | null>(null);
 let dropTimer: ReturnType<typeof setTimeout> | undefined;
 
-/** The first top-level image field of a block, which a dropped photo replaces. */
-function imageFieldOf(block: BlockNode) {
-  return getBlock(block.type)?.fields.find((f) => f.type === 'image');
+/** The first top-level image field of a block, which a dropped photo replaces (or video field, for a video). */
+function imageFieldOf(block: BlockNode, kind: 'image' | 'video' = 'image') {
+  return getBlock(block.type)?.fields.find((f) => f.type === kind);
 }
 
+/** What kind of file is being dragged, from its MIME type (readable during dragover). */
+function draggedKind(e: DragEvent): 'image' | 'video' | null {
+  const type = Array.from(e.dataTransfer?.items ?? []).find((i) => i.kind === 'file')?.type ?? '';
+  return type.startsWith('video/') ? 'video' : type.startsWith('image/') ? 'image' : null;
+}
+
+const dropKind = ref<'image' | 'video'>('image');
+
 function onBlockDragOver(block: BlockNode, e: DragEvent) {
-  if (!imageFieldOf(block) || !Array.from(e.dataTransfer?.types ?? []).includes('Files')) return;
+  const kind = draggedKind(e) ?? 'image';
+  if (!imageFieldOf(block, kind) || !Array.from(e.dataTransfer?.types ?? []).includes('Files')) return;
   e.preventDefault();
+  dropKind.value = kind;
   dropTarget.value = block.id;
   // dragover repeats while the file is over the block; when it stops, the file has left.
   clearTimeout(dropTimer);
@@ -159,8 +169,8 @@ function onBlockDragOver(block: BlockNode, e: DragEvent) {
 }
 
 async function onBlockDrop(block: BlockNode, e: DragEvent) {
-  const field = imageFieldOf(block);
-  const file = imageFrom(e.dataTransfer);
+  const file = mediaFrom(e.dataTransfer, 'video') ?? imageFrom(e.dataTransfer);
+  const field = file && imageFieldOf(block, file.type.startsWith('video/') ? 'video' : 'image');
   dropTarget.value = null;
   if (!field || !file) return;
   e.preventDefault();
@@ -545,7 +555,7 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
                   class="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-card border-4 border-dashed border-sky-400 bg-sky-500/20 text-lg font-bold text-white"
                   dir="ltr"
                 >
-                  <span class="rounded-full bg-sky-600 px-5 py-2 shadow-lg"><i class="mdi mdi-image-plus" /> Drop to use as {{ imageFieldOf(element)?.label.toLowerCase() }}</span>
+                  <span class="rounded-full bg-sky-600 px-5 py-2 shadow-lg"><i class="mdi" :class="dropKind === 'video' ? 'mdi-movie-plus' : 'mdi-image-plus'" /> Drop to use as {{ imageFieldOf(element, dropKind)?.label.toLowerCase() }}</span>
                 </div>
                 <button
                   type="button"

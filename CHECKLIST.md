@@ -98,17 +98,17 @@ From **amsr-portfolio**:
 From **minicms**'s 12 section kinds:
 - [x] Image + text, image on either side (kinds 3–6) (`image-text`)
 - [x] Text (`text`)
-- [ ] Video hero, autoplay muted (kind 1)
-- [ ] Three images (kind 2)
-- [ ] Fixed/parallax image left/right (kinds 5–6)
-- [ ] Contact form (kind 7). Needs Phase 8.
-- [ ] Info/request form (kind 8) and complex form (kind 9)
-- [ ] Video player (kind 10)
-- [ ] Carousel / slider (kind 11, plus the minicms sliders table)
-- [ ] Gallery grid with lightbox (kind 12)
+- [x] Video hero, autoplay muted, still for visitors who turn off motion (kind 1) (`video-hero`)
+- [x] Three images (kind 2): use the Gallery block with 3 columns
+- [x] Fixed/parallax background (kinds 5–6): “Fixed background” option on the Statement block
+- [x] Contact form (kind 7) (`contact-form`)
+- [x] Info/request and complex forms (kinds 8–9): the contact form's fields are editable (short/long text, email, phone, choice; required or not)
+- [x] Video player: uploaded video, or a YouTube / Aparat link (kind 10) (`video`)
+- [x] Carousel with arrows, dots, swipe and optional autoplay (kind 11) (`carousel`)
+- [x] Gallery, even grid or masonry, with a full-screen viewer and keyboard arrows (kind 12) (`gallery`)
 
 New:
-- [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider, embed (YouTube, Aparat)
+- [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
@@ -134,10 +134,13 @@ New:
 - [ ] S3-compatible storage option (MinIO in Docker)
 
 ## Phase 8: Forms and inbox
-- [ ] Form-builder block (fields, required, validation) whose submissions go to the API
-- [ ] Inbox in the admin, with CSV export
-- [ ] Email notifications (SMTP) and optional SMS (minicms used IPPanel)
-- [ ] Spam protection: honeypot + rate limit + optional captcha
+- [x] Form block with editable fields; the API checks every answer against the published form (required, email, phone, choices, length), with messages in the visitor's language
+- [x] Inbox in the admin: unread badge, read/unread, reply by email, delete, CSV export (opens in Excel with Persian intact)
+- [x] Email notifications through SMTP (`SMTP_URL`) to the address set in Site settings
+- [ ] SMS notifications (minicms used IPPanel)
+- [x] Spam protection: hidden honeypot field, minimum fill time, 5 messages per 10 minutes per visitor
+- [ ] Optional captcha
+- [ ] File uploads in forms (e.g. CVs for career applications)
 
 ## Phase 9: Site settings and branding
 - [x] Site name per language, logo, favicon

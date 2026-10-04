@@ -1,7 +1,7 @@
 import type { FieldDef, FieldType, ValidationError } from './types.js';
 
 /** Field types an editor can add to a collection. `list` is only offered as an image gallery. */
-export const collectionFieldTypes: FieldType[] = ['text', 'textarea', 'url', 'image', 'number', 'boolean', 'color', 'list'];
+export const collectionFieldTypes: FieldType[] = ['text', 'textarea', 'url', 'image', 'video', 'number', 'boolean', 'color', 'list'];
 
 /** Every item already has these, so custom fields cannot reuse the names. */
 export const reservedItemKeys = ['title', 'slug', 'excerpt', 'body', 'tags', 'cover', 'seoDescription'];

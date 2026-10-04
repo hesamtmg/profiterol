@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { CollectionsModule } from './collections/collections.module';
 import { config } from './config';
 import { dataSourceOptions } from './data-source';
+import { FormsModule } from './forms/forms.module';
 import { HealthController } from './health.controller';
 import { MediaModule } from './media/media.module';
 import { PagesModule } from './pages/pages.module';
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     CollectionsModule,
     SettingsModule,
     MediaModule,
+    FormsModule,
   ],
   controllers: [HealthController],
   providers: [SeedService],

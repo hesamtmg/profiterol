@@ -142,3 +142,64 @@ describe('collections', () => {
     assert.equal((await call('GET', `/public/en/item?collection=team-e2e&slug=sara`)).status, 404);
   });
 });
+
+describe('contact forms', () => {
+  let pageId;
+  let blockId;
+
+  before(async () => {
+    const page = await call('GET', '/public/en/page?slug=contact', undefined, false);
+    assert.equal(page.status, 200, 'seeded contact page');
+    pageId = page.body.id;
+    const form = page.body.blocks.find((b) => b.type === 'contact-form');
+    blockId = form.id;
+    assert.equal(form.data.pageId, pageId, 'the page id is attached to the form block');
+  });
+
+  const send = (values, extra = {}) =>
+    call('POST', `/public/forms/${pageId}/${blockId}`, { locale: 'en', values, startedAt: Date.now() - 5000, ...extra }, false);
+
+  test('unknown forms and the private notification address are not exposed', async () => {
+    const res = await call('POST', `/public/forms/${pageId}/nope`, { locale: 'en', values: [] }, false);
+    assert.equal(res.status, 404);
+    const settings = await call('GET', '/public/settings', undefined, false);
+    assert.equal('notifyEmail' in settings.body, false);
+  });
+  test('validates answers against the published form', async () => {
+    // Fields: Name*, Email*, What do you need?* (Website, Branding, Something else), Message*
+    assert.equal((await send(['Sara', '', 'Website', 'Hi'])).status, 400, 'required');
+    assert.equal((await send(['Sara', 'not-an-email', 'Website', 'Hi'])).status, 400, 'email format');
+    assert.equal((await send(['Sara', 'sara@example.com', 'Plumbing', 'Hi'])).status, 400, 'choice');
+  });
+
+  test('stores a valid message and lists it in the inbox', async () => {
+    const res = await send(['Sara', 'sara@example.com', 'Branding', 'We need a new logo.']);
+    assert.equal(res.status, 200);
+    assert.match(res.body.message, /Thank you/);
+
+    const unread = await call('GET', '/admin/submissions/unread-count');
+    assert.equal(unread.body.count, 1);
+    const list = await call('GET', '/admin/submissions');
+    const msg = list.body[0];
+    assert.deepEqual(msg.data.map((d) => d.label), ['Name', 'Email', 'What do you need?', 'Message']);
+    assert.equal(msg.data[3].value, 'We need a new logo.');
+    assert.equal(msg.pageTitle, 'Contact');
+
+    assert.equal((await call('PATCH', `/admin/submissions/${msg.id}`, { read: true })).body.read, true);
+    assert.equal((await call('GET', '/admin/submissions/unread-count')).body.count, 0);
+    assert.equal((await call('GET', '/admin/submissions', undefined, false)).status, 401);
+  });
+
+  test('bots: the hidden field is ignored silently, instant submits are refused, and senders are rate-limited', async () => {
+    const before = (await call('GET', '/admin/submissions')).body.length;
+    const bot = await send(['Bot', 'bot@example.com', 'Website', 'spam'], { website: 'http://spam.example' });
+    assert.equal(bot.status, 200);
+    assert.equal((await call('GET', '/admin/submissions')).body.length, before, 'honeypot message not stored');
+    assert.equal((await send(['Bot', 'bot@example.com', 'Website', 'spam'], { startedAt: Date.now() })).status, 400);
+
+    // Five attempts were counted above (one unknown form, three invalid, one valid); the limit is five per ten minutes.
+    // The hidden-field and too-fast attempts are refused before they are counted.
+    assert.equal((await send(['Sara', 'sara@example.com', 'Website', 'Again'])).status, 429);
+  });
+
+});

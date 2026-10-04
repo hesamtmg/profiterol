@@ -18,7 +18,7 @@ async function uploadImage(file: File | null) {
 }
 
 function onImageDrop(e: DragEvent) {
-  uploadImage(imageFrom(e.dataTransfer));
+  uploadImage(mediaFrom(e.dataTransfer, props.field.type === 'video' ? 'video' : 'image'));
 }
 
 /** Pasting a copied image (e.g. a screenshot) uploads it; pasting text works as usual. */
@@ -104,7 +104,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     </div>
 
     <div
-      v-else-if="field.type === 'image'"
+      v-else-if="field.type === 'image' || field.type === 'video'"
       class="rounded-2xl p-1 transition"
       :class="dragOver ? 'bg-sky-50 ring-2 ring-sky-400' : ''"
       @dragover.prevent="dragOver = true"
@@ -113,8 +113,11 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     >
       <div class="flex items-center gap-2">
         <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-          <img v-if="model" :src="model as string" alt="" class="h-full w-full object-cover" />
-          <span v-else class="flex h-full items-center justify-center text-slate-300"><i class="mdi mdi-image-outline text-xl" /></span>
+          <video v-if="model && field.type === 'video'" :src="model as string" muted preload="metadata" class="h-full w-full object-cover" />
+          <img v-else-if="model" :src="model as string" alt="" class="h-full w-full object-cover" />
+          <span v-else class="flex h-full items-center justify-center text-slate-300">
+            <i class="mdi text-xl" :class="field.type === 'video' ? 'mdi-movie-outline' : 'mdi-image-outline'" />
+          </span>
           <span v-if="uploading" class="absolute inset-0 flex items-center justify-center bg-white/80 text-slate-500">
             <i class="mdi mdi-loading mdi-spin text-xl" />
           </span>
@@ -124,7 +127,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
           type="text"
           class="input min-w-0 font-mono text-xs"
           dir="ltr"
-          placeholder="Drop an image"
+:placeholder="field.type === 'video' ? 'Drop a video' : 'Drop an image'"
           @paste="onImagePaste"
         />
         <button type="button" class="btn-light shrink-0 !px-3" title="Choose from media" @click="picking = true">
