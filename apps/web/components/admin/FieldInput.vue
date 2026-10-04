@@ -1,0 +1,119 @@
+<script setup lang="ts">
+/** Renders the input for one registry field. List fields render their items with this same component. */
+import { createListItem, type FieldDef } from '@profiterol/blocks';
+import FieldInput from './FieldInput.vue';
+import MediaPicker from './MediaPicker.vue';
+
+const props = defineProps<{ field: FieldDef; dir?: string }>();
+const model = defineModel<unknown>();
+const picking = ref(false);
+const openItem = ref<number | null>(0);
+
+const list = computed(() => (Array.isArray(model.value) ? (model.value as Record<string, unknown>[]) : []));
+
+function addItem() {
+  model.value = [...list.value, createListItem(props.field)];
+  openItem.value = list.value.length - 1;
+}
+
+function removeItem(i: number) {
+  model.value = list.value.filter((_, j) => j !== i);
+}
+
+function moveItem(i: number, delta: number) {
+  const next = [...list.value];
+  const [item] = next.splice(i, 1);
+  next.splice(i + delta, 0, item);
+  model.value = next;
+  openItem.value = i + delta;
+}
+
+function duplicateItem(i: number) {
+  const next = [...list.value];
+  next.splice(i + 1, 0, JSON.parse(JSON.stringify(list.value[i])));
+  model.value = next;
+  openItem.value = i + 1;
+}
+
+function itemTitle(item: Record<string, unknown>, i: number) {
+  const key = props.field.itemLabel;
+  const label = key ? String(item[key] ?? '') : '';
+  return label || `Item ${i + 1}`;
+}
+
+function setItemField(i: number, key: string, value: unknown) {
+  const next = [...list.value];
+  next[i] = { ...next[i], [key]: value };
+  model.value = next;
+}
+
+const atMax = computed(() => props.field.max !== undefined && list.value.length >= props.field.max);
+</script>
+
+<template>
+  <div>
+    <label class="field-label">{{ field.label }}</label>
+
+    <input v-if="field.type === 'text'" v-model="model" type="text" class="input" :dir="dir" />
+    <input v-else-if="field.type === 'url'" v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="/page, #anchor or https://…" />
+    <textarea v-else-if="field.type === 'textarea'" v-model="model" rows="4" class="input resize-y leading-relaxed" :dir="dir" />
+    <input v-else-if="field.type === 'number'" v-model.number="model" type="number" class="input" />
+    <label v-else-if="field.type === 'boolean'" class="flex items-center gap-2 text-sm">
+      <input v-model="model" type="checkbox" class="h-4 w-4 rounded" /> {{ field.label }}
+    </label>
+    <select v-else-if="field.type === 'select'" v-model="model" class="input">
+      <option v-for="o in field.options" :key="o.value" :value="o.value">{{ o.label }}</option>
+    </select>
+    <div v-else-if="field.type === 'color'" class="flex items-center gap-2">
+      <input
+        type="color"
+        :value="(model as string) || '#000000'"
+        class="h-9 w-12 cursor-pointer rounded-lg border border-slate-200 bg-white p-1"
+        @input="model = ($event.target as HTMLInputElement).value"
+      />
+      <input v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="#00a998" />
+    </div>
+
+    <div v-else-if="field.type === 'image'" class="flex items-center gap-2">
+      <div class="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+        <img v-if="model" :src="model as string" alt="" class="h-full w-full object-cover" />
+        <span v-else class="flex h-full items-center justify-center text-slate-300"><i class="mdi mdi-image-outline text-xl" /></span>
+      </div>
+      <input v-model="model" type="text" class="input min-w-0 font-mono text-xs" dir="ltr" placeholder="/uploads/…" />
+      <button type="button" class="btn-light shrink-0 !px-3" title="Choose from media" @click="picking = true">
+        <i class="mdi mdi-folder-image" />
+      </button>
+      <MediaPicker v-if="picking" @close="picking = false" @pick="(url) => ((model = url), (picking = false))" />
+    </div>
+
+    <div v-else-if="field.type === 'list'" class="space-y-2">
+      <div v-for="(item, i) in list" :key="i" class="rounded-2xl border border-slate-200 bg-slate-50/60">
+        <div class="flex items-center gap-1 px-3 py-2">
+          <button type="button" class="flex min-w-0 flex-1 items-center gap-2 text-start text-sm font-medium" @click="openItem = openItem === i ? null : i">
+            <i class="mdi text-slate-400" :class="openItem === i ? 'mdi-chevron-down' : 'mdi-chevron-right'" />
+            <span class="truncate" :dir="dir">{{ itemTitle(item, i) }}</span>
+          </button>
+          <button type="button" class="btn-icon !h-7 !w-7" title="Move up" :disabled="i === 0" @click="moveItem(i, -1)"><i class="mdi mdi-arrow-up" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7" title="Move down" :disabled="i === list.length - 1" @click="moveItem(i, 1)"><i class="mdi mdi-arrow-down" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7" title="Duplicate" :disabled="atMax" @click="duplicateItem(i)"><i class="mdi mdi-content-copy" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7 hover:!text-red-600" title="Remove" @click="removeItem(i)"><i class="mdi mdi-close" /></button>
+        </div>
+        <div v-if="openItem === i" class="space-y-3 border-t border-slate-200 px-3 py-3">
+          <FieldInput
+            v-for="sub in field.fields"
+            :key="sub.key"
+            :field="sub"
+            :dir="dir"
+            :model-value="item[sub.key]"
+            @update:model-value="(v) => setItemField(i, sub.key, v)"
+          />
+        </div>
+      </div>
+      <button type="button" class="btn-light w-full" :disabled="atMax" @click="addItem">
+        <i class="mdi mdi-plus" /> Add {{ field.label.toLowerCase().replace(/s$/, '') }}
+      </button>
+    </div>
+
+    <p v-if="field.help" class="mt-1 text-[11px] text-slate-400">{{ field.help }}</p>
+  </div>
+</template>

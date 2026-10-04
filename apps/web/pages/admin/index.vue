@@ -1,0 +1,132 @@
+<script setup lang="ts">
+import { getBlock } from '@profiterol/blocks';
+import type { AdminPage } from '~/composables/useAdminTypes';
+
+definePageMeta({ layout: 'admin', middleware: 'admin' });
+
+const api = useApi();
+const pages = ref<AdminPage[]>([]);
+const loading = ref(true);
+const error = ref('');
+const newName = ref('');
+const creating = ref(false);
+
+async function load() {
+  loading.value = true;
+  try {
+    pages.value = await api<AdminPage[]>('/admin/pages');
+  } catch (err) {
+    error.value = apiErrorMessage(err);
+  } finally {
+    loading.value = false;
+  }
+}
+
+async function create() {
+  if (!newName.value.trim()) return;
+  creating.value = true;
+  try {
+    const page = await api<AdminPage>('/admin/pages', { method: 'POST', body: { name: newName.value.trim() } });
+    await navigateTo(`/admin/pages/${page.id}`);
+  } catch (err) {
+    error.value = apiErrorMessage(err);
+  } finally {
+    creating.value = false;
+  }
+}
+
+async function remove(page: AdminPage) {
+  if (!confirm(`Delete “${page.name}”? This cannot be undone.`)) return;
+  try {
+    await api(`/admin/pages/${page.id}`, { method: 'DELETE' });
+    pages.value = pages.value.filter((p) => p.id !== page.id);
+  } catch (err) {
+    error.value = apiErrorMessage(err);
+  }
+}
+
+function liveUrl(page: AdminPage, locale = 'fa') {
+  const t = page.translations.find((x) => x.locale === locale) ?? page.translations[0];
+  return page.isHome ? `/${t.locale}` : `/${t.locale}/${t.slug}`;
+}
+
+/** The first few block types of the page, shown as a mini preview on the card. */
+function outline(page: AdminPage) {
+  const t = page.translations.find((x) => x.locale === 'en') ?? page.translations[0];
+  return (t?.blocks ?? []).slice(0, 5).map((b) => getBlock(b.type));
+}
+
+onMounted(load);
+</script>
+
+<template>
+  <div>
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="text-3xl font-black">Pages</h1>
+        <p class="mt-1 text-sm font-light text-slate-500">Every page has a version for each language.</p>
+      </div>
+      <form class="flex gap-2" @submit.prevent="create">
+        <input v-model="newName" class="input w-56" placeholder="New page name, e.g. About us" />
+        <button type="submit" class="btn-dark" :disabled="creating || !newName.trim()">
+          <i class="mdi mdi-plus" /> New page
+        </button>
+      </form>
+    </div>
+
+    <p v-if="error" class="mt-6 whitespace-pre-line rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{{ error }}</p>
+
+    <div v-if="loading" class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div v-for="i in 3" :key="i" class="h-64 animate-pulse rounded-[2rem] bg-white" />
+    </div>
+
+    <div v-else class="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <article
+        v-for="page in pages"
+        :key="page.id"
+        class="group flex flex-col overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200/60 transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl hover:shadow-slate-300/50"
+      >
+        <!-- Mini outline of the page's blocks -->
+        <NuxtLink :to="`/admin/pages/${page.id}`" class="block bg-[#00a998] p-4">
+          <div class="flex h-36 flex-col gap-1.5 overflow-hidden rounded-[1.25rem] bg-[#00a998]">
+            <div
+              v-for="(def, i) in outline(page)"
+              :key="i"
+              class="flex flex-1 items-center gap-2 rounded-xl bg-white/95 px-3 text-xs text-slate-500 transition group-hover:bg-white"
+            >
+              <i class="mdi" :class="def?.icon ?? 'mdi-help'" />
+              {{ def?.label ?? 'Unknown block' }}
+            </div>
+            <div v-if="!outline(page).length" class="flex flex-1 items-center justify-center rounded-xl bg-white/90 text-xs text-slate-400">
+              Empty page
+            </div>
+          </div>
+        </NuxtLink>
+        <div class="flex flex-1 flex-col p-6">
+          <div class="flex items-center gap-2">
+            <h2 class="text-lg font-black">{{ page.name }}</h2>
+            <span v-if="page.isHome" class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Home</span>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+            <span
+              class="rounded-full px-2 py-0.5 font-medium"
+              :class="page.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
+            >
+              {{ page.status === 'published' ? 'Published' : 'Draft' }}
+            </span>
+            <span v-for="t in page.translations" :key="t.locale" class="font-mono">/{{ t.locale }}/{{ t.slug }}</span>
+          </div>
+          <div class="mt-auto flex items-center gap-2 pt-6">
+            <NuxtLink :to="`/admin/pages/${page.id}`" class="btn-dark"><i class="mdi mdi-pencil-outline" /> Edit</NuxtLink>
+            <a v-if="page.status === 'published'" :href="liveUrl(page)" target="_blank" class="btn-light">
+              <i class="mdi mdi-open-in-new" /> View
+            </a>
+            <button type="button" class="btn-icon ms-auto hover:!text-red-600" title="Delete" @click="remove(page)">
+              <i class="mdi mdi-trash-can-outline text-lg" />
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</template>

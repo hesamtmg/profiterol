@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --c-primary: #00a998;
+    --c-secondary: #c49a6c;
+    --c-dark: #231f20;
+    --c-surface: #ffffff;
+    --c-background: #00a998;
+    --c-text: #22292f;
+    --c-muted: #6b7280;
+    --radius-card: 4rem;
+    --font-fa: 'Vazirmatn';
+    --font-en: 'Inter';
+  }
+
+  .site {
+    font-family: var(--font-en), system-ui, sans-serif;
+    color: var(--c-text);
+    background: var(--c-background);
+  }
+
+  .site[dir='rtl'],
+  [dir='rtl'] .site {
+    font-family: var(--font-fa), var(--font-en), system-ui, sans-serif;
+  }
+
+  .admin-ui {
+    font-family: 'Inter', 'Vazirmatn', system-ui, sans-serif;
+  }
+}
+
+@layer components {
+  /* The large white rounded panel from the amsr-portfolio design. */
+  .panel {
+    @apply bg-surface rounded-[2rem] @3xl:rounded-card;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-900/5;
+  }
+
+  .field-label {
+    @apply mb-1 block text-xs font-medium text-slate-500;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-dark {
+    @apply btn bg-slate-900 text-white hover:bg-black;
+  }
+
+  .btn-light {
+    @apply btn bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50;
+  }
+
+  .btn-icon {
+    @apply inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-30;
+  }
+
+  .btn-pill {
+    @apply inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition-all duration-300;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none !important;
+    transform: none !important;
+    padding-inline-start: 0 !important;
+  }
+}
