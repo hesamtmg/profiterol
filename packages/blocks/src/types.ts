@@ -37,7 +37,7 @@ export interface FieldDef {
   labels?: Record<string, string>;
 }
 
-export type BlockCategory = 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic';
+export type BlockCategory = 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic' | 'animated';
 
 export interface BlockDef {
   type: string;

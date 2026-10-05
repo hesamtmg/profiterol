@@ -114,3 +114,14 @@ test('minicms kinds: all 12 are registered, and rich text is cleaned inside bloc
   assert.equal(cleaned[1].props.body, page[1].props.body);
   assert.notEqual(cleaned[0], page[0], 'returns new objects instead of changing the input');
 });
+
+test('animated blocks are registered, and every block can have an entrance animation', async () => {
+  const { animatedDefinitions } = await import('../dist/esm/index.js');
+  assert.equal(animatedDefinitions.length, 10);
+  assert.ok(blocks.every((b) => b.fields.some((f) => f.key === 'animation') && b.defaults.animation === ''));
+  const hero = createBlock('aurora-hero');
+  hero.props.animation = 'zoom';
+  assert.deepEqual(validateBlocks([hero]), []);
+  hero.props.animation = 'spin-forever';
+  assert.equal(validateBlocks([hero])[0].path, 'blocks[0].props.animation');
+});

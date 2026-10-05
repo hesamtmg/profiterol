@@ -29,12 +29,15 @@ const visibility = computed(() => {
 
 <template>
   <div :id="anchor" class="scroll-mt-24" :class="visibility">
-    <component
-      :is="blockComponents[block.type]"
-      v-if="blockComponents[block.type]"
-      :p="merged"
-      :locale="locale"
-      v-bind="block.data ? { data: block.data } : {}"
-    />
+    <!-- A separate element for the entrance animation, so Vue's own class updates never clear it. -->
+    <div v-animate="merged.animation">
+      <component
+        :is="blockComponents[block.type]"
+        v-if="blockComponents[block.type]"
+        :p="merged"
+        :locale="locale"
+        v-bind="block.data ? { data: block.data } : {}"
+      />
+    </div>
   </div>
 </template>

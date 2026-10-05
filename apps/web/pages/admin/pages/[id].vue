@@ -77,6 +77,7 @@ const overlayHeader = computed(() => current.value?.blocks[0]?.type === 'spotlig
 
 const deviceWidths = { desktop: '100%', tablet: '820px', mobile: '390px' } as const;
 const categories: { key: BlockCategory; label: string }[] = [
+  { key: 'animated', label: 'Animated' },
   { key: 'hero', label: 'Hero' },
   { key: 'cards', label: 'Cards' },
   { key: 'content', label: 'Content' },

@@ -116,7 +116,22 @@ General blocks that cover the same ground in the newer style:
 - [x] Video hero (`video-hero`), video player with YouTube / Aparat links (`video`), carousel with dots (`carousel`), gallery with masonry and a full-screen viewer (`gallery`), contact form with editable fields (`contact-form`)
 
 New:
-- [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider
+- [x] Logos strip, testimonials, stats/counters, team (flip cards): see Animated below
+- [ ] Pricing table, map, spacer/divider
+
+Animated (Wix-style motion; every one holds still for visitors who turn off animations):
+- [x] **Entrance animation** on every block, like Wix's Animation panel: fade, float up, slide from either side, zoom, flip, blur, wipe. Plays when the block scrolls into view; the hidden start is rendered on the server so nothing flashes; picking one in the editor replays it on the canvas
+- [x] Aurora hero: drifting glows, words rising in one by one, a changing word with a shimmering gradient, a light following the mouse (`aurora-hero`)
+- [x] Scroll-lit text: words light up as the visitor scrolls (`scroll-text`)
+- [x] Counters that count up when seen; real numbers in the server page, Persian digits in Persian (`counters`)
+- [x] Logo strip gliding endlessly, one or two rows, light or dark (`logo-strip`)
+- [x] Horizontal scroll: the page pins while cards slide sideways, with a progress bar; a swipe row on phones (`horizontal-scroll`)
+- [x] 3D tilt cards with a moving shine (`tilt-cards`)
+- [x] Flip cards (hover, tap or keyboard) (`flip-cards`)
+- [x] Before / after slider with a hint sweep; drag, touch or arrow keys (`before-after`)
+- [x] Testimonials with filling progress bars, pause on hover (`testimonials`)
+- [x] Timeline whose line draws as you scroll (`timeline`)
+- [ ] Parallax layers, sticky image + scrolling text, cursor effects, page transitions
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)

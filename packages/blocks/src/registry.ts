@@ -1,4 +1,5 @@
 import type { BlockDef, BlockNode, FieldDef } from './types.js';
+import { animatedDefinitions, entranceAnimations } from './animated.js';
 import { classicDefinitions, formFieldsField } from './classic.js';
 
 const button: FieldDef[] = [
@@ -525,8 +526,17 @@ const definitions: BlockDef[] = [
       copyright: '© Your company',
     },
   },
+  ...animatedDefinitions,
   ...classicDefinitions,
 ];
+
+/** Every block can play an entrance animation when it scrolls into view. */
+const animationField: FieldDef = {
+  key: 'animation',
+  label: 'Entrance animation',
+  type: 'select',
+  options: entranceAnimations,
+};
 
 /** Every block can be given an anchor so menu links like `#services` can scroll to it. */
 const anchorField: FieldDef = {
@@ -550,8 +560,8 @@ const showOnField: FieldDef = {
 
 export const blocks: BlockDef[] = definitions.map((b) => ({
   ...b,
-  fields: [...b.fields, anchorField, showOnField],
-  defaults: { anchor: '', showOn: '', ...b.defaults },
+  fields: [...b.fields, animationField, anchorField, showOnField],
+  defaults: { animation: '', anchor: '', showOn: '', ...b.defaults },
 }));
 
 export function getBlock(type: string): BlockDef | undefined {

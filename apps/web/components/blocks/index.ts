@@ -14,6 +14,16 @@ import Statement from './Statement.vue';
 import TextBlock from './TextBlock.vue';
 import VideoHero from './VideoHero.vue';
 import VideoPlayer from './VideoPlayer.vue';
+import AuroraHero from './animated/AuroraHero.vue';
+import ScrollText from './animated/ScrollText.vue';
+import Counters from './animated/Counters.vue';
+import LogoStrip from './animated/LogoStrip.vue';
+import HorizontalScroll from './animated/HorizontalScroll.vue';
+import TiltCards from './animated/TiltCards.vue';
+import FlipCards from './animated/FlipCards.vue';
+import BeforeAfter from './animated/BeforeAfter.vue';
+import Testimonials from './animated/Testimonials.vue';
+import Timeline from './animated/Timeline.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -47,6 +57,17 @@ export const blockComponents: Record<string, Component> = {
   gallery: Gallery,
   video: VideoPlayer,
   'contact-form': ContactForm,
+  // Animated
+  'aurora-hero': AuroraHero,
+  'scroll-text': ScrollText,
+  counters: Counters,
+  'logo-strip': LogoStrip,
+  'horizontal-scroll': HorizontalScroll,
+  'tilt-cards': TiltCards,
+  'flip-cards': FlipCards,
+  'before-after': BeforeAfter,
+  testimonials: Testimonials,
+  timeline: Timeline,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,
