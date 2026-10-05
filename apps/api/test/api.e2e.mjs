@@ -463,3 +463,87 @@ describe('sessions, users and passwords', () => {
     assert.equal((await call('GET', '/auth/me')).status, 200);
   });
 });
+
+describe('page history, copies and scheduling', () => {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const blocks = (title) => [{ id: 'h1', type: 'rich-text', props: { html: `<p>${title}</p>` } }];
+  const save = (id, title, slug = 'history-test') =>
+    call('PATCH', `/admin/pages/${id}`, { translations: [{ locale: 'en', title, slug, blocks: blocks(title) }] });
+
+  test('saves are grouped, publishes are kept, and restoring can be undone', async () => {
+    const page = (await call('POST', '/admin/pages', { name: 'History test' })).body;
+    await save(page.id, 'First');
+    await save(page.id, 'Second');
+    let revs = (await call('GET', `/admin/pages/${page.id}/revisions`)).body;
+    assert.equal(revs.length, 1, 'saves within 10 minutes update one version');
+    assert.equal(revs[0].titles.en, 'Second');
+    assert.equal(revs[0].author, ADMIN.email);
+
+    await call('POST', `/admin/pages/${page.id}/publish`);
+    await save(page.id, 'Third');
+    revs = (await call('GET', `/admin/pages/${page.id}/revisions`)).body;
+    assert.deepEqual(
+      revs.map((r) => [r.kind, r.titles.en]),
+      [
+        ['save', 'Third'],
+        ['publish', 'Second'],
+        ['save', 'Second'],
+      ],
+    );
+
+    const published = revs.find((r) => r.kind === 'publish');
+    const full = (await call('GET', `/admin/pages/${page.id}/revisions/${published.id}`)).body;
+    assert.equal(full.snapshot.translations.find((t) => t.locale === 'en').blocks[0].props.html, '<p>Second</p>');
+
+    const restored = await call('POST', `/admin/pages/${page.id}/revisions/${published.id}/restore`);
+    assert.equal(restored.status, 200);
+    assert.equal(restored.body.translations.find((t) => t.locale === 'en').title, 'Second');
+    revs = (await call('GET', `/admin/pages/${page.id}/revisions`)).body;
+    assert.equal(revs[0].kind, 'restore');
+    assert.ok(
+      revs.some((r) => r.titles.en === 'Third'),
+      'the draft from before the restore is still in the history',
+    );
+    await call('DELETE', `/admin/pages/${page.id}`);
+  });
+
+  test('duplicating makes a draft copy with its own addresses', async () => {
+    const page = (await call('POST', '/admin/pages', { name: 'Original' })).body;
+    await save(page.id, 'Original', 'original-page');
+    const copy = await call('POST', `/admin/pages/${page.id}/duplicate`);
+    assert.equal(copy.status, 201);
+    assert.equal(copy.body.name, 'Original (copy)');
+    assert.equal(copy.body.status, 'draft');
+    const en = copy.body.translations.find((t) => t.locale === 'en');
+    assert.equal(en.slug, 'original-page-copy');
+    assert.equal(en.blocks[0].props.html, '<p>Original</p>');
+    assert.notEqual(copy.body.id, page.id);
+    await call('DELETE', `/admin/pages/${page.id}`);
+    await call('DELETE', `/admin/pages/${copy.body.id}`);
+  });
+
+  test('a page goes online and offline at the scheduled times', async () => {
+    const page = (await call('POST', '/admin/pages', { name: 'Scheduled' })).body;
+    await save(page.id, 'Scheduled', 'scheduled-page');
+    const visible = async () => (await call('GET', '/public/en/page?slug=scheduled-page', undefined, false)).status === 200;
+
+    const bad = await call('PATCH', `/admin/pages/${page.id}`, {
+      publishAt: new Date(Date.now() + 60_000).toISOString(),
+      unpublishAt: new Date(Date.now() + 30_000).toISOString(),
+    });
+    assert.equal(bad.status, 400, 'offline time must be after the online time');
+
+    await call('PATCH', `/admin/pages/${page.id}`, {
+      publishAt: new Date(Date.now() + 1500).toISOString(),
+      unpublishAt: new Date(Date.now() + 4000).toISOString(),
+    });
+    assert.equal(await visible(), false);
+    await wait(2500);
+    assert.equal(await visible(), true, 'published on time');
+    assert.equal((await call('GET', `/admin/pages/${page.id}`)).body.publishAt, null);
+    await wait(2500);
+    assert.equal(await visible(), false, 'taken offline on time');
+    assert.equal((await call('GET', `/admin/pages/${page.id}`)).body.unpublishAt, null);
+    await call('DELETE', `/admin/pages/${page.id}`);
+  });
+});

@@ -24,6 +24,8 @@ import {
 } from '@profiterol/blocks';
 import draggable from 'vuedraggable';
 import FieldInput from '~/components/admin/FieldInput.vue';
+import PageHistory from '~/components/admin/PageHistory.vue';
+import PageSchedule from '~/components/admin/PageSchedule.vue';
 import AdminLangSwitch from '~/components/admin/AdminLangSwitch.vue';
 import ThemeEditor from '~/components/admin/ThemeEditor.vue';
 import PageTransition from '~/components/site/PageTransition.vue';
@@ -179,6 +181,29 @@ async function save() {
 }
 
 const autosave = useAutosave({ snapshot, dirty, busy: saving, save });
+
+// ---------- Version history and schedule ----------
+
+const historyOpen = ref(false);
+/** Before restoring, unsaved edits are saved so they are kept in the history too. */
+const saveIfDirty = async () => (dirty.value ? save() : true);
+/** A short confirmation at the bottom of the screen, for actions with no other visible result. */
+const notice = ref('');
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+function notify(text: string) {
+  notice.value = text;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => (notice.value = ''), 4000);
+}
+function onRestored(p: AdminPage, when: string) {
+  fromPage(p);
+  historyOpen.value = false;
+  notify(translate('Restored the version from {time}', { time: when }));
+}
+/** The schedule is saved on its own; keep the draft's unsaved edits as they are. */
+function onScheduled(p: AdminPage) {
+  if (page.value) Object.assign(page.value, { publishAt: p.publishAt, unpublishAt: p.unpublishAt });
+}
 
 /** Text typed directly on the canvas. */
 function inlineEdit(block: BlockNode, path: string, value: string) {
@@ -511,6 +536,9 @@ function deleteTheme(key: string) {
         <template v-else-if="hasUnpublished">{{ $t('Saved · not live') }}</template>
         <template v-else>{{ $t('Live') }}</template>
       </span>
+      <button type="button" class="btn-icon" :title="$t('Version history')" :disabled="!page" @click="historyOpen = true">
+        <i class="mdi mdi-history text-lg" />
+      </button>
       <a :href="liveUrl" target="_blank" class="btn-light" :class="{ 'pointer-events-none opacity-40': page?.status !== 'published' }">
         <i class="mdi mdi-eye-outline" /> {{ $t('View') }}
       </a>
@@ -826,6 +854,7 @@ function deleteTheme(key: string) {
                 </div>
               </div>
             </div>
+            <PageSchedule v-if="page" :page="page" @updated="onScheduled" />
             <div v-for="l in locales.filter((x) => x.code !== locale)" :key="l.code">
               <button type="button" class="btn-light w-full" :disabled="!drafts[l.code]?.blocks.length" @click="copyFrom(l.code)">
                 <i class="mdi mdi-content-duplicate" /> {{ $t('Copy blocks from {lang}', { lang: l.label }) }}
@@ -846,5 +875,24 @@ function deleteTheme(key: string) {
     </div>
 
     <div v-else class="flex flex-1 items-center justify-center text-sm text-slate-400">{{ $t('Loading…') }}</div>
+
+    <Transition enter-from-class="translate-y-4 opacity-0" leave-to-class="translate-y-4 opacity-0">
+      <p
+        v-if="notice"
+        class="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-full bg-slate-900 px-5 py-2.5 text-sm text-white shadow-xl transition duration-300"
+        role="status"
+      >
+        <i class="mdi mdi-check-circle-outline text-emerald-400" /> {{ notice }}
+      </p>
+    </Transition>
+
+    <PageHistory
+      v-if="historyOpen && page"
+      :page-id="page.id"
+      :locale="locale"
+      :before-restore="saveIfDirty"
+      @close="historyOpen = false"
+      @restored="onRestored"
+    />
   </div>
 </template>

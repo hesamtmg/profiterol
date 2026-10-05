@@ -32,6 +32,14 @@ export class Page {
   @Column({ type: 'timestamptz', nullable: true })
   publishedAt: Date | null;
 
+  /** When set, the draft is published at this time (then cleared). */
+  @Column({ type: 'timestamptz', nullable: true })
+  publishAt: Date | null;
+
+  /** When set, the page is taken offline at this time (then cleared). */
+  @Column({ type: 'timestamptz', nullable: true })
+  unpublishAt: Date | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 
@@ -70,4 +78,44 @@ export class PageTranslation {
 
   @Column({ type: 'jsonb', nullable: true })
   publishedBlocks: BlockNode[] | null;
+}
+
+/** Everything an editor can change on a page, as it was at one moment. */
+export interface PageSnapshot {
+  name: string;
+  theme: Partial<ThemeTokens> | null;
+  translations: { locale: string; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: BlockNode[] }[];
+}
+
+export type RevisionKind = 'save' | 'publish' | 'restore';
+
+/**
+ * A saved version of a page. Every publish is kept; while editing, one version is kept per 10 minutes of work
+ * (later saves update the latest one). Old versions beyond the limit are removed.
+ */
+@Entity('page_revisions')
+@Index(['page', 'createdAt'])
+export class PageRevision {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @ManyToOne(() => Page, { onDelete: 'CASCADE' })
+  page: Page;
+
+  @Column({ type: 'varchar', length: 16 })
+  kind: RevisionKind;
+
+  /** Email of whoever made the change ('' for the scheduler). */
+  @Column({ default: '' })
+  author: string;
+
+  @Column({ type: 'jsonb' })
+  snapshot: PageSnapshot;
+
+  // clock_timestamp(), not now(): versions saved in one transaction (a restore) must still sort in order.
+  @CreateDateColumn({ type: 'timestamptz', default: () => 'clock_timestamp()' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamptz' })
+  updatedAt: Date;
 }

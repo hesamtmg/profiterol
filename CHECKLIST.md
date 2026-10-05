@@ -43,12 +43,13 @@ This combines:
 - [x] Home page flag (only one page at a time)
 - [x] Validation: unknown blocks/fields, wrong types, `javascript:` links and bad colors are rejected
 - [x] Unit tests for the registry and validation (`npm test -w @profiterol/blocks`)
-- [ ] Page revisions: keep the last N versions and allow restoring one
-- [ ] Scheduled publishing (minicms `expire_time` / publish at)
+- [x] Page revisions: every publish plus edits every 10 minutes, last 50 kept; restore from the editor's Version history (the replaced draft is kept, so a restore can be undone)
+- [x] Scheduled publishing (minicms `expire_time` / publish at): go live and take offline at set times
 - [ ] Nested blocks (columns/containers holding other blocks)
 - [x] Per-block visibility: show on all devices, phones only, or tablets and desktops only (badge and dimming in the editor's previews)
 - [ ] Per-block style options: background color/image, spacing, full-bleed vs panel
-- [ ] Duplicate a page; move pages into folders; parent/child URLs
+- [x] Duplicate a page (a draft copy with its own addresses)
+- [ ] Move pages into folders; parent/child URLs
 
 ## Phase 3: Public site renderer
 - [x] Nuxt SSR pages at `/{locale}/{slug}`, with `/{locale}` as the home page and `/` redirecting by `Accept-Language`

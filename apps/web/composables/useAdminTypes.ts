@@ -17,6 +17,9 @@ export interface AdminPage {
   isHome: boolean;
   status: 'draft' | 'published';
   publishedAt: string | null;
+  /** Scheduled times (ISO) to publish the draft and to take the page offline. */
+  publishAt: string | null;
+  unpublishAt: string | null;
   updatedAt: string;
   /** Draft of the page's own theme; null means it uses the site theme. */
   theme: Partial<ThemeTokens> | null;

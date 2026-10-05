@@ -45,6 +45,17 @@ async function remove(page: AdminPage) {
   }
 }
 
+async function duplicate(page: AdminPage) {
+  try {
+    const copy = await api<AdminPage>(`/admin/pages/${page.id}/duplicate`, { method: 'POST' });
+    pages.value.splice(pages.value.indexOf(page) + 1, 0, copy);
+  } catch (err) {
+    error.value = apiErrorMessage(err);
+  }
+}
+
+const when = (iso: string) => new Date(iso).toLocaleString(adminLocale(), { dateStyle: 'medium', timeStyle: 'short' });
+
 function liveUrl(page: AdminPage, locale = 'fa') {
   const t = page.translations.find((x) => x.locale === locale) ?? page.translations[0];
   return page.isHome ? `/${t.locale}` : `/${t.locale}/${t.slug}`;
@@ -118,12 +129,21 @@ onMounted(load);
             </span>
             <span v-for="t in page.translations" :key="t.locale" dir="ltr">/{{ t.locale }}/{{ t.slug }}</span>
           </div>
+          <p v-if="page.publishAt" class="mt-2 text-xs text-emerald-700">
+            <i class="mdi mdi-clock-outline" /> {{ $t('Goes live {time}', { time: when(page.publishAt) }) }}
+          </p>
+          <p v-if="page.unpublishAt" class="mt-1 text-xs text-amber-700">
+            <i class="mdi mdi-clock-outline" /> {{ $t('Goes offline {time}', { time: when(page.unpublishAt) }) }}
+          </p>
           <div class="mt-auto flex items-center gap-2 pt-6">
             <NuxtLink :to="`/admin/pages/${page.id}`" class="btn-dark"><i class="mdi mdi-pencil-outline" /> {{ $t('Edit') }}</NuxtLink>
             <a v-if="page.status === 'published'" :href="liveUrl(page)" target="_blank" class="btn-light">
               <i class="mdi mdi-open-in-new" /> {{ $t('View') }}
             </a>
-            <button type="button" class="btn-icon ms-auto hover:!text-red-600" :title="$t('Delete')" @click="remove(page)">
+            <button type="button" class="btn-icon ms-auto" :title="$t('Duplicate')" @click="duplicate(page)">
+              <i class="mdi mdi-content-copy text-lg" />
+            </button>
+            <button type="button" class="btn-icon hover:!text-red-600" :title="$t('Delete')" @click="remove(page)">
               <i class="mdi mdi-trash-can-outline text-lg" />
             </button>
           </div>

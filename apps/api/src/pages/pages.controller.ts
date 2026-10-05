@@ -1,6 +1,8 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { blocks, locales } from '@profiterol/blocks';
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthGuard, type AuthUser } from '../auth/auth.guard';
+
+type Authed = { user: AuthUser };
 import { CreatePageDto, UpdatePageDto } from './pages.dto';
 import { PagesService } from './pages.service';
 
@@ -47,14 +49,35 @@ export class AdminPagesController {
   }
 
   @Patch(':id')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePageDto) {
-    return this.pages.update(id, dto);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePageDto, @Req() req: Authed) {
+    return this.pages.update(id, dto, req.user.email);
   }
 
   @Post(':id/publish')
   @HttpCode(200)
-  publish(@Param('id', ParseUUIDPipe) id: string) {
-    return this.pages.publish(id);
+  publish(@Param('id', ParseUUIDPipe) id: string, @Req() req: Authed) {
+    return this.pages.publish(id, req.user.email);
+  }
+
+  @Post(':id/duplicate')
+  duplicate(@Param('id', ParseUUIDPipe) id: string, @Req() req: Authed) {
+    return this.pages.duplicate(id, req.user.email);
+  }
+
+  @Get(':id/revisions')
+  revisions(@Param('id', ParseUUIDPipe) id: string) {
+    return this.pages.listRevisions(id);
+  }
+
+  @Get(':id/revisions/:revisionId')
+  revision(@Param('id', ParseUUIDPipe) id: string, @Param('revisionId', ParseUUIDPipe) revisionId: string) {
+    return this.pages.getRevision(id, revisionId);
+  }
+
+  @Post(':id/revisions/:revisionId/restore')
+  @HttpCode(200)
+  restore(@Param('id', ParseUUIDPipe) id: string, @Param('revisionId', ParseUUIDPipe) revisionId: string, @Req() req: Authed) {
+    return this.pages.restore(id, revisionId, req.user.email);
   }
 
   @Post(':id/unpublish')

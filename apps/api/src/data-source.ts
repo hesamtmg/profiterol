@@ -4,7 +4,7 @@ import { Collection, CollectionItem, ItemTranslation } from './collections/colle
 import { config } from './config';
 import { FormSubmission } from './forms/form-submission.entity';
 import { Media } from './media/media.entity';
-import { Page, PageTranslation } from './pages/page.entity';
+import { Page, PageRevision, PageTranslation } from './pages/page.entity';
 import { SiteSettings } from './settings/settings.entity';
 import { User } from './users/user.entity';
 
@@ -12,7 +12,7 @@ import { User } from './users/user.entity';
 export const dataSourceOptions: DataSourceOptions = {
   type: 'postgres',
   url: config.databaseUrl,
-  entities: [User, Page, PageTranslation, SiteSettings, Media, Collection, CollectionItem, ItemTranslation, FormSubmission],
+  entities: [User, Page, PageTranslation, PageRevision, SiteSettings, Media, Collection, CollectionItem, ItemTranslation, FormSubmission],
   migrations: [join(__dirname, 'migrations', '*.js')],
   migrationsTableName: 'migrations',
   // gen_random_uuid() is built into Postgres 13+, so no extension (or superuser) is needed.

@@ -1,5 +1,17 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsBoolean, IsIn, IsObject, IsOptional, IsString, Matches, MaxLength, ValidateIf, ValidateNested } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
+  ValidateIf,
+  ValidateNested,
+} from 'class-validator';
 import { locales } from '@profiterol/blocks';
 import { SLUG_PATTERN } from '../common/slug';
 
@@ -59,6 +71,16 @@ export class UpdatePageDto {
   @IsOptional()
   @IsBoolean()
   isHome?: boolean;
+
+  /** Publish the draft at this time (ISO date), or null to cancel. */
+  @ValidateIf((o: UpdatePageDto) => o.publishAt !== null && o.publishAt !== undefined)
+  @IsDateString()
+  publishAt?: string | null;
+
+  /** Take the page offline at this time (ISO date), or null to cancel. */
+  @ValidateIf((o: UpdatePageDto) => o.unpublishAt !== null && o.unpublishAt !== undefined)
+  @IsDateString()
+  unpublishAt?: string | null;
 
   /** The page's own theme (cleaned in the service), or null to use the site theme. */
   @ValidateIf((o: UpdatePageDto) => o.theme !== null && o.theme !== undefined)
