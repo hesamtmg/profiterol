@@ -126,3 +126,35 @@ test('animated blocks are registered, and every block can have an entrance anima
   hero.props.animation = 'spin-forever';
   assert.equal(validateBlocks([hero])[0].path, 'blocks[0].props.animation');
 });
+
+test('site fonts, saved themes and loader settings are cleaned', async () => {
+  const { cleanFonts, fontFaceCss, cleanSavedThemes, cleanLoader, cleanTheme, resolveTheme } = await import('../dist/esm/index.js');
+  const fonts = cleanFonts([
+    { name: 'Logotype', files: [{ url: '/uploads/abc-1.woff2', weight: 730, style: 'italic' }, { url: 'https://evil.example/x.woff2', weight: 400 }] },
+    { name: "Bad'}name", files: [{ url: '/uploads/a.woff2', weight: 400 }] },
+    { name: 'NoFiles', files: [{ url: '/uploads/a.exe' }] },
+    { name: 'لوگو تایپ', files: [{ url: '/uploads/b.ttf' }] },
+  ]);
+  assert.deepEqual(fonts.map((f) => f.name), ['Logotype', 'لوگو تایپ']);
+  assert.deepEqual(fonts[0].files, [{ url: '/uploads/abc-1.woff2', weight: 700, style: 'italic' }]);
+  const css = fontFaceCss(fonts);
+  assert.match(css, /font-family:'Logotype';src:url\('\/uploads\/abc-1.woff2'\) format\('woff2'\);font-weight:700;font-style:italic/);
+  assert.match(css, /format\('truetype'\)/);
+  // Custom fonts are accepted in themes only once uploaded.
+  assert.equal(cleanTheme({ fontEn: 'Logotype' }).fontEn, undefined);
+  assert.equal(cleanTheme({ fontEn: 'Logotype' }, ['Logotype']).fontEn, 'Logotype');
+  assert.equal(resolveTheme({ fontFa: 'لوگو تایپ' }, null, ['لوگو تایپ']).fontFa, 'لوگو تایپ');
+  const saved = cleanSavedThemes([
+    { key: 'mine-1', name: ' Mine ', theme: { primary: '#123456', fontEn: 'Logotype', evil: 'x' } },
+    { key: 'mine-1', name: 'Duplicate', theme: {} },
+    { key: 'BAD KEY', name: 'x', theme: {} },
+  ], ['Logotype']);
+  assert.deepEqual(saved, [{ key: 'mine-1', name: 'Mine', theme: { primary: '#123456', fontEn: 'Logotype' } }]);
+  assert.deepEqual(cleanLoader({ enabled: true, style: 'spin', text: { en: 'Hi', '<x>': 'no' }, background: 'javascript:x', oncePerSession: false }), {
+    enabled: true, style: 'percent', text: { en: 'Hi' }, background: '', oncePerSession: false,
+  });
+});
+
+test('pricing, map and spacer blocks are registered with valid defaults', () => {
+  for (const type of ['pricing', 'map', 'spacer']) assert.deepEqual(validateBlocks([createBlock(type)]), [], type);
+});

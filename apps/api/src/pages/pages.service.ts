@@ -1,8 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BlockNode, cleanTheme, formBlockTypes, isLocale, locales, mapRichText, validateBlocks } from '@profiterol/blocks';
+import { BlockNode, cleanTheme, fontNames, formBlockTypes, isLocale, locales, mapRichText, validateBlocks } from '@profiterol/blocks';
 import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { CollectionsService } from '../collections/collections.service';
+import { SettingsService } from '../settings/settings.controller';
 import { cleanHtml } from '../common/rich-text';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
 import { CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
@@ -15,6 +16,7 @@ export class PagesService {
     @InjectRepository(PageTranslation) private readonly translations: Repository<PageTranslation>,
     private readonly dataSource: DataSource,
     private readonly collections: CollectionsService,
+    private readonly settings: SettingsService,
   ) {}
 
   list() {
@@ -52,12 +54,13 @@ export class PagesService {
   async update(id: string, dto: UpdatePageDto) {
     const page = await this.get(id);
     dto.translations?.forEach((t) => this.assertBlocks(t.blocks, t.locale));
+    const customFonts = dto.theme ? fontNames((await this.settings.get()).fonts) : [];
 
     return this.save(async (manager) => {
       if (dto.isHome) await manager.update(Page, { isHome: true }, { isHome: false });
       if (dto.name !== undefined) page.name = dto.name;
       if (dto.isHome !== undefined) page.isHome = dto.isHome;
-      if (dto.theme !== undefined) page.theme = dto.theme === null ? null : cleanTheme(dto.theme);
+      if (dto.theme !== undefined) page.theme = dto.theme === null ? null : cleanTheme(dto.theme, customFonts);
 
       for (const t of dto.translations ?? []) {
         const existing = page.translations.find((x) => x.locale === t.locale);

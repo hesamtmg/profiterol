@@ -1,9 +1,21 @@
 <script setup lang="ts">
 /** Edits a full theme: ready-made presets, colors, corners, button shape, fonts, header style and motion. */
-import { themeFonts, themeMotion, themeMotionKeys, themePresets, themeRadii, type ThemeTokens } from '@profiterol/blocks';
+import { themeFonts, themeMotion, themeMotionKeys, themePresets, themeRadii, type SavedTheme, type ThemeTokens } from '@profiterol/blocks';
 
 const theme = defineModel<ThemeTokens>({ required: true });
-defineProps<{ compact?: boolean }>();
+defineProps<{
+  compact?: boolean;
+  /** Names of the fonts uploaded in Site settings. */
+  customFonts?: string[];
+  /** Themes saved under the owner's own names; leave out to hide the "Your themes" row. */
+  savedThemes?: SavedTheme[];
+}>();
+const emit = defineEmits<{ 'save-theme': [name: string]; 'delete-theme': [key: string] }>();
+
+function saveCurrent() {
+  const name = window.prompt('Name for this theme')?.trim();
+  if (name) emit('save-theme', name.slice(0, 40));
+}
 
 const colors: { key: keyof ThemeTokens; label: string }[] = [
   { key: 'background', label: 'Page background' },
@@ -26,8 +38,13 @@ function isPreset(preset: ThemeTokens) {
   return (Object.keys(preset) as (keyof ThemeTokens)[]).every((k) => isMotionKey(k) || preset[k] === theme.value[k]);
 }
 
-function applyPreset(preset: ThemeTokens) {
-  theme.value = { ...preset, cursor: theme.value.cursor, pageTransition: theme.value.pageTransition };
+function applyPreset(preset: Partial<ThemeTokens>) {
+  const motion = Object.fromEntries(themeMotionKeys.map((k) => [k, theme.value[k]]));
+  theme.value = { ...theme.value, ...preset, ...motion } as ThemeTokens;
+}
+
+function isSaved(saved: Partial<ThemeTokens>) {
+  return (Object.keys(saved) as (keyof ThemeTokens)[]).every((k) => isMotionKey(k) || saved[k] === theme.value[k]);
 }
 
 /** Shrinks a panel radius for the small preview tiles. */
@@ -38,6 +55,44 @@ function tileRadius(radius: string) {
 
 <template>
   <div class="space-y-6">
+    <!-- The owner's own themes -->
+    <section v-if="savedThemes">
+      <div class="mb-2 flex items-center justify-between">
+        <h3 class="field-label !mb-0">Your themes</h3>
+        <button type="button" class="text-[11px] font-semibold text-sky-600 hover:underline" @click="saveCurrent">
+          <i class="mdi mdi-content-save-outline" /> Save current
+        </button>
+      </div>
+      <p v-if="!savedThemes.length" class="text-[11px] text-slate-400">Save the colors, fonts and shapes you chose to reuse them on other pages.</p>
+      <div v-else class="grid gap-2" :class="compact ? 'grid-cols-2' : 'grid-cols-3'">
+        <div v-for="saved in savedThemes" :key="saved.key" class="group relative">
+          <button
+            type="button"
+            class="w-full rounded-2xl p-1.5 text-start ring-2 transition"
+            :class="isSaved(saved.theme) ? 'ring-sky-500' : 'ring-transparent hover:ring-slate-300'"
+            :title="`Use your ${saved.name} theme`"
+            @click="applyPreset(saved.theme)"
+          >
+            <span class="block h-12 p-2" :style="{ background: saved.theme.background, borderRadius: '0.9rem' }">
+              <span class="flex h-full items-end gap-1 p-1.5" :style="{ background: saved.theme.surface, borderRadius: '0.5rem' }">
+                <span class="h-2.5 w-2.5 rounded-full" :style="{ background: saved.theme.primary }" />
+                <span class="h-2.5 w-2.5 rounded-full" :style="{ background: saved.theme.secondary }" />
+              </span>
+            </span>
+            <span class="mt-1 block truncate px-1 text-[11px] font-medium text-slate-600">{{ saved.name }}</span>
+          </button>
+          <button
+            type="button"
+            class="absolute -right-1 -top-1 hidden h-5 w-5 items-center justify-center rounded-full bg-white text-xs text-slate-500 shadow ring-1 ring-slate-200 hover:text-red-600 group-hover:flex"
+            :aria-label="`Delete the ${saved.name} theme`"
+            @click="emit('delete-theme', saved.key)"
+          >
+            <i class="mdi mdi-close" />
+          </button>
+        </div>
+      </div>
+    </section>
+
     <!-- Presets -->
     <section>
       <h3 class="field-label !mb-2">Ready-made themes</h3>
@@ -145,7 +200,18 @@ function tileRadius(radius: string) {
           <option v-for="t in themeMotion.pageTransition" :key="t.value" :value="t.value">{{ t.label }}</option>
         </select>
       </div>
-      <p class="text-[11px] leading-snug text-slate-400">Both are skipped for visitors who turn off animations, and the pointer only changes for a mouse or trackpad.</p>
+      <div>
+        <label class="field-label" for="theme-scroll">Page scrolling</label>
+        <select
+          id="theme-scroll"
+          class="input"
+          :value="theme.scrollMode"
+          @change="set('scrollMode', ($event.target as HTMLSelectElement).value as ThemeTokens['scrollMode'])"
+        >
+          <option v-for="m in themeMotion.scrollMode" :key="m.value" :value="m.value">{{ m.label }}</option>
+        </select>
+      </div>
+      <p class="text-[11px] leading-snug text-slate-400">Pointer and transition are skipped for visitors who turn off animations, and the pointer only changes for a mouse or trackpad.</p>
     </section>
 
     <!-- Fonts -->
@@ -153,13 +219,23 @@ function tileRadius(radius: string) {
       <div>
         <label class="field-label" for="theme-font-fa">Persian font</label>
         <select id="theme-font-fa" class="input" :value="theme.fontFa" @change="set('fontFa', ($event.target as HTMLSelectElement).value)">
-          <option v-for="f in themeFonts.fa" :key="f.name" :value="f.name">{{ f.name }}</option>
+          <optgroup v-if="customFonts?.length" label="Uploaded">
+            <option v-for="f in customFonts" :key="f" :value="f">{{ f }}</option>
+          </optgroup>
+          <optgroup label="Google Fonts">
+            <option v-for="f in themeFonts.fa" :key="f.name" :value="f.name">{{ f.name }}</option>
+          </optgroup>
         </select>
       </div>
       <div>
         <label class="field-label" for="theme-font-en">Latin font</label>
         <select id="theme-font-en" class="input" :value="theme.fontEn" @change="set('fontEn', ($event.target as HTMLSelectElement).value)">
-          <option v-for="f in themeFonts.en" :key="f.name" :value="f.name">{{ f.name }}</option>
+          <optgroup v-if="customFonts?.length" label="Uploaded">
+            <option v-for="f in customFonts" :key="f" :value="f">{{ f }}</option>
+          </optgroup>
+          <optgroup label="Google Fonts">
+            <option v-for="f in themeFonts.en" :key="f.name" :value="f.name">{{ f.name }}</option>
+          </optgroup>
         </select>
       </div>
     </section>

@@ -1,4 +1,4 @@
-import type { ThemeTokens } from '@profiterol/blocks';
+import type { LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
 import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 /** Text keyed by locale code, e.g. `{ fa: 'خانه', en: 'Home' }`. */
@@ -30,6 +30,18 @@ export class SiteSettings {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   menu: MenuItem[];
+
+  /** Fonts uploaded to the media library, usable in themes. */
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  fonts: SiteFont[];
+
+  /** Themes saved under the owner's own names. */
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  savedThemes: SavedTheme[];
+
+  /** The loading screen shown while the site opens. */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  loader: Partial<LoaderSettings>;
 
   @Column({ default: false })
   maintenance: boolean;

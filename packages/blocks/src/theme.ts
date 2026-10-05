@@ -18,7 +18,11 @@ export interface ThemeTokens {
   cursor: ThemeCursor;
   /** Animation played when moving between pages. */
   pageTransition: ThemePageTransition;
+  /** Scroll freely, or settle section by section with a bar showing where you are (minicms's scroll view). */
+  scrollMode: ThemeScrollMode;
 }
+
+export type ThemeScrollMode = 'normal' | 'sections';
 
 export type ThemeCursor = 'default' | 'ring' | 'glow' | 'blend';
 export type ThemePageTransition = 'none' | 'fade' | 'slide' | 'curtain' | 'circle';
@@ -38,10 +42,14 @@ export const themeMotion = {
     { value: 'curtain', label: 'Curtain' },
     { value: 'circle', label: 'Circle' },
   ] as { value: ThemePageTransition; label: string }[],
+  scrollMode: [
+    { value: 'normal', label: 'Normal' },
+    { value: 'sections', label: 'Section by section, with a bar' },
+  ] as { value: ThemeScrollMode; label: string }[],
 };
 
 /** Theme settings about motion rather than looks; choosing a ready-made theme keeps them. */
-export const themeMotionKeys = ['cursor', 'pageTransition'] as const;
+export const themeMotionKeys = ['cursor', 'pageTransition', 'scrollMode'] as const;
 
 /** Default theme, taken from the amsr-portfolio card look. */
 export const defaultTheme: ThemeTokens = {
@@ -59,6 +67,7 @@ export const defaultTheme: ThemeTokens = {
   headerStyle: 'solid',
   cursor: 'default',
   pageTransition: 'none',
+  scrollMode: 'normal',
 };
 
 export interface ThemePreset {
@@ -189,7 +198,11 @@ const COLOR_KEYS = ['primary', 'secondary', 'dark', 'surface', 'background', 'te
  * Keeps only known theme keys with safe values: hex colors, listed radii and fonts, known header styles.
  * Used for both the site theme and page themes before they are stored.
  */
-export function cleanTheme(input: unknown): Partial<ThemeTokens> {
+/**
+ * Keeps only known, safe theme values. `customFonts` are the names of fonts uploaded to the site
+ * (already checked by `cleanFonts`), which are allowed as well as the built-in ones.
+ */
+export function cleanTheme(input: unknown, customFonts: string[] = []): Partial<ThemeTokens> {
   if (typeof input !== 'object' || input === null) return {};
   const src = input as Record<string, unknown>;
   const out: Partial<ThemeTokens> = {};
@@ -199,17 +212,18 @@ export function cleanTheme(input: unknown): Partial<ThemeTokens> {
   }
   if (themeRadii.panel.some((r) => r.value === src.radius)) out.radius = src.radius as string;
   if (themeRadii.button.some((r) => r.value === src.buttonRadius)) out.buttonRadius = src.buttonRadius as string;
-  if (themeFonts.fa.some((f) => f.name === src.fontFa)) out.fontFa = src.fontFa as string;
-  if (themeFonts.en.some((f) => f.name === src.fontEn)) out.fontEn = src.fontEn as string;
+  if (themeFonts.fa.some((f) => f.name === src.fontFa) || customFonts.includes(src.fontFa as string)) out.fontFa = src.fontFa as string;
+  if (themeFonts.en.some((f) => f.name === src.fontEn) || customFonts.includes(src.fontEn as string)) out.fontEn = src.fontEn as string;
   if (src.headerStyle === 'solid' || src.headerStyle === 'glass') out.headerStyle = src.headerStyle;
   if (themeMotion.cursor.some((c) => c.value === src.cursor)) out.cursor = src.cursor as ThemeCursor;
   if (themeMotion.pageTransition.some((t) => t.value === src.pageTransition)) out.pageTransition = src.pageTransition as ThemePageTransition;
+  if (themeMotion.scrollMode.some((m) => m.value === src.scrollMode)) out.scrollMode = src.scrollMode as ThemeScrollMode;
   return out;
 }
 
 /** The theme a page actually uses: defaults, then the site theme, then the page's own changes. */
-export function resolveTheme(site?: Partial<ThemeTokens> | null, page?: Partial<ThemeTokens> | null): ThemeTokens {
-  return { ...defaultTheme, ...cleanTheme(site), ...cleanTheme(page) };
+export function resolveTheme(site?: Partial<ThemeTokens> | null, page?: Partial<ThemeTokens> | null, customFonts: string[] = []): ThemeTokens {
+  return { ...defaultTheme, ...cleanTheme(site, customFonts), ...cleanTheme(page, customFonts) };
 }
 
 /** A Google Fonts stylesheet URL for the theme's fonts. */
@@ -221,7 +235,8 @@ export function themeFontsHref(theme: Partial<ThemeTokens>): string {
   ]
     .filter((f): f is { name: string; weights: string } => Boolean(f))
     .map((f) => `family=${f.name.replace(/ /g, '+')}:${f.weights}`);
-  return `https://fonts.googleapis.com/css2?${families.join('&')}&display=swap`;
+  // Uploaded fonts are not on Google Fonts; with only those, there is nothing to load from there.
+  return families.length ? `https://fonts.googleapis.com/css2?${families.join('&')}&display=swap` : '';
 }
 
 /** Keeps a token from breaking out of its declaration (`;`, braces, quotes, tags). */

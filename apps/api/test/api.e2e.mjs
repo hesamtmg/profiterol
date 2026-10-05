@@ -237,3 +237,47 @@ describe('contact forms', () => {
   });
 
 });
+
+describe('media types and site fonts', () => {
+  const upload = async (bytes, name, type) => {
+    const body = new FormData();
+    body.append('file', new Blob([bytes], { type }), name);
+    const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body });
+    return { status: res.status, body: await res.json() };
+  };
+
+  test('files are checked by their first bytes, and fonts are accepted by extension', async () => {
+    const { readFileSync } = await import('node:fs');
+    const woff2 = readFileSync(new URL('../../../node_modules/@mdi/font/fonts/materialdesignicons-webfont.woff2', import.meta.url));
+    const font = await upload(woff2, 'Brand-Bold.woff2', 'application/octet-stream');
+    assert.equal(font.status, 201);
+    assert.match(font.body.url, /^\/uploads\/[\w-]+\.woff2$/);
+    assert.equal(font.body.mime, 'font/woff2');
+
+    assert.equal((await upload(Buffer.from('<script>alert(1)</script>'), 'photo.jpg', 'image/jpeg')).status, 400, 'a script named .jpg');
+    assert.equal((await upload(Buffer.from('not a font'), 'fake.woff2', 'font/woff2')).status, 400, 'a text file named .woff2');
+    assert.equal((await upload(Buffer.from('MZ'), 'tool.exe', 'application/octet-stream')).status, 400, 'other types');
+
+    // Uploaded fonts can then be used by themes, saved themes and pages.
+    const before = (await call('GET', '/admin/settings')).body;
+    const res = await call('PUT', '/admin/settings', {
+      fonts: [{ name: 'Brand', files: [{ url: font.body.url, weight: 700, style: 'normal' }] }, { name: 'x;}', files: [] }],
+      theme: { fontEn: 'Brand', primary: '#112233' },
+      savedThemes: [{ key: 'brand', name: 'Brand look', theme: { fontEn: 'Brand', primary: 'not-a-color' } }],
+      loader: { enabled: true, style: 'name', text: { en: 'Loading' } },
+    });
+    assert.equal(res.status, 200);
+    assert.deepEqual(res.body.fonts.map((f) => f.name), ['Brand']);
+    assert.equal(res.body.theme.fontEn, 'Brand');
+    assert.deepEqual(res.body.savedThemes, [{ key: 'brand', name: 'Brand look', theme: { fontEn: 'Brand' } }]);
+    assert.equal(res.body.loader.style, 'name');
+
+    const page = (await call('GET', '/admin/pages')).body[0];
+    const pageTheme = await call('PATCH', `/admin/pages/${page.id}`, { theme: { fontFa: 'Brand', fontEn: 'Unknown Font' } });
+    assert.deepEqual(pageTheme.body.theme, { fontFa: 'Brand' });
+
+    // Put things back for the other tests.
+    await call('PATCH', `/admin/pages/${page.id}`, { theme: page.theme });
+    await call('PUT', '/admin/settings', { fonts: before.fonts, theme: before.theme, savedThemes: before.savedThemes, loader: before.loader });
+  });
+});

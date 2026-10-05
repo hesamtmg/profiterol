@@ -7,3 +7,5 @@ export * from './locales.js';
 export * from './theme.js';
 export * from './collections.js';
 export * from './video.js';
+export * from './site.js';
+export * from './extras.js';

@@ -13,7 +13,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { cleanTheme } from '@profiterol/blocks';
+import { cleanFonts, cleanLoader, cleanSavedThemes, cleanTheme, fontNames } from '@profiterol/blocks';
 import { Repository } from 'typeorm';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
@@ -55,6 +55,18 @@ class UpdateSettingsDto {
   menu?: MenuItemDto[];
 
   @IsOptional()
+  @IsArray()
+  fonts?: unknown[];
+
+  @IsOptional()
+  @IsArray()
+  savedThemes?: unknown[];
+
+  @IsOptional()
+  @IsObject()
+  loader?: Record<string, unknown>;
+
+  @IsOptional()
   @IsBoolean()
   maintenance?: boolean;
 
@@ -79,7 +91,12 @@ export class SettingsService {
   async update(dto: Partial<SiteSettings>) {
     const current = await this.get();
     const next = { ...current, ...dto, id: 1 };
-    if (dto.theme) next.theme = cleanTheme(dto.theme);
+    // Fonts first: the themes may use the uploaded fonts' names.
+    if (dto.fonts !== undefined) next.fonts = cleanFonts(dto.fonts);
+    const custom = fontNames(next.fonts);
+    if (dto.theme) next.theme = cleanTheme(dto.theme, custom);
+    if (dto.savedThemes !== undefined) next.savedThemes = cleanSavedThemes(dto.savedThemes, custom);
+    if (dto.loader !== undefined) next.loader = cleanLoader(dto.loader);
     return this.repo.save(next);
   }
 }

@@ -1,6 +1,7 @@
 import type { BlockDef, BlockNode, FieldDef } from './types.js';
 import { animatedDefinitions, entranceAnimations } from './animated.js';
 import { classicDefinitions, formFieldsField } from './classic.js';
+import { extraDefinitions } from './extras.js';
 
 const button: FieldDef[] = [
   { key: 'buttonLabel', label: 'Button label', type: 'text' },
@@ -526,6 +527,7 @@ const definitions: BlockDef[] = [
       copyright: '© Your company',
     },
   },
+  ...extraDefinitions,
   ...animatedDefinitions,
   ...classicDefinitions,
 ];

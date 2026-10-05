@@ -1,13 +1,17 @@
 <script setup lang="ts">
-import { locales, resolveTheme, type FieldDef, type ThemeTokens } from '@profiterol/blocks';
+import { cleanLoader, fontNames, locales, resolveTheme, type FieldDef, type LoaderSettings, type ThemeTokens } from '@profiterol/blocks';
 import FieldInput from '~/components/admin/FieldInput.vue';
+import FontManager from '~/components/admin/FontManager.vue';
+import SiteLoader from '~/components/site/SiteLoader.vue';
 import ThemeEditor from '~/components/admin/ThemeEditor.vue';
 import type { SiteSettings } from '~/composables/useSite';
 
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 const api = useApi();
-const settings = ref<(SiteSettings & { notifyEmail: string }) | null>(null);
+const settings = ref<(SiteSettings & { notifyEmail: string; loader: LoaderSettings }) | null>(null);
+const customFonts = computed(() => fontNames(settings.value?.fonts));
+const loaderPreview = ref(0);
 const saving = ref(false);
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -15,12 +19,27 @@ const imageField = (key: string, label: string): FieldDef => ({ key, label, type
 
 async function load() {
   const s = await api<SiteSettings & { notifyEmail: string }>('/admin/settings');
-  s.theme = resolveTheme(s.theme);
+  s.fonts ??= [];
+  s.savedThemes ??= [];
+  s.theme = resolveTheme(s.theme, null, fontNames(s.fonts));
+  const loader = cleanLoader(s.loader);
   for (const l of locales) {
     s.siteName[l.code] ??= '';
     s.maintenanceText[l.code] ??= '';
+    loader.text[l.code] ??= '';
   }
-  settings.value = s;
+  settings.value = { ...s, loader };
+}
+
+/** Saved themes are kept with the other settings and stored with "Save settings". */
+function saveTheme(name: string) {
+  const list = settings.value!.savedThemes;
+  const key = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'theme'}-${Date.now().toString(36)}`.slice(0, 40);
+  list.push({ key, name, theme: { ...settings.value!.theme } });
+}
+
+function deleteTheme(key: string) {
+  settings.value!.savedThemes = settings.value!.savedThemes.filter((t) => t.key !== key);
 }
 
 function addMenuItem() {
@@ -32,10 +51,10 @@ async function save() {
   saving.value = true;
   message.value = null;
   try {
-    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail } = settings.value;
+    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader } = settings.value;
     await api('/admin/settings', {
       method: 'PUT',
-      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail },
+      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader },
     });
     message.value = { kind: 'ok', text: 'Settings saved' };
   } catch (err) {
@@ -113,6 +132,47 @@ onMounted(load);
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">Fonts</h2>
+        <p class="mt-1 text-xs text-slate-400">Your own fonts, e.g. a logo typeface. After uploading, pick them in a theme's font lists.</p>
+        <div class="mt-4">
+          <FontManager v-model="settings.fonts" />
+        </div>
+      </section>
+
+      <section class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">Page loader</h2>
+        <p class="mt-1 text-xs text-slate-400">A screen shown while the site opens, counting up to 100% and then revealing the site name.</p>
+        <label class="mt-4 flex items-center gap-2 text-sm">
+          <input v-model="settings.loader.enabled" type="checkbox" class="h-4 w-4 rounded" /> Show a loading screen
+        </label>
+        <div v-if="settings.loader.enabled" class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="field-label" for="loader-style">Style</label>
+            <select id="loader-style" v-model="settings.loader.style" class="input">
+              <option value="percent">Percentage counter</option>
+              <option value="bar">Thin bar at the top</option>
+              <option value="name">Site name filling with color</option>
+            </select>
+          </div>
+          <label class="flex items-center gap-2 self-end pb-2 text-sm">
+            <input v-model="settings.loader.oncePerSession" type="checkbox" class="h-4 w-4 rounded" /> Only on the first page of a visit
+          </label>
+          <div v-for="l in locales" :key="l.code">
+            <label class="field-label">Line under the counter ({{ l.label }})</label>
+            <input v-model="settings.loader.text[l.code]" class="input" :dir="l.dir" maxlength="120" />
+          </div>
+          <FieldInput v-model="settings.loader.background" :field="imageField('loaderBg', 'Background picture (blurred, sharpening as it loads)')" />
+        </div>
+        <div v-if="settings.loader.enabled" class="mt-4">
+          <button type="button" class="btn-light" @click="loaderPreview++"><i class="mdi mdi-play" /> Preview</button>
+          <div v-if="loaderPreview" class="relative mt-3 h-64 overflow-hidden rounded-2xl bg-slate-100">
+            <SiteLoader :key="loaderPreview" :loader="settings.loader" :site-name="settings.siteName.en || 'Your site'" locale="en" preview />
+            <p class="flex h-full items-center justify-center text-xs text-slate-400">The site appears here.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-[2rem] bg-white p-7 shadow-sm">
         <h2 class="font-black">Maintenance mode</h2>
         <label class="mt-4 flex items-center gap-2 text-sm">
           <input v-model="settings.maintenance" type="checkbox" class="h-4 w-4 rounded" /> Show a “back soon” page to visitors
@@ -132,7 +192,14 @@ onMounted(load);
         <h2 class="font-black">Site theme</h2>
         <p class="mt-1 text-xs text-slate-400">Used by every page, unless a page has its own theme (set in the page editor's Design panel).</p>
         <div class="mt-5">
-          <ThemeEditor v-model="(settings.theme as ThemeTokens)" compact />
+          <ThemeEditor
+            v-model="(settings.theme as ThemeTokens)"
+            compact
+            :custom-fonts="customFonts"
+            :saved-themes="settings.savedThemes"
+            @save-theme="saveTheme"
+            @delete-theme="deleteTheme"
+          />
         </div>
       </section>
 

@@ -14,6 +14,9 @@ import Statement from './Statement.vue';
 import TextBlock from './TextBlock.vue';
 import VideoHero from './VideoHero.vue';
 import VideoPlayer from './VideoPlayer.vue';
+import MapBlock from './MapBlock.vue';
+import Pricing from './Pricing.vue';
+import Spacer from './Spacer.vue';
 import AuroraHero from './animated/AuroraHero.vue';
 import ScrollText from './animated/ScrollText.vue';
 import Counters from './animated/Counters.vue';
@@ -59,6 +62,9 @@ export const blockComponents: Record<string, Component> = {
   gallery: Gallery,
   video: VideoPlayer,
   'contact-form': ContactForm,
+  pricing: Pricing,
+  map: MapBlock,
+  spacer: Spacer,
   // Animated
   'aurora-hero': AuroraHero,
   'scroll-text': ScrollText,

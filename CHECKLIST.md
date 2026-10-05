@@ -58,8 +58,8 @@ This combines:
 - [x] 404 / error page in both languages
 - [x] Maintenance mode with a message per language
 - [x] Site header with menu (hovering one link blurs the others, as in AMSR), a language switch that keeps you on the same page, and a mobile overlay menu
-- [ ] Page loader / splash (minicms loader settings + the AMSR splash animation)
-- [ ] Optional full-page vertical scroll mode (AMSR Swiper / minicms "magic scroll")
+- [x] Page loader (minicms): percentage, top bar or site-name fill; real loading progress, a blurred background picture that sharpens, once per visit; removed by CSS after 8 s without JavaScript
+- [x] Section-by-section scroll mode (minicms “magic scroll”), a theme setting per site or page
 - [ ] Canonical URL setting (minicms hardcoded its domain)
 - [ ] Self-host fonts (no Google Fonts call) and preload them
 - [ ] Google Tag Manager / analytics setting
@@ -109,7 +109,7 @@ From **minicms**'s 12 section kinds (`scrollview/kinds/kind-1 … 12`), each reb
 - [x] 10 · Video in its own player: seek bar, volume, ±5 s, speed menu, full screen, keyboard keys, blurred glow (`video-showcase`)
 - [x] 11 · Full-screen fading slider with caption, button and arrows on glass pills; autoplay, swipe, arrow keys (`slider`)
 - [x] 12 · Chessboard grid of rows × columns with its own phone size; links or a larger view with the text (`photo-grid`)
-- [ ] The minicms bottom bar that shows each section's name and link while scrolling (goes with the full-page scroll mode in Phase 3)
+- [x] The minicms bottom bar: with “Section by section” scrolling, a glass bar shows the current section's title (from its heading) with previous/next buttons, plus dots at the side
 
 General blocks that cover the same ground in the newer style:
 - [x] Image + text, image on either side (`image-text`); text (`text`); statement with a fixed (parallax) background (`statement`)
@@ -117,7 +117,7 @@ General blocks that cover the same ground in the newer style:
 
 New:
 - [x] Logos strip, testimonials, stats/counters, team (flip cards): see Animated below
-- [ ] Pricing table, map, spacer/divider
+- [x] Pricing table with a monthly/yearly switch (`pricing`), OpenStreetMap map with directions links (`map`), spacer/divider with line, dots, wave, slant or curve (`spacer`)
 
 Animated (Wix-style motion; every one holds still for visitors who turn off animations):
 - [x] **Entrance animation** on every block, like Wix's Animation panel: fade, float up, slide from either side, zoom, flip, blur, wipe. Plays when the block scrolls into view; the hidden start is rendered on the server so nothing flashes; picking one in the editor replays it on the canvas
@@ -155,7 +155,7 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 ## Phase 7: Media library
 - [x] Upload (JPG, PNG, WebP, GIF, AVIF, MP4, WebM; 20 MB; no SVG), random file names, list, delete
 - [x] Media picker inside the editor
-- [ ] Check the file's real type from its first bytes instead of trusting the browser's MIME type
+- [x] Check the file's real type from its first bytes instead of trusting the browser's MIME type
 - [ ] Image processing (sharp): resize, WebP/AVIF, responsive `srcset`, blur placeholder
 - [ ] Alt text per language; folders/tags; search; usage tracking ("used on 3 pages")
 - [ ] S3-compatible storage option (MinIO in Docker)
@@ -175,8 +175,8 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Theme editor: colors, corner radius, fonts, with live preview
 - [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose), button shape (pill/rounded/square), solid or frosted-glass header, a wider choice of Persian and Latin fonts
 - [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page
-- [ ] Upload a custom font (e.g. AMSR's “logotype”)
-- [ ] Save your own themes as presets
+- [x] Upload your own fonts (WOFF2, WOFF, TTF, OTF; one file per weight) in Site settings; they appear in every theme's font lists and are served with `@font-face`
+- [x] Save your own themes under a name (Site settings or the editor's Design tab) and reuse them on any page
 - [ ] Footer and social links as settings, used by the header/footer blocks
 - [ ] Multiple menus and dropdowns
 - [ ] Redirects manager (old URL → new URL), useful when migrating minicms content

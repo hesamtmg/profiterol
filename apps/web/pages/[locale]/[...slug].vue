@@ -3,11 +3,13 @@
  * Every public URL under a locale. The path is tried, in order, as:
  * a page (`/en/about-us`), a collection item (`/en/projects/my-project`) and a collection index (`/en/projects`).
  */
-import { defaultTheme, getLocale, resolveTheme, themeFontsHref, themeToCss, type BlockNode, type ThemeTokens } from '@profiterol/blocks';
+import { cleanLoader, defaultTheme, fontFaceCss, fontNames, getLocale, resolveTheme, themeFontsHref, themeToCss, type BlockNode, type ThemeTokens } from '@profiterol/blocks';
 import CollectionList from '~/components/blocks/CollectionList.vue';
 import ItemDetail from '~/components/site/ItemDetail.vue';
 import PageTransition from '~/components/site/PageTransition.vue';
+import SectionScroller from '~/components/site/SectionScroller.vue';
 import SiteCursor from '~/components/site/SiteCursor.vue';
+import SiteLoader from '~/components/site/SiteLoader.vue';
 import type { CollectionListData, PublicCollection, PublicItem } from '~/composables/useCollections';
 
 interface PublicPage {
@@ -103,9 +105,11 @@ const meta = computed(() => {
   return { title: `${r.collection.name} · ${siteName.value}`, description: '', image: '' };
 });
 
+const loader = computed(() => cleanLoader(settings.value?.loader));
+
 /** Site theme with this page's own changes on top. */
 const theme = computed(() =>
-  resolveTheme(settings.value?.theme, resolved.value?.kind === 'page' ? resolved.value.page.theme : null),
+  resolveTheme(settings.value?.theme, resolved.value?.kind === 'page' ? resolved.value.page.theme : null, fontNames(settings.value?.fonts)),
 );
 /** Full-screen heroes get the header floating over them. */
 const overlayHeader = computed(() => resolved.value?.kind === 'page' && resolved.value.page.blocks[0]?.type === 'spotlight');
@@ -114,10 +118,10 @@ const usesDefaultFonts = computed(() => theme.value.fontFa === defaultTheme.font
 useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
   // html:root outranks the stylesheet's :root defaults, which load after this tag.
-  style: [{ innerHTML: () => `html:root{${themeToCss(theme.value)}}` }],
+  style: [{ innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` }],
   link: [
     // The default fonts are always loaded (nuxt.config); others only when the theme picks them.
-    ...(usesDefaultFonts.value ? [] : [{ rel: 'stylesheet', href: themeFontsHref(theme.value) }]),
+    ...(usesDefaultFonts.value || !themeFontsHref(theme.value) ? [] : [{ rel: 'stylesheet', href: themeFontsHref(theme.value) }]),
     ...(settings.value?.favicon ? [{ rel: 'icon', href: settings.value.favicon }] : []),
     ...alternates.value.map((a) => ({
       rel: 'alternate',
@@ -150,6 +154,7 @@ useSeoMeta({
       </div>
     </template>
     <template v-else-if="resolved">
+      <SiteLoader v-if="loader.enabled" :loader="loader" :site-name="siteName" :locale="locale" />
       <SiteHeader
         :site-name="siteName"
         :logo="settings?.logo"
@@ -191,6 +196,7 @@ useSeoMeta({
           </div>
         </section>
       </main>
+      <SectionScroller v-if="theme.scrollMode === 'sections' && resolved.kind === 'page'" :locale="locale" />
       <SiteCursor :mode="theme.cursor" />
       <PageTransition :mode="theme.pageTransition" :label="siteName" />
     </template>

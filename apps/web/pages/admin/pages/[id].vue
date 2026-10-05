@@ -10,9 +10,12 @@ import {
   getLocale,
   locales,
   defaultTheme,
+  fontFaceCss,
+  fontNames,
   resolveTheme,
   themeFontsHref,
   themeToCss,
+  type SavedTheme,
   type ThemeTokens,
   withDefaults as mergeDefaults,
   type BlockCategory,
@@ -53,7 +56,8 @@ const savedSiteTheme = ref('');
 const pageTheme = ref<Partial<ThemeTokens> | null>(null);
 const isAdmin = computed(() => user.value?.role === 'admin');
 /** What the canvas shows: the site theme with this page's changes on top. */
-const canvasTheme = computed(() => resolveTheme(siteTheme.value, pageTheme.value));
+const customFonts = computed(() => fontNames(settings.value?.fonts));
+const canvasTheme = computed(() => resolveTheme(siteTheme.value, pageTheme.value, customFonts.value));
 const themeMode = computed<'site' | 'page'>(() => (pageTheme.value ? 'page' : 'site'));
 /** The theme being edited in the Design panel. */
 const editedTheme = computed<ThemeTokens>({
@@ -124,7 +128,7 @@ async function load() {
       api<SiteSettings>('/public/settings'),
     ]);
     settings.value = s;
-    siteTheme.value = resolveTheme(s.theme);
+    siteTheme.value = resolveTheme(s.theme, null, fontNames(s.fonts));
     savedSiteTheme.value = JSON.stringify(siteTheme.value);
     fromPage(p);
   } catch (err) {
@@ -408,8 +412,28 @@ useHead(() => ({
   title: `${name.value || 'Page'} · Editor`,
   htmlAttrs: { lang: 'en', dir: 'ltr' },
   // Load the theme's fonts so the canvas shows them while editing.
-  link: [{ rel: 'stylesheet', href: themeFontsHref(canvasTheme.value) }],
+  link: themeFontsHref(canvasTheme.value) ? [{ rel: 'stylesheet', href: themeFontsHref(canvasTheme.value) }] : [],
+  style: [{ innerHTML: fontFaceCss(settings.value?.fonts) }],
 }));
+
+/** Your own themes live in the site settings, so saving one here stores it straight away (admins). */
+async function storeSavedThemes(list: SavedTheme[]) {
+  try {
+    const s = await api<SiteSettings>('/admin/settings', { method: 'PUT', body: { savedThemes: list } });
+    if (settings.value) settings.value.savedThemes = s.savedThemes;
+  } catch (err) {
+    message.value = { kind: 'error', text: apiErrorMessage(err) };
+  }
+}
+
+function saveTheme(name: string) {
+  const key = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'theme'}-${Date.now().toString(36)}`.slice(0, 40);
+  storeSavedThemes([...(settings.value?.savedThemes ?? []), { key, name, theme: { ...editedTheme.value } }]);
+}
+
+function deleteTheme(key: string) {
+  storeSavedThemes((settings.value?.savedThemes ?? []).filter((t) => t.key !== key));
+}
 </script>
 
 <template>
@@ -545,7 +569,14 @@ useHead(() => ({
             </p>
           </div>
           <fieldset class="mt-5" :disabled="themeMode === 'site' && !isAdmin" :class="{ 'opacity-50': themeMode === 'site' && !isAdmin }">
-            <ThemeEditor v-model="editedTheme" compact />
+            <ThemeEditor
+              v-model="editedTheme"
+              compact
+              :custom-fonts="customFonts"
+              :saved-themes="isAdmin ? settings?.savedThemes ?? [] : undefined"
+              @save-theme="saveTheme"
+              @delete-theme="deleteTheme"
+            />
           </fieldset>
         </div>
 
