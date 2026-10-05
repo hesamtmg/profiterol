@@ -1,6 +1,6 @@
 <script setup lang="ts">
-/** Edits a full theme: ready-made presets, colors, corners, button shape, fonts and header style. */
-import { themeFonts, themePresets, themeRadii, type ThemeTokens } from '@profiterol/blocks';
+/** Edits a full theme: ready-made presets, colors, corners, button shape, fonts, header style and motion. */
+import { themeFonts, themeMotion, themeMotionKeys, themePresets, themeRadii, type ThemeTokens } from '@profiterol/blocks';
 
 const theme = defineModel<ThemeTokens>({ required: true });
 defineProps<{ compact?: boolean }>();
@@ -19,8 +19,15 @@ function set<K extends keyof ThemeTokens>(key: K, value: ThemeTokens[K]) {
   theme.value = { ...theme.value, [key]: value };
 }
 
+const isMotionKey = (k: string) => (themeMotionKeys as readonly string[]).includes(k);
+
+/** Presets are about looks; the motion settings are compared and kept separately. */
 function isPreset(preset: ThemeTokens) {
-  return (Object.keys(preset) as (keyof ThemeTokens)[]).every((k) => preset[k] === theme.value[k]);
+  return (Object.keys(preset) as (keyof ThemeTokens)[]).every((k) => isMotionKey(k) || preset[k] === theme.value[k]);
+}
+
+function applyPreset(preset: ThemeTokens) {
+  theme.value = { ...preset, cursor: theme.value.cursor, pageTransition: theme.value.pageTransition };
 }
 
 /** Shrinks a panel radius for the small preview tiles. */
@@ -42,7 +49,7 @@ function tileRadius(radius: string) {
           class="group rounded-2xl p-1.5 text-start ring-2 transition"
           :class="isPreset(preset.theme) ? 'ring-sky-500' : 'ring-transparent hover:ring-slate-300'"
           :title="`Use the ${preset.name} theme`"
-          @click="theme = { ...preset.theme }"
+          @click="applyPreset(preset.theme)"
         >
           <span class="block h-16 p-2" :style="{ background: preset.theme.background, borderRadius: '0.9rem' }">
             <span
@@ -116,6 +123,29 @@ function tileRadius(radius: string) {
           </button>
         </div>
       </div>
+    </section>
+
+    <!-- Motion -->
+    <section class="space-y-3">
+      <h3 class="field-label !mb-2">Motion</h3>
+      <div>
+        <label class="field-label" for="theme-cursor">Mouse pointer</label>
+        <select id="theme-cursor" class="input" :value="theme.cursor" @change="set('cursor', ($event.target as HTMLSelectElement).value as ThemeTokens['cursor'])">
+          <option v-for="c in themeMotion.cursor" :key="c.value" :value="c.value">{{ c.label }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="theme-transition">Page transition</label>
+        <select
+          id="theme-transition"
+          class="input"
+          :value="theme.pageTransition"
+          @change="set('pageTransition', ($event.target as HTMLSelectElement).value as ThemeTokens['pageTransition'])"
+        >
+          <option v-for="t in themeMotion.pageTransition" :key="t.value" :value="t.value">{{ t.label }}</option>
+        </select>
+      </div>
+      <p class="text-[11px] leading-snug text-slate-400">Both are skipped for visitors who turn off animations, and the pointer only changes for a mouse or trackpad.</p>
     </section>
 
     <!-- Fonts -->

@@ -90,7 +90,8 @@ test('link safety: relative links and page addresses pass, hidden schemes do not
 test('themes: presets are clean, unknown values are dropped, page overrides win', async () => {
   const { themePresets, cleanTheme, resolveTheme, themeFontsHref, defaultTheme } = await import('../dist/esm/index.js');
   for (const p of themePresets) assert.deepEqual(cleanTheme(p.theme), p.theme, p.key);
-  assert.deepEqual(cleanTheme({ primary: 'red;}', radius: '99rem', fontEn: 'Comic Sans', headerStyle: 'neon', evil: '#fff' }), {});
+  assert.deepEqual(cleanTheme({ primary: 'red;}', radius: '99rem', fontEn: 'Comic Sans', headerStyle: 'neon', cursor: 'url(x)', pageTransition: 'spin', evil: '#fff' }), {});
+  assert.deepEqual(cleanTheme({ cursor: 'ring', pageTransition: 'curtain' }), { cursor: 'ring', pageTransition: 'curtain' });
   const t = resolveTheme({ primary: '#111111', fontEn: 'Manrope' }, { primary: '#222222' });
   assert.equal(t.primary, '#222222');
   assert.equal(t.fontEn, 'Manrope');
@@ -117,7 +118,7 @@ test('minicms kinds: all 12 are registered, and rich text is cleaned inside bloc
 
 test('animated blocks are registered, and every block can have an entrance animation', async () => {
   const { animatedDefinitions } = await import('../dist/esm/index.js');
-  assert.equal(animatedDefinitions.length, 10);
+  assert.equal(animatedDefinitions.length, 12);
   assert.ok(blocks.every((b) => b.fields.some((f) => f.key === 'animation') && b.defaults.animation === ''));
   const hero = createBlock('aurora-hero');
   hero.props.animation = 'zoom';

@@ -324,4 +324,112 @@ export const animatedDefinitions: BlockDef[] = [
       ],
     },
   },
+  {
+    type: 'parallax',
+    label: 'Parallax layers',
+    icon: 'mdi-layers-triple-outline',
+    category: 'animated',
+    description: 'Layers of pictures that move at different speeds as the visitor scrolls (and a little with the mouse), giving depth. Without photos it shows layered hills in your colors.',
+    fields: [
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'text', label: 'Text', type: 'textarea' },
+      ...button(),
+      {
+        key: 'layers',
+        label: 'Layers (back to front)',
+        type: 'list',
+        itemLabel: 'speed',
+        max: 5,
+        fields: [
+          { key: 'image', label: 'Picture', type: 'image', help: 'Front layers look best as cut-outs (PNG/WebP with transparency).' },
+          {
+            key: 'speed',
+            label: 'Movement',
+            type: 'select',
+            options: [
+              { value: 'still', label: 'Still' },
+              { value: 'slow', label: 'Slow' },
+              { value: 'medium', label: 'Medium' },
+              { value: 'fast', label: 'Fast' },
+              { value: 'reverse', label: 'Against the scroll' },
+            ],
+          },
+          {
+            key: 'fit',
+            label: 'Fit',
+            type: 'select',
+            options: [
+              { value: 'cover', label: 'Fill the area' },
+              { value: 'bottom', label: 'Sit at the bottom' },
+            ],
+          },
+        ],
+      },
+      { key: 'mouse', label: 'Layers follow the mouse a little', type: 'boolean' },
+      {
+        key: 'height',
+        label: 'Height',
+        type: 'select',
+        options: [
+          { value: 'full', label: 'Full screen' },
+          { value: 'tall', label: 'Tall' },
+        ],
+      },
+    ],
+    defaults: {
+      title: 'Go further',
+      text: 'Every layer moves at its own pace.',
+      buttonLabel: 'Explore',
+      buttonLink: '#',
+      layers: [
+        { image: '', speed: 'slow', fit: 'cover' },
+        { image: '', speed: 'medium', fit: 'bottom' },
+        { image: '', speed: 'fast', fit: 'bottom' },
+      ],
+      mouse: true,
+      height: 'full',
+    },
+  },
+  {
+    type: 'sticky-story',
+    label: 'Sticky story',
+    icon: 'mdi-book-open-page-variant-outline',
+    category: 'animated',
+    description: 'A picture stays in place while the text scrolls past beside it; the picture changes with each step.',
+    fields: [
+      { key: 'title', label: 'Title', type: 'text' },
+      {
+        key: 'imageSide',
+        label: 'Picture side',
+        type: 'select',
+        options: [
+          { value: 'start', label: 'Start' },
+          { value: 'end', label: 'End' },
+        ],
+      },
+      {
+        key: 'steps',
+        label: 'Steps',
+        type: 'list',
+        itemLabel: 'title',
+        max: 10,
+        fields: [
+          { key: 'image', label: 'Picture', type: 'image' },
+          { key: 'eyebrow', label: 'Small line', type: 'text' },
+          { key: 'title', label: 'Title', type: 'text' },
+          { key: 'text', label: 'Text', type: 'textarea' },
+        ],
+      },
+    ],
+    defaults: {
+      title: 'How it works',
+      imageSide: 'start',
+      steps: [
+        { image: '', eyebrow: 'Step 1', title: 'We listen', text: 'A first call to understand who you are, who you serve and what success looks like.' },
+        { image: '', eyebrow: 'Step 2', title: 'We sketch', text: 'Ideas on paper, then in the browser, shared with you every week.' },
+        { image: '', eyebrow: 'Step 3', title: 'We build', text: 'Fast pages, easy editing, and every detail checked on real phones.' },
+        { image: '', eyebrow: 'Step 4', title: 'We launch', text: 'Go live, measure, and keep improving together.' },
+      ],
+    },
+  },
 ];

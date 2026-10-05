@@ -22,6 +22,8 @@ import {
 import draggable from 'vuedraggable';
 import FieldInput from '~/components/admin/FieldInput.vue';
 import ThemeEditor from '~/components/admin/ThemeEditor.vue';
+import PageTransition from '~/components/site/PageTransition.vue';
+import SiteCursor from '~/components/site/SiteCursor.vue';
 import type { AdminPage, AdminTranslation } from '~/composables/useAdminTypes';
 import type { SiteSettings } from '~/composables/useSite';
 
@@ -40,6 +42,7 @@ const drafts = reactive<Record<string, Draft>>({});
 const locale = ref(locales[0].code);
 const device = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const selectedId = ref<string | null>(null);
+const canvasEl = ref<HTMLElement | null>(null);
 const leftTab = ref<'add' | 'layers' | 'design'>('add');
 const { user } = useAuth();
 
@@ -567,6 +570,7 @@ useHead(() => ({
       <!-- Middle: live canvas -->
       <main class="min-w-0 flex-1 overflow-y-auto p-4" @click.self="selectedId = null">
         <div
+          ref="canvasEl"
           class="site @container relative mx-auto min-h-full pb-3 transition-[width] duration-500"
           :class="device === 'desktop' ? '' : 'overflow-hidden rounded-[2rem] shadow-2xl ring-8 ring-slate-800'"
           :style="`width:${deviceWidths[device]};${themeCss}`"
@@ -584,6 +588,9 @@ useHead(() => ({
             class="pointer-events-none"
             :class="overlayHeader ? '' : '!static'"
           />
+          <!-- Previews of the theme's motion settings: the cursor over the canvas, the transition when it is changed -->
+          <SiteCursor :mode="canvasTheme.cursor" :target="canvasEl" />
+          <PageTransition :mode="canvasTheme.pageTransition" :label="settings?.siteName?.[locale] ?? ''" contained />
           <draggable
             v-model="current.blocks"
             item-key="id"

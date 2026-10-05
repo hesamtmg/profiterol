@@ -6,6 +6,8 @@
 import { defaultTheme, getLocale, resolveTheme, themeFontsHref, themeToCss, type BlockNode, type ThemeTokens } from '@profiterol/blocks';
 import CollectionList from '~/components/blocks/CollectionList.vue';
 import ItemDetail from '~/components/site/ItemDetail.vue';
+import PageTransition from '~/components/site/PageTransition.vue';
+import SiteCursor from '~/components/site/SiteCursor.vue';
 import type { CollectionListData, PublicCollection, PublicItem } from '~/composables/useCollections';
 
 interface PublicPage {
@@ -189,6 +191,8 @@ useSeoMeta({
           </div>
         </section>
       </main>
+      <SiteCursor :mode="theme.cursor" />
+      <PageTransition :mode="theme.pageTransition" :label="siteName" />
     </template>
   </div>
 </template>

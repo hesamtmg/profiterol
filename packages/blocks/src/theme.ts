@@ -14,7 +14,34 @@ export interface ThemeTokens {
   fontEn: string;
   /** Header bar: solid white, or frosted glass with white text. */
   headerStyle: 'solid' | 'glass';
+  /** Mouse pointer effect on the site (mouse and trackpad only). */
+  cursor: ThemeCursor;
+  /** Animation played when moving between pages. */
+  pageTransition: ThemePageTransition;
 }
+
+export type ThemeCursor = 'default' | 'ring' | 'glow' | 'blend';
+export type ThemePageTransition = 'none' | 'fade' | 'slide' | 'curtain' | 'circle';
+
+/** Choices for the motion settings, in the order the theme editor shows them. */
+export const themeMotion = {
+  cursor: [
+    { value: 'default', label: 'Normal pointer' },
+    { value: 'ring', label: 'Dot and trailing ring' },
+    { value: 'glow', label: 'Soft glow' },
+    { value: 'blend', label: 'Inverting circle' },
+  ] as { value: ThemeCursor; label: string }[],
+  pageTransition: [
+    { value: 'none', label: 'None' },
+    { value: 'fade', label: 'Fade' },
+    { value: 'slide', label: 'Slide up' },
+    { value: 'curtain', label: 'Curtain' },
+    { value: 'circle', label: 'Circle' },
+  ] as { value: ThemePageTransition; label: string }[],
+};
+
+/** Theme settings about motion rather than looks; choosing a ready-made theme keeps them. */
+export const themeMotionKeys = ['cursor', 'pageTransition'] as const;
 
 /** Default theme, taken from the amsr-portfolio card look. */
 export const defaultTheme: ThemeTokens = {
@@ -30,6 +57,8 @@ export const defaultTheme: ThemeTokens = {
   fontFa: 'Vazirmatn',
   fontEn: 'Inter',
   headerStyle: 'solid',
+  cursor: 'default',
+  pageTransition: 'none',
 };
 
 export interface ThemePreset {
@@ -173,6 +202,8 @@ export function cleanTheme(input: unknown): Partial<ThemeTokens> {
   if (themeFonts.fa.some((f) => f.name === src.fontFa)) out.fontFa = src.fontFa as string;
   if (themeFonts.en.some((f) => f.name === src.fontEn)) out.fontEn = src.fontEn as string;
   if (src.headerStyle === 'solid' || src.headerStyle === 'glass') out.headerStyle = src.headerStyle;
+  if (themeMotion.cursor.some((c) => c.value === src.cursor)) out.cursor = src.cursor as ThemeCursor;
+  if (themeMotion.pageTransition.some((t) => t.value === src.pageTransition)) out.pageTransition = src.pageTransition as ThemePageTransition;
   return out;
 }
 

@@ -131,7 +131,11 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Before / after slider with a hint sweep; drag, touch or arrow keys (`before-after`)
 - [x] Testimonials with filling progress bars, pause on hover (`testimonials`)
 - [x] Timeline whose line draws as you scroll (`timeline`)
-- [ ] Parallax layers, sticky image + scrolling text, cursor effects, page transitions
+- [x] Parallax layers: pictures (or built-in hills in the theme colors) moving at different speeds with scroll and mouse, title passing behind the front layers (`parallax`)
+- [x] Sticky story: a picture pinned while steps scroll beside it, cross-fading to each step's picture; inline pictures on phones (`sticky-story`)
+- [x] Cursor effects, a theme setting (site or page): dot and trailing ring, soft glow, or inverting circle; mouse/trackpad only, normal pointer over text fields
+- [x] Page transitions, a theme setting: fade, slide, curtain (with the site name) or circle from the click; the uncovering is pure CSS in the server page; Back button safe
+- [x] Both previewed live on the editor canvas from the Design tab; ready-made themes keep the motion settings
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)

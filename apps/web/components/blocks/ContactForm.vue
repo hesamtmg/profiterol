@@ -18,7 +18,7 @@ const { editing, values, website, sending, sent, errors, submit } = useBlockForm
 const choices = formChoices;
 
 const inputClass =
-  'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/15';
+  'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-[color-mix(in_srgb,var(--c-primary)_15%,transparent)]';
 </script>
 
 <template>

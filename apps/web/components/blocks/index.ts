@@ -24,6 +24,8 @@ import FlipCards from './animated/FlipCards.vue';
 import BeforeAfter from './animated/BeforeAfter.vue';
 import Testimonials from './animated/Testimonials.vue';
 import Timeline from './animated/Timeline.vue';
+import Parallax from './animated/Parallax.vue';
+import StickyStory from './animated/StickyStory.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -68,6 +70,8 @@ export const blockComponents: Record<string, Component> = {
   'before-after': BeforeAfter,
   testimonials: Testimonials,
   timeline: Timeline,
+  parallax: Parallax,
+  'sticky-story': StickyStory,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,
