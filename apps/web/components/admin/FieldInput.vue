@@ -127,7 +127,8 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
         <input
           v-model="model"
           type="text"
-          class="input min-w-0 font-mono text-xs"
+          class="input min-w-0 text-xs"
+          :class="{ 'font-mono': model }"
           :dir="model ? 'ltr' : undefined"
           :placeholder="field.type === 'video' ? $t('Drop a video') : $t('Drop an image')"
           @paste="onImagePaste"

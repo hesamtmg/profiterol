@@ -93,7 +93,7 @@ onMounted(refresh);
         <div v-for="l in locales" :key="`s-${l.code}`">
           <label class="field-label" :for="`slug-${l.code}`">{{ $t('Address ({lang})', { lang: l.label }) }}</label>
           <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-            <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span><input :id="`slug-${l.code}`" v-model="form.slugs[l.code]" class="input font-mono text-xs" required />
+            <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span><input :id="`slug-${l.code}`" v-model="form.slugs[l.code]" class="input text-xs" required />
           </div>
         </div>
         <div>
@@ -127,7 +127,7 @@ onMounted(refresh);
           <h2 class="text-lg font-black">{{ c.name.en || c.key }}</h2>
           <p class="text-sm text-slate-500" dir="rtl">{{ c.name.fa }}</p>
           <div class="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-            <span v-for="l in locales" :key="l.code" class="font-mono">/{{ l.code }}/{{ c.slugs[l.code] }}</span>
+            <span v-for="l in locales" :key="l.code" dir="ltr">/{{ l.code }}/{{ c.slugs[l.code] }}</span>
           </div>
           <p class="mt-3 text-xs text-slate-400">
             {{ c.fields.length }} custom {{ c.fields.length === 1 ? 'field' : 'fields' }}<span v-if="c.fields.length">: {{ c.fields.map((f) => f.label).join(', ') }}</span>

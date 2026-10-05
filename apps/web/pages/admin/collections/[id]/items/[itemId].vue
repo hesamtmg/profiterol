@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
           <div>
             <label class="field-label" for="slug">{{ $t('Address') }}</label>
             <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-              <span class="shrink-0 whitespace-nowrap">/{{ locale }}/{{ collection.slugs[locale] }}/</span><input id="slug" v-model="current.slug" class="input font-mono text-xs" />
+              <span class="shrink-0 whitespace-nowrap">/{{ locale }}/{{ collection.slugs[locale] }}/</span><input id="slug" v-model="current.slug" class="input text-xs" />
             </div>
           </div>
           <div>

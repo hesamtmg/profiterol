@@ -114,7 +114,7 @@ onMounted(load);
             >
               {{ page.status === 'published' ? $t('Published') : $t('Draft') }}
             </span>
-            <span v-for="t in page.translations" :key="t.locale" class="font-mono">/{{ t.locale }}/{{ t.slug }}</span>
+            <span v-for="t in page.translations" :key="t.locale" dir="ltr">/{{ t.locale }}/{{ t.slug }}</span>
           </div>
           <div class="mt-auto flex items-center gap-2 pt-6">
             <NuxtLink :to="`/admin/pages/${page.id}`" class="btn-dark"><i class="mdi mdi-pencil-outline" /> {{ $t('Edit') }}</NuxtLink>

@@ -746,7 +746,7 @@ function deleteTheme(key: string) {
                 <div>
                   <label class="field-label">{{ $t('Address') }}</label>
                   <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-                    <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span><input v-model="current.slug" class="input font-mono text-xs" />
+                    <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span><input v-model="current.slug" class="input text-xs" />
                   </div>
                 </div>
                 <div>

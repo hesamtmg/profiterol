@@ -125,8 +125,8 @@ onMounted(load);
     <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl font-black">{{ collection.name.en || collection.key }}</h1>
-        <p class="mt-1 font-mono text-xs text-slate-400">
-          <span v-for="l in locales" :key="l.code" class="me-3">/{{ l.code }}/{{ collection.slugs[l.code] }}/…</span>
+        <p class="mt-1 text-xs text-slate-400">
+          <span v-for="l in locales" :key="l.code" class="me-3" dir="ltr">/{{ l.code }}/{{ collection.slugs[l.code] }}/…</span>
         </p>
       </div>
       <div class="flex gap-2">
@@ -223,7 +223,7 @@ onMounted(load);
           <div v-for="l in locales" :key="`cs-${l.code}`">
             <label class="field-label" :for="`cs-${l.code}`">{{ $t('Address ({lang})', { lang: l.label }) }}</label>
             <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-              <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span><input :id="`cs-${l.code}`" v-model="draft.slugs[l.code]" class="input font-mono text-xs" />
+              <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span><input :id="`cs-${l.code}`" v-model="draft.slugs[l.code]" class="input text-xs" />
             </div>
           </div>
         </div>
