@@ -1,10 +1,12 @@
 import 'reflect-metadata';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
+import { join } from 'node:path';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import type { NestExpressApplication } from '@nestjs/platform-express';
+import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { config } from './config';
 
@@ -33,7 +35,16 @@ async function bootstrap() {
   // (comma-separated) only for a separate front end; credentials are then allowed for those origins alone.
   if (config.corsOrigins.length) app.enableCors({ origin: config.corsOrigins, credentials: true });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  // nginx serves /uploads in Docker; this keeps local development working without it.
+  // nginx serves /uploads in Docker; this keeps local development working without it. Like nginx, it answers a
+  // request for a WebP copy with the AVIF one when the browser accepts AVIF and that copy exists.
+  app.use('/uploads', (req: Request, res: Response, next: NextFunction) => {
+    const m = /^\/([\w-]+-\d+)\.webp$/.exec(req.path);
+    if (m) {
+      res.vary('Accept');
+      if (/image\/avif/.test(req.headers.accept ?? '') && existsSync(join(config.uploadDir, `${m[1]}.avif`))) req.url = `/${m[1]}.avif`;
+    }
+    next();
+  });
   app.useStaticAssets(config.uploadDir, { prefix: '/uploads', dotfiles: 'deny', index: false });
   app.enableShutdownHooks();
 

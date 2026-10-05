@@ -645,3 +645,63 @@ describe('templates and saved sections', () => {
     assert.equal((await call('GET', '/admin/sections')).body.length, 0);
   });
 });
+
+describe('media library details', () => {
+  const ORIGIN = API.replace(/\/api$/, '');
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  test('descriptions, folders, search, usage, previews and AVIF copies', async () => {
+    const { default: sharp } = await import('sharp');
+    const jpg = await sharp({ create: { width: 1000, height: 700, channels: 3, background: '#c49a6c' } })
+      .jpeg()
+      .toBuffer();
+    const body = new FormData();
+    body.append('file', new Blob([jpg], { type: 'image/jpeg' }), 'harbour.jpg');
+    const media = await (await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body })).json();
+    const folder = `Harbour ${Date.now()}`;
+
+    const patched = await call('PATCH', `/admin/media/${media.id}`, { alt: { en: 'Boats at dusk', fa: 'قایق‌ها در غروب' }, folder });
+    assert.equal(patched.status, 200);
+    assert.equal((await call('PATCH', `/admin/media/${media.id}`, { folder: 'a/b' })).status, 400);
+    assert.ok((await call('GET', '/admin/media/folders')).body.includes(folder));
+    assert.deepEqual(
+      (await call('GET', `/admin/media?folder=${encodeURIComponent(folder)}`)).body.map((m) => m.id),
+      [media.id],
+    );
+    assert.ok(
+      (await call('GET', '/admin/media?q=dusk')).body.some((m) => m.id === media.id),
+      'found by its description',
+    );
+    assert.ok(!(await call('GET', '/admin/media?kind=video')).body.some((m) => m.id === media.id));
+
+    const listed = (await call('GET', `/admin/media?folder=${encodeURIComponent(folder)}`)).body[0];
+    assert.equal(listed.placeholder, undefined, 'the preview is not sent with the library list');
+    assert.deepEqual(listed.usedIn, []);
+
+    const page = (await call('POST', '/admin/pages', { name: 'Media usage' })).body;
+    const blocks = [{ id: 'im', type: 'image-text', props: { image: media.url } }];
+    await call('PATCH', `/admin/pages/${page.id}`, { translations: [{ locale: 'fa', title: 'x', slug: 'media-usage', blocks }] });
+    await call('POST', `/admin/pages/${page.id}/publish`);
+    const used = (await call('GET', `/admin/media?folder=${encodeURIComponent(folder)}`)).body[0].usedIn;
+    assert.deepEqual(used, [{ kind: 'page', id: page.id, name: 'Media usage' }]);
+
+    const pub = (await call('GET', '/public/fa/page?slug=media-usage', undefined, false)).body;
+    assert.match(pub.media[media.url].blur, /^data:image\/webp;base64,/);
+    assert.equal(pub.media[media.url].alt, 'قایق‌ها در غروب');
+
+    // AVIF copies are made after the upload; browsers that accept AVIF get them for the WebP address.
+    const copy = `${ORIGIN}${media.url.replace(/\.jpg$/, '-480.webp')}`;
+    let type = '';
+    for (let i = 0; i < 40 && type !== 'image/avif'; i++) {
+      type = (await fetch(copy, { headers: { accept: 'image/avif,image/webp' } })).headers.get('content-type');
+      if (type !== 'image/avif') await wait(250);
+    }
+    assert.equal(type, 'image/avif');
+    const plain = await fetch(copy, { headers: { accept: 'image/webp' } });
+    assert.equal(plain.headers.get('content-type'), 'image/webp');
+    assert.match(plain.headers.get('vary') ?? '', /Accept/);
+
+    await call('DELETE', `/admin/pages/${page.id}`);
+    await call('DELETE', `/admin/media/${media.id}`);
+  });
+});

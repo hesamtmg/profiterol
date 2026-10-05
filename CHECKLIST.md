@@ -159,8 +159,8 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Media picker inside the editor
 - [x] Check the file's real type from its first bytes instead of trusting the browser's MIME type
 - [x] Image processing (sharp): WebP copies at 480 / 960 / 1600 / 2400 px (never enlarged, EXIF-rotated), responsive `srcset` + `sizes` on every site image, rendered on the server; older photos are converted on start
-- [ ] Blur placeholder while a photo loads; AVIF copies
-- [ ] Alt text per language; folders/tags; search; usage tracking ("used on 3 pages")
+- [x] Blur placeholder while a photo loads (opaque photos; removed once loaded); AVIF copies made after upload and served automatically to browsers that accept them (nginx and the API both negotiate)
+- [x] Alt text per language (used when a block gives an image none), folders, search, kind filter, usage tracking ("used in 3", with links, and a warning before deleting a used file)
 - [ ] S3-compatible storage option (MinIO in Docker)
 
 ## Phase 8: Forms and inbox

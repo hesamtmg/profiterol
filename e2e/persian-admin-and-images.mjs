@@ -22,7 +22,12 @@ const media = await (
 ).json();
 const slug = `photo-${Date.now()}`;
 const page = await call('POST', '/admin/pages', { name: 'Photo test' });
-const blocks = [{ id: 'it', type: 'image-text', props: { title: 'Photo', text: 'Hi', image: media.url } }];
+await call('PATCH', `/admin/media/${media.id}`, { alt: { en: 'A harbour at dusk', fa: 'بندر در غروب' }, folder: 'Harbour' });
+const blocks = [
+  { id: 'it', type: 'image-text', props: { title: 'Photo', text: 'Hi', image: media.url } },
+  // No caption: the photo's description from the media library is used.
+  { id: 'gl', type: 'gallery', props: { title: '', images: [{ image: media.url, caption: '' }] } },
+];
 await call('PATCH', `/admin/pages/${page.id}`, {
   translations: [
     { locale: 'en', title: 'Photo test', slug, blocks },
@@ -33,6 +38,20 @@ await call('POST', `/admin/pages/${page.id}/publish`);
 const html = await (await fetch(`${BASE}/en/${slug}`)).text();
 const img = html.match(new RegExp(`<img[^>]*${media.url.replace(/[.]/g, '\\.')}[^>]*>`))?.[0] ?? '';
 const id = media.url.match(/\/uploads\/([\w-]+)\./)[1];
+check(
+  'blur: the server sends a preview behind the photo',
+  /background-image:url\(&quot;data:image\/webp;base64,/.test(img),
+  img.slice(0, 300),
+);
+const allImgs = [...html.matchAll(new RegExp(`<img[^>]*${media.url.replace(/[.]/g, '\\.')}[^>]*>`, 'g'))].map((m) => m[0]);
+const galleryImg = allImgs.find((t) => !t.includes('alt="Photo"')) ?? '';
+check(
+  'alt: an image without a description gets the one from the media library',
+  galleryImg.includes('alt="A harbour at dusk"'),
+  galleryImg.slice(0, 200),
+);
+const faHtml = await (await fetch(`${BASE}/fa/${slug}`)).text();
+check('alt: in Persian on the Persian page', faHtml.includes('alt="بندر در غروب"'));
 check(
   'srcset: rendered on the server with every width',
   [480, 960, 1600, 2400].every((w) => img.includes(`/uploads/${id}-${w}.webp ${w}w`)),
@@ -47,8 +66,15 @@ watch(site);
 const loaded = [];
 site.on('response', (r) => r.url().includes(`/uploads/${id}`) && loaded.push(r.url()));
 await site.goto(`${BASE}/en/${slug}`, { waitUntil: 'networkidle' });
-await site.locator(`img[src="${media.url}"]`).scrollIntoViewIfNeeded();
+await site.locator(`img[src="${media.url}"]`).first().scrollIntoViewIfNeeded();
 await site.waitForTimeout(800);
+check(
+  'blur: the preview is removed once the photo has loaded',
+  (await site
+    .locator(`img[src="${media.url}"]`)
+    .first()
+    .evaluate((el) => el.style.backgroundImage)) === '',
+);
 check(
   'srcset: a phone loads a WebP copy, not the original',
   loaded.some((u) => u.endsWith('.webp')) && !loaded.some((u) => u.endsWith('.jpg')),

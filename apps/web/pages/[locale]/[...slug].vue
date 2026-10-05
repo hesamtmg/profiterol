@@ -22,6 +22,7 @@ import SectionScroller from '~/components/site/SectionScroller.vue';
 import SiteCursor from '~/components/site/SiteCursor.vue';
 import SiteLoader from '~/components/site/SiteLoader.vue';
 import type { CollectionListData, PublicCollection, PublicItem } from '~/composables/useCollections';
+import type { MediaHints } from '~/composables/useMediaHints';
 
 interface PublicPage {
   id: string;
@@ -87,6 +88,20 @@ if (error.value) {
 if (!resolved.value) {
   throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
 }
+
+// Blurred previews and descriptions of the photos on this page, for every <img> (plugins/srcset.ts).
+const mediaHints = useMediaHints();
+watchEffect(() => {
+  const r = resolved.value;
+  const media = (x: unknown) => (x as { media?: MediaHints } | null)?.media ?? {};
+  mediaHints.value = !r
+    ? {}
+    : r.kind === 'page'
+      ? media(r.page)
+      : r.kind === 'item'
+        ? media(r.entry)
+        : { ...media(r.collection), ...media(r.list) };
+});
 
 const siteName = computed(() => settings.value?.siteName?.[locale] ?? settings.value?.siteName?.en ?? '');
 // Behind nginx: use the visitor-facing host and protocol (https) for hreflang and og:image links.

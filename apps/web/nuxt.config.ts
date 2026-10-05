@@ -2,19 +2,24 @@
 import type { NodeTransform } from '@vue/compiler-core';
 
 /**
- * Adds `v-srcset="<the img's src>"` (plugins/srcset.ts) to every <img>, so uploaded photos get responsive sizes
- * everywhere. The src is passed as the directive's value because server rendering gives directives no element.
+ * Adds `v-srcset="[<the img's src>, <its alt>]"` (plugins/srcset.ts) to every <img>, so uploaded photos get
+ * responsive sizes, a blurred preview and a fallback description everywhere. They are passed as the directive's
+ * value because server rendering gives directives no element to read them from.
  */
 const imgSrcset: NodeTransform = (node) => {
   if (node.type !== 1 || node.tag !== 'img') return;
   if (node.props.some((p) => p.name === 'srcset' || (p.type === 7 && p.arg?.type === 4 && p.arg.content === 'srcset'))) return;
-  const src = node.props.find(
-    (p) => (p.type === 6 && p.name === 'src') || (p.type === 7 && p.name === 'bind' && p.arg?.type === 4 && p.arg.content === 'src'),
-  );
+  const prop = (name: string) =>
+    node.props.find(
+      (p) => (p.type === 6 && p.name === name) || (p.type === 7 && p.name === 'bind' && p.arg?.type === 4 && p.arg.content === name),
+    );
+  const src = prop('src');
   if (!src) return;
-  // A bound src's expression has already been processed by Vue's own transforms, so it can be reused as is.
-  const exp =
-    src.type === 7 ? src.exp : { type: 4, content: JSON.stringify(src.value?.content ?? ''), isStatic: false, constType: 0, loc: src.loc };
+  // Bound expressions have already been processed by Vue's own transforms, so they can be reused as they are.
+  const expOf = (p: NonNullable<ReturnType<typeof prop>>) =>
+    p.type === 7 ? p.exp! : { type: 4, content: JSON.stringify(p.value?.content ?? ''), isStatic: false, constType: 0, loc: p.loc };
+  const alt = prop('alt');
+  const exp = { type: 8, loc: src.loc, children: ['[', expOf(src), ', ', alt ? expOf(alt) : 'undefined', ']'] };
   const lazy = node.props.some((p) => p.type === 6 && p.name === 'loading' && p.value?.content === 'lazy');
   const modifiers = lazy ? [{ type: 4, content: 'lazy', isStatic: true, constType: 3, loc: node.loc }] : [];
   node.props.push({ type: 7, name: 'srcset', exp, arg: undefined, modifiers, rawName: 'v-srcset', loc: node.loc } as never);

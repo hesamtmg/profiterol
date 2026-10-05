@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { CreateCollectionDto, CreateItemDto, UpdateCollectionDto, UpdateItemDto } from './collections.dto';
+import { MediaService } from '../media/media.module';
 import { CollectionsService } from './collections.service';
 
 @Controller('admin/collections')
@@ -79,20 +80,27 @@ export class AdminCollectionsController {
 /** Read-only endpoints for the site renderer and the editor's collection-list preview. */
 @Controller('public/:locale')
 export class PublicCollectionsController {
-  constructor(private readonly service: CollectionsService) {}
+  constructor(
+    private readonly service: CollectionsService,
+    private readonly media: MediaService,
+  ) {}
+
+  private async withHints<T extends object>(content: T, locale: string) {
+    return { ...content, media: await this.media.hintsFor(content, locale) };
+  }
 
   @Get('items')
-  list(@Param('locale') locale: string, @Query('collection') key = '', @Query('limit') limit = '12', @Query('tag') tag = '') {
-    return this.service.listPublished(locale, key, { limit: Number(limit) || 12, tag: tag || undefined });
+  async list(@Param('locale') locale: string, @Query('collection') key = '', @Query('limit') limit = '12', @Query('tag') tag = '') {
+    return this.withHints(await this.service.listPublished(locale, key, { limit: Number(limit) || 12, tag: tag || undefined }), locale);
   }
 
   @Get('collection')
-  collection(@Param('locale') locale: string, @Query('slug') slug = '') {
-    return this.service.findPublicCollection(locale, slug);
+  async collection(@Param('locale') locale: string, @Query('slug') slug = '') {
+    return this.withHints(await this.service.findPublicCollection(locale, slug), locale);
   }
 
   @Get('item')
-  item(@Param('locale') locale: string, @Query('collection') collection = '', @Query('slug') slug = '') {
-    return this.service.findPublishedItem(locale, collection, slug);
+  async item(@Param('locale') locale: string, @Query('collection') collection = '', @Query('slug') slug = '') {
+    return this.withHints(await this.service.findPublishedItem(locale, collection, slug), locale);
   }
 }

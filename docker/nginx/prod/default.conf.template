@@ -1,3 +1,9 @@
+# Browsers that accept AVIF get the AVIF copy of a photo when one has been made (see the WebP location below).
+map $http_accept $avif {
+  default "";
+  "~*image/avif" ".avif";
+}
+
 # Production nginx. The official image fills in ${DOMAIN} and ${EXTRA_DOMAINS} from the environment
 # at start-up; nginx's own variables ($host, $request_uri, …) are left alone.
 
@@ -55,6 +61,18 @@ server {
 
   gzip on;
   gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;
+
+  # Sized copies of photos: answered with the smaller AVIF copy when the browser accepts it and it exists.
+  location ~ "^/uploads/(?<copy>[\w-]+-\d+)\.webp$" {
+    root /data;
+    types { image/webp webp; image/avif avif; }
+    expires 30d;
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "public, immutable";
+    add_header Vary Accept;
+    add_header Content-Security-Policy "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'" always;
+    try_files /uploads/$copy$avif /uploads/$copy.webp =404;
+  }
 
   location /uploads/ {
     alias /data/uploads/;

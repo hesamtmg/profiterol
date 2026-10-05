@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, P
 import { blocks, getSiteTemplate, locales, pageTemplates, siteTemplates, siteTemplateTheme } from '@profiterol/blocks';
 import { NotFoundException } from '@nestjs/common';
 import { Roles } from '../auth/auth.guard';
+import { MediaService } from '../media/media.module';
 import { SettingsService } from '../settings/settings.controller';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard';
 
@@ -12,11 +13,16 @@ import { PagesService } from './pages.service';
 /** Public, read-only endpoints used by the site renderer. */
 @Controller('public')
 export class PublicPagesController {
-  constructor(private readonly pages: PagesService) {}
+  constructor(
+    private readonly pages: PagesService,
+    private readonly media: MediaService,
+  ) {}
 
+  /** A published page, with blurred previews and descriptions of the photos in it. */
   @Get(':locale/page')
-  page(@Param('locale') locale: string, @Query('slug') slug = '') {
-    return this.pages.findPublished(locale, slug.replace(/^\/+|\/+$/g, ''));
+  async page(@Param('locale') locale: string, @Query('slug') slug = '') {
+    const page = await this.pages.findPublished(locale, slug.replace(/^\/+|\/+$/g, ''));
+    return { ...page, media: await this.media.hintsFor(page.blocks, locale) };
   }
 
   @Get('sitemap')

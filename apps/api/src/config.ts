@@ -15,6 +15,8 @@ export const config = {
   adminEmail: process.env.ADMIN_EMAIL ?? 'admin@example.com',
   adminPassword: process.env.ADMIN_PASSWORD ?? 'admin12345',
   uploadDir: resolve(process.env.UPLOAD_DIR ?? './uploads'),
+  /** AVIF copies of photos (smaller than WebP, slower to make). Set IMAGE_AVIF=false to skip them. */
+  imageAvif: process.env.IMAGE_AVIF !== 'false',
   /** The site's public address, e.g. https://example.com — used in emailed links (password reset, invitations). */
   siteUrl: (process.env.SITE_URL ?? '').replace(/\/$/, ''),
   /** e.g. smtps://user:pass@smtp.example.com:465 — leave empty to keep form messages in the inbox only. */

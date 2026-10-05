@@ -4,12 +4,23 @@ import type { MediaItem } from '~/composables/useAdminTypes';
 const emit = defineEmits<{ pick: [url: string]; close: [] }>();
 const api = useApi();
 const items = ref<MediaItem[]>([]);
+const folders = ref<string[]>([]);
 const { upload, uploading, error } = useUpload();
 const dragOver = ref(false);
+const q = ref('');
+const folder = ref('*');
 
 async function load() {
-  items.value = await api<MediaItem[]>('/admin/media');
+  const query = { q: q.value || undefined, folder: folder.value === '*' ? undefined : folder.value };
+  [items.value, folders.value] = await Promise.all([api<MediaItem[]>('/admin/media', { query }), api<string[]>('/admin/media/folders')]);
 }
+
+let searchTimer: ReturnType<typeof setTimeout> | undefined;
+watch(q, () => {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(load, 250);
+});
+watch(folder, load);
 
 async function uploadFile(file: File | null | undefined) {
   dragOver.value = false;
@@ -48,6 +59,23 @@ onMounted(load);
         <button type="button" class="btn-icon" @click="emit('close')"><i class="mdi mdi-close text-lg" /></button>
       </div>
       <p v-if="error" class="mx-6 mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
+      <div class="flex flex-wrap gap-2 px-6 pt-4">
+        <div class="relative min-w-48 flex-1">
+          <i class="mdi mdi-magnify absolute start-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            v-model="q"
+            type="search"
+            class="input !ps-9"
+            :placeholder="$t('Search names and descriptions')"
+            :aria-label="$t('Search')"
+          />
+        </div>
+        <select v-if="folders.length" v-model="folder" class="input !w-auto" :aria-label="$t('Folder')">
+          <option value="*">{{ $t('All folders') }}</option>
+          <option value="">{{ $t('Not in a folder') }}</option>
+          <option v-for="f in folders" :key="f" :value="f">{{ f }}</option>
+        </select>
+      </div>
       <div class="grid grid-cols-3 gap-3 overflow-y-auto p-6 sm:grid-cols-4">
         <button
           v-for="item in items"
@@ -57,7 +85,12 @@ onMounted(load);
           :title="item.originalName"
           @click="emit('pick', item.url)"
         >
-          <img v-if="item.mime.startsWith('image/')" :src="item.url" :alt="item.originalName" class="h-full w-full object-cover" />
+          <img
+            v-if="item.mime.startsWith('image/')"
+            :src="item.url"
+            :alt="item.alt?.en || item.originalName"
+            class="h-full w-full object-cover"
+          />
           <span v-else class="flex h-full items-center justify-center text-3xl text-slate-400"><i class="mdi mdi-video-outline" /></span>
         </button>
         <p v-if="!items.length" class="col-span-full py-10 text-center text-sm text-slate-400">

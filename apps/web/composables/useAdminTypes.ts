@@ -34,4 +34,11 @@ export interface MediaItem {
   mime: string;
   size: number;
   createdAt: string;
+  width?: number | null;
+  height?: number | null;
+  /** Description per locale code. */
+  alt?: Record<string, string>;
+  folder?: string;
+  /** Where the file is used (pages, collection items, site settings); sent with the library list. */
+  usedIn?: { kind: 'page' | 'item' | 'settings'; id: string; name: string; parent?: string }[];
 }
