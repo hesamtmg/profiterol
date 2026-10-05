@@ -1,4 +1,4 @@
-import type { Component } from 'vue';
+import { h, type Component, type FunctionalComponent } from 'vue';
 import CardGrid from './CardGrid.vue';
 import Carousel from './Carousel.vue';
 import CollectionList from './CollectionList.vue';
@@ -14,6 +14,21 @@ import Statement from './Statement.vue';
 import TextBlock from './TextBlock.vue';
 import VideoHero from './VideoHero.vue';
 import VideoPlayer from './VideoPlayer.vue';
+import ContactSplit from './classic/ContactSplit.vue';
+import Horizon from './classic/Horizon.vue';
+import HorizonSide from './classic/HorizonSide.vue';
+import Information from './classic/Information.vue';
+import PhotoGrid from './classic/PhotoGrid.vue';
+import RichText from './classic/RichText.vue';
+import SideBySide from './classic/SideBySide.vue';
+import Slider from './classic/Slider.vue';
+import Triple from './classic/Triple.vue';
+import VideoCover from './classic/VideoCover.vue';
+import VideoShowcase from './classic/VideoShowcase.vue';
+
+/** minicms kinds 5 and 6 are one layout with the photo on either side. */
+const HorizonRight: FunctionalComponent = (_, { attrs }) => h(HorizonSide, { ...attrs, side: 'right' });
+const HorizonLeft: FunctionalComponent = (_, { attrs }) => h(HorizonSide, { ...attrs, side: 'left' });
 
 /** Block type → the component that renders it. Keep in sync with `@profiterol/blocks`. */
 export const blockComponents: Record<string, Component> = {
@@ -32,4 +47,17 @@ export const blockComponents: Record<string, Component> = {
   gallery: Gallery,
   video: VideoPlayer,
   'contact-form': ContactForm,
+  // The 12 section kinds of minicms
+  'video-cover': VideoCover,
+  triple: Triple,
+  horizon: Horizon,
+  'side-by-side': SideBySide,
+  'horizon-right': HorizonRight,
+  'horizon-left': HorizonLeft,
+  'contact-split': ContactSplit,
+  information: Information,
+  'rich-text': RichText,
+  'video-showcase': VideoShowcase,
+  slider: Slider,
+  'photo-grid': PhotoGrid,
 };

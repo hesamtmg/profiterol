@@ -1,8 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BlockNode, cleanTheme, isLocale, locales, validateBlocks } from '@profiterol/blocks';
+import { BlockNode, cleanTheme, formBlockTypes, isLocale, locales, mapRichText, validateBlocks } from '@profiterol/blocks';
 import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { CollectionsService } from '../collections/collections.service';
+import { cleanHtml } from '../common/rich-text';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
 import { CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
 import { Page, PageTranslation } from './page.entity';
@@ -151,7 +152,7 @@ export class PagesService {
     return Promise.all(
       blocks.map(async (b) => {
         // Forms post back to /public/forms/<page>/<block>, so they need to know their page.
-        if (b.type === 'contact-form') return { ...b, data: { pageId, blockId: b.id } };
+        if (formBlockTypes.includes(b.type)) return { ...b, data: { pageId, blockId: b.id } };
         if (b.type !== 'collection-list') return b;
         const p = b.props as { collection?: string; limit?: number; tag?: string };
         const data = await this.collections.listPublished(locale, String(p.collection ?? ''), {
@@ -177,7 +178,7 @@ export class PagesService {
       slug: t.slug ?? '',
       seoTitle: t.seoTitle ?? '',
       seoDescription: t.seoDescription ?? '',
-      blocks: (t.blocks ?? []) as BlockNode[],
+      blocks: mapRichText((t.blocks ?? []) as BlockNode[], cleanHtml),
     };
   }
 

@@ -11,7 +11,9 @@ export type FieldType =
   | 'boolean'
   | 'list'
   /** Picks one of the site's collections (stored as its key). */
-  | 'collection';
+  | 'collection'
+  /** Formatted text (HTML). The API cleans it on save, keeping only safe tags. */
+  | 'richtext';
 
 export interface FieldOption {
   value: string;
@@ -35,7 +37,7 @@ export interface FieldDef {
   labels?: Record<string, string>;
 }
 
-export type BlockCategory = 'hero' | 'content' | 'cards' | 'media' | 'contact';
+export type BlockCategory = 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic';
 
 export interface BlockDef {
   type: string;

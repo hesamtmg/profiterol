@@ -96,6 +96,96 @@
   }
 }
 
+/* Stands in for a photo that has not been chosen yet. */
+.photo-placeholder {
+  background:
+    radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--c-primary) 80%, white), transparent 60%),
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--c-secondary) 85%, white), transparent 55%),
+    var(--c-dark);
+}
+
+/* v-reveal (plugins/reveal.ts): slides in when scrolled into view. */
+.reveal {
+  opacity: 0;
+  transition:
+    opacity 0.8s ease-out,
+    transform 0.8s ease-out;
+}
+.reveal-up {
+  transform: translateY(32px);
+}
+.reveal-left {
+  transform: translateX(-48px);
+}
+.reveal-right {
+  transform: translateX(48px);
+}
+.reveal.reveal-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Seek bar of the "Video with player" block. */
+.seek {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: linear-gradient(to right, var(--c-primary) var(--seek, 0%), rgb(255 255 255 / 0.6) var(--seek, 0%));
+  cursor: pointer;
+}
+.seek::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 9999px;
+  background: var(--c-primary);
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.seek::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--c-primary);
+}
+.seek:hover::-webkit-slider-thumb,
+.seek:focus-visible::-webkit-slider-thumb {
+  opacity: 1;
+}
+
+/* Formatted text from the rich-text field. */
+.prose-site h2 {
+  @apply mb-3 mt-8 text-2xl font-black first:mt-0 @3xl:text-4xl;
+}
+.prose-site h3 {
+  @apply mb-2 mt-6 text-xl font-bold first:mt-0 @3xl:text-2xl;
+}
+.prose-site h4 {
+  @apply mb-2 mt-5 font-bold first:mt-0;
+}
+.prose-site p {
+  @apply my-3 font-light leading-relaxed;
+}
+.prose-site a {
+  @apply text-primary underline underline-offset-4;
+}
+.prose-site ul {
+  @apply my-3 list-disc ps-6;
+}
+.prose-site ol {
+  @apply my-3 list-decimal ps-6;
+}
+.prose-site li {
+  @apply my-1 font-light;
+}
+.prose-site blockquote {
+  @apply my-4 border-s-4 border-primary ps-4 text-lg italic;
+}
+.prose-site hr {
+  @apply my-6 border-slate-200;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-marquee {
     animation: none !important;

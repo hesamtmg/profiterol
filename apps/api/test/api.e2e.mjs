@@ -66,6 +66,40 @@ describe('pages', () => {
     });
     assert.equal(res.status, 400);
   });
+
+  test('classic sections: rich text is cleaned on save, and the contact block sends to the inbox', async () => {
+    const created = await call('POST', '/admin/pages', { name: 'Classic test' });
+    assert.equal(created.status, 201);
+    const id = created.body.id;
+    const html =
+      '<h2 onclick="x()">Hi</h2><script>alert(1)</script><img src=x onerror="alert(2)"><p><a href="javascript:alert(3)">bad</a> <a href="https://example.com" target="_blank">ok</a></p>';
+    const fields = [{ label: 'Email', type: 'email', required: true, options: '', placeholder: '' }];
+    const blocks = [
+      { id: 'rt', type: 'rich-text', props: { html } },
+      { id: 'cs', type: 'contact-split', props: { title: 'Talk to us', fields } },
+    ];
+    const saved = await call('PATCH', `/admin/pages/${id}`, { translations: [{ locale: 'en', title: 'Classic test', slug: 'classic-test', blocks }] });
+    assert.equal(saved.status, 200);
+    const clean = saved.body.translations.find((t) => t.locale === 'en').blocks[0].props.html;
+    assert.equal(clean, '<h2>Hi</h2><p><a>bad</a> <a href="https://example.com" target="_blank" rel="noopener noreferrer">ok</a></p>');
+
+    assert.equal((await call('POST', `/admin/pages/${id}/publish`)).status, 200);
+    const page = await call('GET', '/public/en/page?slug=classic-test', undefined, false);
+    const form = page.body.blocks.find((b) => b.type === 'contact-split');
+    assert.deepEqual(form.data, { pageId: id, blockId: 'cs' });
+
+    // A separate visitor address, so this message does not count towards the contact form tests' rate limit.
+    const sent = await fetch(`${API}/public/forms/${id}/cs`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.7' },
+      body: JSON.stringify({ locale: 'en', values: ['sara@example.com'], startedAt: Date.now() - 5000 }),
+    });
+    assert.equal(sent.status, 200);
+    const msg = (await call('GET', '/admin/submissions')).body[0];
+    assert.equal(msg.formTitle, 'Talk to us');
+    await call('PATCH', `/admin/submissions/${msg.id}`, { read: true });
+    assert.equal((await call('DELETE', `/admin/pages/${id}`)).status, 204);
+  });
 });
 
 describe('collections', () => {

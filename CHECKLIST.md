@@ -96,17 +96,24 @@ From **amsr-portfolio**:
 - [x] Statement with background image and CTA (`statement`)
 - [x] Contact + footer (`contact-footer`)
 
-From **minicms**'s 12 section kinds:
-- [x] Image + text, image on either side (kinds 3–6) (`image-text`)
-- [x] Text (`text`)
-- [x] Video hero, autoplay muted, still for visitors who turn off motion (kind 1) (`video-hero`)
-- [x] Three images (kind 2): use the Gallery block with 3 columns
-- [x] Fixed/parallax background (kinds 5–6): “Fixed background” option on the Statement block
-- [x] Contact form (kind 7) (`contact-form`)
-- [x] Info/request and complex forms (kinds 8–9): the contact form's fields are editable (short/long text, email, phone, choice; required or not)
-- [x] Video player: uploaded video, or a YouTube / Aparat link (kind 10) (`video`)
-- [x] Carousel with arrows, dots, swipe and optional autoplay (kind 11) (`carousel`)
-- [x] Gallery, even grid or masonry, with a full-screen viewer and keyboard arrows (kind 12) (`gallery`)
+From **minicms**'s 12 section kinds (`scrollview/kinds/kind-1 … 12`), each rebuilt as its own block under “Classic sections” in the editor, with a separate phone photo/video where minicms had one and the same scroll-in animations:
+- [x] 1 · Full-screen muted video with a light title, plus a phone version (`video-cover`)
+- [x] 2 · Title over three wide photo links that zoom and slide their text up on hover (`triple`)
+- [x] 3 · Full-width photo, blurred behind a centered title and text (`horizon`)
+- [x] 4 · Side by side: big number/title with a two-line label, paragraphs that open on hover, frosted button (`side-by-side`)
+- [x] 5 · Tall photo right, title and text beside it (`horizon-right`)
+- [x] 6 · Tall photo left, title and text beside it (`horizon-left`)
+- [x] 7 · Photo beside a frosted-glass contact form with address and email; messages go to the inbox (`contact-split`)
+- [x] 8 · Information: title and intro, then a longer text with its own heading beside a portrait photo (`information`)
+- [x] 9 · Free formatted text from an editor toolbar (headings, bold, lists, quotes, links); the API keeps only safe HTML (`rich-text`)
+- [x] 10 · Video in its own player: seek bar, volume, ±5 s, speed menu, full screen, keyboard keys, blurred glow (`video-showcase`)
+- [x] 11 · Full-screen fading slider with caption, button and arrows on glass pills; autoplay, swipe, arrow keys (`slider`)
+- [x] 12 · Chessboard grid of rows × columns with its own phone size; links or a larger view with the text (`photo-grid`)
+- [ ] The minicms bottom bar that shows each section's name and link while scrolling (goes with the full-page scroll mode in Phase 3)
+
+General blocks that cover the same ground in the newer style:
+- [x] Image + text, image on either side (`image-text`); text (`text`); statement with a fixed (parallax) background (`statement`)
+- [x] Video hero (`video-hero`), video player with YouTube / Aparat links (`video`), carousel with dots (`carousel`), gallery with masonry and a full-screen viewer (`gallery`), contact form with editable fields (`contact-form`)
 
 New:
 - [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider

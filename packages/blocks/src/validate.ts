@@ -113,3 +113,23 @@ export function validateFields(fields: FieldDef[], data: unknown, path = 'data')
   checkProps(fields, data, path, errors);
   return errors;
 }
+
+function cleanRichText(fields: FieldDef[], props: Record<string, unknown>, clean: (html: string) => string): Record<string, unknown> {
+  const out = { ...props };
+  for (const f of fields) {
+    const v = out[f.key];
+    if (f.type === 'richtext' && typeof v === 'string') out[f.key] = clean(v);
+    else if (f.type === 'list' && Array.isArray(v)) {
+      out[f.key] = v.map((item) => (isPlainObject(item) ? cleanRichText(f.fields ?? [], item, clean) : item));
+    }
+  }
+  return out;
+}
+
+/** Runs `clean` over every formatted-text value, e.g. to strip unsafe HTML before saving. */
+export function mapRichText(blocks: BlockNode[], clean: (html: string) => string): BlockNode[] {
+  return blocks.map((b) => {
+    const def = getBlock(b.type);
+    return def && isPlainObject(b.props) ? { ...b, props: cleanRichText(def.fields, b.props, clean) } : b;
+  });
+}

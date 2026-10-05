@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { withDefaults } from '@profiterol/blocks';
+import { formBlockTypes, withDefaults } from '@profiterol/blocks';
 import { createTransport, type Transporter } from 'nodemailer';
 import { Repository } from 'typeorm';
 import { config } from '../config';
@@ -83,7 +83,7 @@ export class FormsService {
 
   async submit(pageId: string, blockId: string, locale: string, values: unknown[]) {
     const block = await this.pages.findPublishedBlock(pageId, locale, blockId);
-    if (!block || block.type !== 'contact-form') throw new NotFoundException('Form not found');
+    if (!block || !formBlockTypes.includes(block.type)) throw new NotFoundException('Form not found');
     const props = withDefaults(block) as { title: string; fields: FormField[]; successMessage: string };
     const data = checkAnswers(props.fields ?? [], values, locale);
 

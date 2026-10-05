@@ -1,4 +1,5 @@
 import type { BlockDef, BlockNode, FieldDef } from './types.js';
+import { classicDefinitions, formFieldsField } from './classic.js';
 
 const button: FieldDef[] = [
   { key: 'buttonLabel', label: 'Button label', type: 'text' },
@@ -443,31 +444,7 @@ const definitions: BlockDef[] = [
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'text', label: 'Text', type: 'textarea' },
-      {
-        key: 'fields',
-        label: 'Form fields',
-        type: 'list',
-        itemLabel: 'label',
-        max: 20,
-        fields: [
-          { key: 'label', label: 'Label', type: 'text' },
-          {
-            key: 'type',
-            label: 'Type',
-            type: 'select',
-            options: [
-              { value: 'text', label: 'Short text' },
-              { value: 'email', label: 'Email' },
-              { value: 'tel', label: 'Phone' },
-              { value: 'textarea', label: 'Long text' },
-              { value: 'select', label: 'Choice' },
-            ],
-          },
-          { key: 'required', label: 'Required', type: 'boolean' },
-          { key: 'options', label: 'Choices (comma-separated)', type: 'text' },
-          { key: 'placeholder', label: 'Placeholder', type: 'text' },
-        ],
-      },
+      formFieldsField,
       { key: 'submitLabel', label: 'Button label', type: 'text' },
       { key: 'successMessage', label: 'Message after sending', type: 'textarea' },
     ],
@@ -548,6 +525,7 @@ const definitions: BlockDef[] = [
       copyright: '© Your company',
     },
   },
+  ...classicDefinitions,
 ];
 
 /** Every block can be given an anchor so menu links like `#services` can scroll to it. */

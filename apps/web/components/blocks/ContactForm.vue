@@ -4,14 +4,7 @@
  * (and optionally by email). The API checks every answer against the published form.
  */
 import EditableText from '../site/EditableText.vue';
-
-interface FormField {
-  label: string;
-  type: 'text' | 'email' | 'tel' | 'textarea' | 'select';
-  required: boolean;
-  options: string;
-  placeholder: string;
-}
+import type { FormField } from '~/composables/useBlockForm';
 
 const props = defineProps<{
   p: { title: string; text: string; fields: FormField[]; submitLabel: string; successMessage: string };
@@ -20,48 +13,9 @@ const props = defineProps<{
   data?: { pageId: string; blockId: string };
 }>();
 
-const editing = Boolean(useBlockEditing());
-const api = useApi();
 const fa = computed(() => props.locale === 'fa');
-const values = ref<string[]>([]);
-const website = ref('');
-const startedAt = ref(0);
-const sending = ref(false);
-const sent = ref('');
-const errors = ref<string[]>([]);
-
-watch(
-  () => props.p.fields?.length ?? 0,
-  (n) => (values.value = Array.from({ length: n }, (_, i) => values.value[i] ?? '')),
-  { immediate: true },
-);
-
-onMounted(() => (startedAt.value = Date.now()));
-
-function choices(options: string) {
-  return (options ?? '')
-    .split(/[,،]/)
-    .map((o) => o.trim())
-    .filter(Boolean);
-}
-
-async function submit() {
-  if (!props.data || editing) return;
-  sending.value = true;
-  errors.value = [];
-  try {
-    const res = await api<{ ok: boolean; message?: string }>(`/public/forms/${props.data.pageId}/${props.data.blockId}`, {
-      method: 'POST',
-      body: { locale: props.locale, values: values.value, website: website.value, startedAt: startedAt.value },
-    });
-    sent.value = res.message || props.p.successMessage;
-  } catch (err) {
-    const data = (err as { data?: { message?: string; errors?: string[] } }).data;
-    errors.value = data?.errors?.length ? data.errors : [data?.message ?? (fa.value ? 'ارسال نشد. دوباره تلاش کنید.' : 'The message could not be sent. Please try again.')];
-  } finally {
-    sending.value = false;
-  }
-}
+const { editing, values, website, sending, sent, errors, submit } = useBlockForm(props);
+const choices = formChoices;
 
 const inputClass =
   'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/15';

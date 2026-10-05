@@ -82,6 +82,7 @@ const categories: { key: BlockCategory; label: string }[] = [
   { key: 'content', label: 'Content' },
   { key: 'media', label: 'Media' },
   { key: 'contact', label: 'Contact' },
+  { key: 'classic', label: 'Classic sections (minicms)' },
 ];
 
 // ---------- Loading & saving ----------

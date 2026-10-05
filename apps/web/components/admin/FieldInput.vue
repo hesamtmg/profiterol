@@ -3,6 +3,7 @@
 import { createListItem, type FieldDef } from '@profiterol/blocks';
 import FieldInput from './FieldInput.vue';
 import MediaPicker from './MediaPicker.vue';
+import RichTextInput from './RichTextInput.vue';
 
 const props = defineProps<{ field: FieldDef; dir?: string }>();
 const model = defineModel<unknown>();
@@ -82,6 +83,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     <input v-if="field.type === 'text'" v-model="model" type="text" class="input" :dir="dir" />
     <input v-else-if="field.type === 'url'" v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="/page, #anchor or https://…" />
     <textarea v-else-if="field.type === 'textarea'" v-model="model" rows="4" class="input resize-y leading-relaxed" :dir="dir" />
+    <RichTextInput v-else-if="field.type === 'richtext'" :model-value="(model as string)" :dir="dir" @update:model-value="model = $event" />
     <input v-else-if="field.type === 'number'" v-model.number="model" type="number" class="input" />
     <label v-else-if="field.type === 'boolean'" class="flex items-center gap-2 text-sm">
       <input v-model="model" type="checkbox" class="h-4 w-4 rounded" /> {{ field.label }}

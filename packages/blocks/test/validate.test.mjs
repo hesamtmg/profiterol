@@ -100,3 +100,17 @@ test('themes: presets are clean, unknown values are dropped, page overrides win'
     'https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&family=Playfair+Display:wght@400..900&display=swap',
   );
 });
+
+test('minicms kinds: all 12 are registered, and rich text is cleaned inside blocks and lists', async () => {
+  const { classicDefinitions, mapRichText, formBlockTypes } = await import('../dist/esm/index.js');
+  assert.equal(classicDefinitions.length, 12);
+  assert.ok(classicDefinitions.every((d) => blocks.some((b) => b.type === d.type)));
+  assert.ok(formBlockTypes.includes('contact-split'));
+
+  const page = [createBlock('rich-text'), createBlock('text')];
+  page[0].props.html = '<p onclick="x()">Hi</p><script>bad()</script>';
+  const cleaned = mapRichText(page, (html) => html.replace(/<script.*?<\/script>/g, '').replace(/ on\w+="[^"]*"/g, ''));
+  assert.equal(cleaned[0].props.html, '<p>Hi</p>');
+  assert.equal(cleaned[1].props.body, page[1].props.body);
+  assert.notEqual(cleaned[0], page[0], 'returns new objects instead of changing the input');
+});
