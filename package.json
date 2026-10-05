@@ -17,7 +17,8 @@
     "test:api": "npm run test:e2e -w @profiterol/api",
     "prepare": "husky",
     "lint": "eslint . && prettier --check .",
-    "format": "prettier --write . && eslint --fix ."
+    "format": "prettier --write . && eslint --fix .",
+    "import:minicms": "node scripts/import-minicms.mjs"
   },
   "engines": {
     "node": ">=20"

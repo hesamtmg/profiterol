@@ -19,6 +19,7 @@ const SUITES = [
   'templates',
   'media',
   'speed',
+  'import',
 ];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;

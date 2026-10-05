@@ -8,6 +8,7 @@ import { FormsModule } from './forms/forms.module';
 import { HealthController } from './health.controller';
 import { MediaModule } from './media/media.module';
 import { PagesModule } from './pages/pages.module';
+import { RedirectsModule } from './redirects/redirects.module';
 import { SeedService } from './seed.service';
 import { SettingsModule } from './settings/settings.module';
 import { UsersModule } from './users/users.module';
@@ -24,6 +25,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     AuthModule,
     PagesModule,
+    RedirectsModule,
     CollectionsModule,
     SettingsModule,
     MediaModule,

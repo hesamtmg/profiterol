@@ -183,13 +183,13 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Save your own themes under a name (Site settings or the editor's Design tab) and reuse them on any page
 - [ ] Footer and social links as settings, used by the header/footer blocks
 - [ ] Multiple menus and dropdowns
-- [ ] Redirects manager (old URL → new URL), useful when migrating minicms content
+- [x] Redirects manager (old URL → new URL; 301/302, visit counts), applied by the site before "not found"
 - [ ] Custom CSS / head code (admin only)
 
 ## Phase 10: Templates and multi-site
 - [x] Page templates ("About", "Services", "Contact", two home pages) to start from, in English and Persian
 - [x] Whole-site templates (an AMSR-style portfolio, a minicms "studio"): theme, draft pages and menu links, from Site settings
-- [ ] Import minicms data (pages/page_details/posts → pages/blocks/collections)
+- [x] Import minicms data (`npm run import:minicms`): pages/page_details (all 12 kinds, both languages), posts and projects, their files, and redirects from the old addresses
 - [ ] Multi-site: `sites` table, all content scoped by `site_id`, custom domains, per-site theme
 - [ ] Sign-up and plans if this becomes a hosted product
 

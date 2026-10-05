@@ -705,3 +705,32 @@ describe('media library details', () => {
     await call('DELETE', `/admin/media/${media.id}`);
   });
 });
+
+describe('redirects', () => {
+  test('old addresses are kept tidy and checked', async () => {
+    const made = await call('POST', '/admin/redirects', { from: '/Old/Path%20One/', to: '/fa/جدید' });
+    assert.equal(made.status, 201);
+    assert.equal(made.body.from, '/old/path one');
+    assert.equal(made.body.status, 301);
+    assert.equal((await call('POST', '/admin/redirects', { from: '/old/path one', to: '/fa' })).status, 409, 'one redirect per address');
+    assert.equal((await call('POST', '/admin/redirects', { from: '/x', to: 'javascript:alert(1)' })).status, 400);
+    assert.equal((await call('POST', '/admin/redirects', { from: '/admin/users', to: '/fa' })).status, 400);
+    assert.equal((await call('POST', '/admin/redirects', { from: '/same', to: '/same' })).status, 400);
+
+    const found = await call('GET', `/public/redirect?path=${encodeURIComponent('/OLD/path one/')}`, undefined, false);
+    assert.deepEqual(found.body, { to: '/fa/جدید', status: 301 });
+    assert.equal((await call('GET', '/public/redirect?path=/nothing', undefined, false)).status, 404);
+    assert.equal((await call('GET', '/admin/redirects')).body.find((r) => r.id === made.body.id).hits, 1);
+
+    const bulk = await call('POST', '/admin/redirects/bulk', {
+      redirects: [
+        { from: '/a1', to: '/fa' },
+        { from: '/old/path one', to: '/fa' },
+        { from: '/a2', to: 'bad' },
+      ],
+    });
+    assert.deepEqual(bulk.body, { added: 1, skipped: 2 });
+    for (const r of (await call('GET', '/admin/redirects')).body)
+      if (['/old/path one', '/a1'].includes(r.from)) await call('DELETE', `/admin/redirects/${r.id}`);
+  });
+});

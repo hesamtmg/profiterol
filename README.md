@@ -85,6 +85,23 @@ npm run e2e
 npm run lint
 ```
 
+## Moving from minicms
+
+```sh
+npm run import:minicms -- minicms-dump.sql --uploads /path/to/minicms/public/uploads --publish
+```
+
+The dump is a MySQL dump of the minicms database. Profiterol must be running (it signs in as `ADMIN_EMAIL` /
+`ADMIN_PASSWORD` at `API_URL`, default `http://localhost:3001/api`). It brings over:
+
+- pages, with each section (the 12 minicms kinds) as the matching classic block, in Persian and English;
+- posts into the Blog collection and projects into Projects;
+- the pictures and videos they use, from `--uploads`;
+- a redirect from every old address (`/page/…`, `/post/…`, `/blog/…`, `/projects/…`) to its new page, so links and
+  search results keep working (see **Admin → Redirects**).
+
+Run it with `--dry-run` first to see what it finds. Running it again skips what is already there.
+
 ## Users and sign-in
 
 The first admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Invite more people in **Admin → Users**: each gets a

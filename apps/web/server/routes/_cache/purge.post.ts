@@ -7,5 +7,6 @@ export default defineEventHandler((event) => {
   if (!token || given.length !== token.length || !timingSafeEqual(Buffer.from(given), Buffer.from(token))) {
     throw createError({ statusCode: 404 });
   }
+  forgetRedirects();
   return { purged: purgePages() };
 });

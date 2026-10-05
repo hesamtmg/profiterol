@@ -9,6 +9,7 @@ const nav = [
   { to: '/admin/inbox', label: 'Inbox', icon: 'mdi-inbox-outline' },
   { to: '/admin/media', label: 'Media', icon: 'mdi-image-multiple-outline' },
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
+  { to: '/admin/redirects', label: 'Redirects', icon: 'mdi-directions-fork' },
   { to: '/admin/users', label: 'Users', icon: 'mdi-account-multiple-outline', admin: true },
 ];
 const visibleNav = computed(() => nav.filter((item) => !item.admin || user.value?.role === 'admin'));

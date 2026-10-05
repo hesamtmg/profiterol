@@ -84,7 +84,10 @@ if (error.value) {
   throw createError({ statusCode: 503, statusMessage: 'Temporarily unavailable', fatal: true });
 }
 if (!resolved.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
+  // An old address (e.g. from before a move) may have a redirect in Admin → Redirects.
+  const moved = await api<{ to: string; status: number }>('/public/redirect', { query: { path: route.path } }).catch(() => null);
+  if (!moved) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
+  await navigateTo(moved.to, { redirectCode: moved.status, external: /^https?:/i.test(moved.to) });
 }
 
 // Blurred previews and descriptions of the photos on this page, for every <img> (plugins/srcset.ts).
@@ -115,7 +118,8 @@ const alternates = computed(() => {
 });
 
 const meta = computed(() => {
-  const r = resolved.value!;
+  const r = resolved.value;
+  if (!r) return { title: siteName.value, description: '', image: '' };
   if (r.kind === 'page') {
     return {
       title: r.page.isHome ? siteName.value : `${r.page.seoTitle} · ${siteName.value}`,
