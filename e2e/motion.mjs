@@ -189,11 +189,11 @@ await ed.waitForURL(`${BASE}/admin`);
 await ed.locator('article', { hasText: 'Motion' }).getByText('Edit').click();
 await ed.waitForSelector('main [id^=blk-]');
 check(
-  'editor: Animated group lists 12 blocks',
+  'editor: Animated group lists 17 blocks',
   (await ed
     .locator('aside h3', { hasText: /^Animated$/ })
     .locator('xpath=following-sibling::div[1]/button')
-    .count()) === 12,
+    .count()) === 17,
 );
 await ed.screenshot({ path: out + 'editor-animated.png' });
 await ed.locator('main [id^=blk-m2]').click({ position: { x: 30, y: 20 } });

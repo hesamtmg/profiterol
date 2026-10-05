@@ -145,7 +145,7 @@ test('minicms kinds: all 12 are registered, and rich text is cleaned inside bloc
 
 test('animated blocks are registered, and every block can have an entrance animation', async () => {
   const { animatedDefinitions } = await import('../dist/esm/index.js');
-  assert.equal(animatedDefinitions.length, 12);
+  assert.equal(animatedDefinitions.length, 17);
   assert.ok(blocks.every((b) => b.fields.some((f) => f.key === 'animation') && b.defaults.animation === ''));
   const hero = createBlock('aurora-hero');
   hero.props.animation = 'zoom';

@@ -1,4 +1,4 @@
-// Builds a "Motion" page with the 10 animated blocks (and entrance animations on others), with generated pictures.
+// Builds a "Motion" page with the animated blocks (and entrance animations on others), with generated pictures.
 import { API, apiToken, logo, photo, upload } from '../lib.mjs';
 
 const token = await apiToken();
@@ -298,6 +298,79 @@ const blocks = (l) => [
           text: t('Every project still starts with listening.', 'هر پروژه هنوز با شنیدن شروع می‌شود.')(l),
         },
       ],
+    },
+  },
+  {
+    id: 'm14',
+    type: 'zoom-reveal',
+    props: {
+      eyebrow: t('New collection', 'مجموعه‌ی تازه')(l),
+      title: t('Step inside', 'وارد شوید')(l),
+      text: t('Scroll, and the picture opens up around you.', 'اسکرول کنید تا تصویر دورتان باز شود.')(l),
+      buttonLabel: t('Take a look', 'نگاهی بیندازید')(l),
+      buttonLink: '#m15',
+      image: photos[2],
+      intro: t('A closer look', 'نگاهی نزدیک‌تر')(l),
+    },
+  },
+  {
+    id: 'm15',
+    type: 'stacking-cards',
+    props: {
+      title: t('What we offer', 'خدمات ما')(l),
+      cards: [
+        [t('Strategy', 'راهبرد')(l), '#0f172a'],
+        [t('Design', 'طراحی')(l), '#1e3a8a'],
+        [t('Build', 'ساخت')(l), '#4c1d95'],
+        [t('Grow', 'رشد')(l), '#831843'],
+      ].map(([title, color], i) => ({
+        image: photos[i + 3],
+        eyebrow: String(i + 1).padStart(2, '0'),
+        title,
+        text: t('A short line about this service.', 'یک خط درباره‌ی این خدمت.')(l),
+        color,
+        buttonLabel: '',
+        buttonLink: '',
+      })),
+    },
+  },
+  {
+    id: 'm16',
+    type: 'scroll-marquee',
+    props: {
+      rows: [
+        { text: t('Design · Build · Launch', 'طراحی · ساخت · انتشار')(l), style: 'solid' },
+        { text: t('Brands that move', 'برندهایی که حرکت می‌کنند')(l), style: 'outline' },
+        { text: t('Made with care', 'ساخته‌شده با دقت')(l), style: 'accent' },
+      ],
+      speed: 'medium',
+      look: 'dark',
+    },
+  },
+  {
+    id: 'm17',
+    type: 'split-reveal',
+    props: {
+      image: photos[0],
+      coverTitle: t('Open up', 'باز کنید')(l),
+      eyebrow: t('Behind the scenes', 'پشت صحنه')(l),
+      title: t('Good work starts with a good question', 'کار خوب با یک پرسش خوب شروع می‌شود')(l),
+      text: t('We ask a lot of them, so the answer ends up simple.', 'ما زیاد می‌پرسیم تا پاسخ ساده از آب درآید.')(l),
+      buttonLabel: t('Ask us one', 'از ما بپرسید')(l),
+      buttonLink: '#m11',
+      direction: 'sideways',
+    },
+  },
+  {
+    id: 'm18',
+    type: 'floating-gallery',
+    props: {
+      eyebrow: t('Gallery', 'گالری')(l),
+      title: t('Moments from the studio', 'لحظه‌هایی از استودیو')(l),
+      text: t('Some of what happens between the first sketch and the launch.', 'گوشه‌ای از آنچه میان اولین طرح و انتشار می‌گذرد.')(l),
+      buttonLabel: t('See all projects', 'همه‌ی پروژه‌ها')(l),
+      buttonLink: '#m5',
+      photos: photos.slice(0, 6).map((image, i) => ({ image, caption: `${t('Photo', 'عکس')(l)} ${i + 1}` })),
     },
   },
   {

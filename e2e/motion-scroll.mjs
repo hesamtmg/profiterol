@@ -1,4 +1,5 @@
-// Parallax layers, sticky story, cursor effects and page transitions.
+// Parallax layers, sticky story, zoom-in picture, stacking cards, scroll-moved words, opening picture, floating photos,
+// cursor effects and page transitions.
 import { ADMIN, BASE, check, finish, launch, shots, watch } from './lib.mjs';
 
 const out = shots('motion-scroll');
@@ -84,6 +85,109 @@ check(
 check('sticky story: picture changes to the current step', (await activeImg()) === 2, String(await activeImg()));
 await page.screenshot({ path: out + 'sticky-story.png' });
 
+/** Scrolls so the block's top is `fraction` of the way through its pinned length (its height less one screen). */
+const through = (id, fraction) =>
+  page.evaluate(
+    ([id, f]) => {
+      const el = document.getElementById(id);
+      const s = el.querySelector('section') ?? el;
+      window.scrollTo(0, s.getBoundingClientRect().top + scrollY + (s.offsetHeight - innerHeight) * f);
+    },
+    [id, fraction],
+  );
+
+// Zoom-in picture
+const clip = async () => nums(await page.locator('#m14 [style*="clip-path"]').evaluate((e) => e.style.clipPath));
+await through('m14', 0);
+await page.waitForTimeout(300);
+const small = await clip();
+check('zoom-in: picture starts small and rounded', small[0] > 20 && small[1] > 25, JSON.stringify(small));
+await page.screenshot({ path: out + 'zoom-start.png' });
+await through('m14', 0.95);
+await page.waitForTimeout(300);
+const full = await clip();
+check('zoom-in: picture fills the screen', full[0] < 0.5 && full[1] < 0.5, JSON.stringify(full));
+check(
+  'zoom-in: title has faded in',
+  Number(await page.locator('#m14 h2').evaluate((e) => getComputedStyle(e.parentElement).opacity)) > 0.9,
+);
+await page.screenshot({ path: out + 'zoom-end.png' });
+
+// Stacking cards
+const scales = async () =>
+  (await page.locator('#m15 article').evaluateAll((as) => as.map((a) => a.style.transform))).map((t) => nums(t)[0]);
+await page
+  .locator('#m15 article')
+  .last()
+  .evaluate((e) => window.scrollBy(0, e.getBoundingClientRect().top - innerHeight * 0.12 - 60));
+await page.waitForTimeout(400);
+const stack = await scales();
+check(
+  'stacking: cards underneath shrink, the top one does not',
+  stack[0] < stack[2] && stack[2] < 1 && stack.at(-1) === 1,
+  JSON.stringify(stack),
+);
+check(
+  'stacking: cards pile up at the top of the screen',
+  await page.locator('#m15 .sticky').evaluateAll((ds) => ds.every((d, i) => Math.abs(d.getBoundingClientRect().top - (108 + i * 20)) <= 2)),
+);
+await page.screenshot({ path: out + 'stacking.png' });
+
+// Scroll-moved words
+const rows = () => page.locator('#m16 section > div > div').evaluateAll((rs) => rs.map((r) => r.getBoundingClientRect().left));
+await page.evaluate(() => window.scrollTo(0, document.getElementById('m16').getBoundingClientRect().top + scrollY - innerHeight / 2));
+await page.waitForTimeout(300);
+const r0 = await rows();
+await page.evaluate(() => window.scrollBy(0, 300));
+await page.waitForTimeout(300);
+const r1 = await rows();
+check('scroll words: rows move with the scroll, in opposite directions', r1[0] < r0[0] - 20 && r1[1] > r0[1] + 20, `${r0} -> ${r1}`);
+await page.waitForTimeout(500);
+check('scroll words: and stop when the scrolling stops', JSON.stringify(await rows()) === JSON.stringify(r1));
+await page.screenshot({ path: out + 'scroll-words.png' });
+
+// Opening picture
+const doors = () =>
+  page
+    .locator('#m17 .will-change-transform')
+    .evaluateAll((ds) => [...ds.map((d) => d.getBoundingClientRect().left), document.documentElement.clientWidth]);
+await through('m17', 0);
+await page.waitForTimeout(300);
+const shut = await doors();
+check('opening: the halves meet in the middle', Math.abs(shut[0]) < 2 && Math.abs(shut[1] - shut[2] / 2) < 2, JSON.stringify(shut));
+await page.screenshot({ path: out + 'opening-shut.png' });
+await through('m17', 0.5);
+await page.waitForTimeout(300);
+await page.screenshot({ path: out + 'opening-half.png' });
+await through('m17', 0.9);
+await page.waitForTimeout(300);
+const opened = await doors();
+check('opening: the halves slide off the screen', opened[0] <= 1 - opened[2] / 2 && opened[1] >= opened[2] - 1, JSON.stringify(opened));
+check(
+  'opening: the message behind can be clicked',
+  await page.locator('#m17 a', { hasText: 'Ask us one' }).evaluate((a) => {
+    const r = a.getBoundingClientRect();
+    return a.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+  }),
+);
+
+// Floating photos
+const photoTops = () => page.locator('#m18 figure').evaluateAll((fs) => fs.map((f) => f.getBoundingClientRect().top));
+await page.evaluate(() => window.scrollTo(0, document.getElementById('m18').getBoundingClientRect().top + scrollY));
+await page.waitForTimeout(300);
+const f0 = await photoTops();
+await page.evaluate(() => window.scrollBy(0, 400));
+await page.waitForTimeout(300);
+const f1 = await photoTops();
+const drift = f1.map((t, i) => f0[i] - t);
+// Photo 2 is near (fast), photo 1 is far (slow); both move further than the page did.
+check('floating: near photos drift faster than far ones', drift[1] > drift[0] + 30 && drift[0] > 400, JSON.stringify(drift));
+check(
+  'floating: the title stays in the middle of the screen',
+  Math.abs(await page.locator('#m18 h2').evaluate((e) => e.getBoundingClientRect().top + e.offsetHeight / 2 - innerHeight / 2)) < 120,
+);
+await page.screenshot({ path: out + 'floating.png' });
+
 // Page transition: clicking an internal link covers the page, then loads the next one
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(300);
@@ -103,6 +207,8 @@ const calm = await browser.newPage({ viewport: { width: 1440, height: 900 }, red
 watch(calm);
 await calm.goto(`${BASE}/en/motion`, { waitUntil: 'networkidle' });
 check('reduced motion: no transition overlay', await calm.locator('.pt').evaluate((e) => getComputedStyle(e).display === 'none'));
+check('reduced motion: zoom-in picture is shown whole', (await calm.locator('#m14 [style*="clip-path"]').count()) === 0);
+check('reduced motion: opening picture holds still', (await calm.locator('#m17 .will-change-transform').count()) === 0);
 check('reduced motion: normal pointer', !(await calm.evaluate(() => document.documentElement.classList.contains('cursor-replaced'))));
 const phone = await browser.newPage({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
 watch(phone);

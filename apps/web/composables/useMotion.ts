@@ -14,26 +14,18 @@ export function useReducedMotion() {
 }
 
 /**
- * A number (usually 0–1) recomputed from the element's position whenever anything scrolls or resizes,
- * at most once per frame. Scroll events are caught in the capture phase, so this also works inside the
- * editor canvas, which scrolls in its own box rather than the window.
+ * Calls `update` once on mount, then at most once per frame whenever anything scrolls or resizes.
+ * Scroll events are caught in the capture phase, so this also works inside the editor canvas,
+ * which scrolls in its own box rather than the window.
  */
-export function useScrollProgress(
-  target: Ref<HTMLElement | null>,
-  compute: (rect: DOMRect, viewportHeight: number) => number,
-  initial = 0,
-) {
-  const value = ref(initial);
+export function useScrollFrame(update: () => void) {
   let frame = 0;
-
-  function update() {
+  function run() {
     frame = 0;
-    if (!target.value) return;
-    const next = compute(target.value.getBoundingClientRect(), window.innerHeight);
-    value.value = Math.min(1, Math.max(0, next));
+    update();
   }
   function schedule() {
-    frame ||= requestAnimationFrame(update);
+    frame ||= requestAnimationFrame(run);
   }
 
   onMounted(() => {
@@ -46,5 +38,23 @@ export function useScrollProgress(
     window.removeEventListener('resize', schedule);
     cancelAnimationFrame(frame);
   });
+  return schedule;
+}
+
+/** A number (usually 0–1) recomputed from the element's position whenever anything scrolls or resizes. */
+export function useScrollProgress(
+  target: Ref<HTMLElement | null>,
+  compute: (rect: DOMRect, viewportHeight: number) => number,
+  initial = 0,
+) {
+  const value = ref(initial);
+  useScrollFrame(() => {
+    if (!target.value) return;
+    const next = compute(target.value.getBoundingClientRect(), window.innerHeight);
+    value.value = Math.min(1, Math.max(0, next));
+  });
   return value;
 }
+
+/** Where `value` sits between `from` and `to`, as 0–1. */
+export const between = (value: number, from: number, to: number) => Math.min(1, Math.max(0, (value - from) / (to - from)));
