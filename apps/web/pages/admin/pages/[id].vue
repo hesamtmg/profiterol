@@ -744,9 +744,9 @@ function deleteTheme(key: string) {
                   <input v-model="current.title" class="input" :dir="localeDir" />
                 </div>
                 <div>
-                  <label class="field-label">{{ $t('Address') }}</label>
+                  <label class="field-label" for="page-slug">{{ $t('Address') }}</label>
                   <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-                    <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span><input v-model="current.slug" class="input text-xs" />
+                    <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span><input id="page-slug" v-model="current.slug" class="input text-xs" />
                   </div>
                 </div>
                 <div>

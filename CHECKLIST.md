@@ -18,9 +18,9 @@ This combines:
 - [x] Multi-stage Dockerfiles for api and web (small runtime images, non-root user)
 - [x] nginx: `/api` → Nest, `/uploads` straight from the volume, everything else → Nuxt; gzip, security headers, long cache for `/_nuxt`
 - [x] `.env.example` covering every setting
-- [ ] ESLint + Prettier config shared across the workspaces
+- [x] ESLint + Prettier config shared across the workspaces (`npm run lint`, `npm run format`), checked in CI
 - [x] CI (GitHub Actions): build, unit tests, API end-to-end tests against Postgres, migration drift check, web build, Docker build
-- [ ] Pre-commit hook (lint-staged)
+- [x] Pre-commit hook (husky + lint-staged): fixes and formats the staged files
 
 ## Phase 1: Core data and auth
 - [x] Users table with bcrypt password hashes and a role (`admin` or `editor`)
@@ -28,9 +28,10 @@ This combines:
 - [x] First admin created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` on first start
 - [x] Locales declared once (`packages/blocks/src/locales.ts`) instead of `*_en` columns
 - [x] **TypeORM migrations**, run automatically on start (`npm run migration:generate --name=X -w @profiterol/api` after changing an entity)
-- [ ] User management screen: invite, change role, deactivate
-- [ ] Password reset by email; optional 2FA (minicms had both)
-- [ ] Rate-limit login (`@nestjs/throttler`) and lock out after repeated failures
+- [x] User management screen (Admin → Users): invite with a one-time link (emailed when email is set up), change role, deactivate / reactivate (ends their sessions at once), new password links; Your account → change your own password
+- [x] Password reset by email ("Forgot password?"; needs SMTP and `SITE_URL`); links are single-use, expire, and only their hash is stored
+- [ ] Optional 2FA (minicms had it)
+- [x] Rate-limit sign-ins per visitor address, and lock an account for 15 minutes after 5 wrong passwords
 - [ ] Fine-grained permissions (minicms used spatie/permission): per-collection create/edit/publish
 - [ ] Audit log: who changed what, when
 
@@ -64,7 +65,7 @@ This combines:
 - [ ] Self-host fonts (no Google Fonts call) and preload them
 - [ ] Google Tag Manager / analytics setting
 - [ ] Cache published pages (nginx micro-cache or Nitro route cache) and purge on publish
-- [ ] Custom cursor option (both projects had one)
+- [x] Custom cursor option (both projects had one): a theme setting, off on touch screens and with reduced motion
 
 ## Phase 4: Visual editor (the Wix part)
 - [x] Three-panel editor: block library, live canvas, property panel
@@ -80,7 +81,7 @@ This combines:
 - [x] **Inline text editing**: click any text on the canvas and type; the property panel and undo history follow along
 - [x] Autosave a few seconds after each change (pages, and collection items while they are drafts), with an on/off switch
 - [x] Drop a photo onto a block to use it as that block's image; drop or paste images into any image field, the media library window and the Media page
-- [ ] Rich text field (bold, italic, links, lists) with sanitized HTML output
+- [x] Rich text field (bold, italic, links, lists) with sanitized HTML output
 - [ ] Block presets / "sections": save a configured block and reuse it
 - [ ] Shareable draft preview link (signed token)
 - [x] Editor UI in Persian as well as English: a فارسی / English switch in the header, login and editor; right-to-left layout; remembered per browser; block names, fields and help text translated
@@ -192,11 +193,12 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 
 ## Phase 11: Quality and security
 - [x] API end-to-end tests against a real Postgres (`npm run test:e2e -w @profiterol/api`), run in CI
-- [ ] Component tests for blocks (Vitest) and Playwright tests for the editor
-- [ ] Content-Security-Policy for the site and admin
+- [x] Playwright browser tests in the repo (`e2e/`, `npm run e2e`): site, editor, admin, Persian, security; run in CI with screenshots as an artifact
+- [ ] Component tests for blocks (Vitest)
+- [x] Content-Security-Policy for the site and admin: scripts only from the site or with a per-response nonce; frames limited to YouTube, Aparat and OpenStreetMap
 - [x] Login cookie is marked Secure when the site runs on HTTPS
-- [ ] Store the JWT in an httpOnly cookie, with CSRF protection, instead of a JS-readable cookie
-- [ ] Helmet, request size limits and CORS rules on the API
+- [x] The admin's session is an httpOnly cookie, with double-submit CSRF protection on every change; API clients keep using bearer tokens
+- [x] Helmet, request size limits (2 MB JSON) and CORS rules (same-origin unless `CORS_ORIGINS` is set) on the API
 - [ ] Accessibility pass: focus states, contrast checks in the theme editor, reduced motion (done for the marquee)
 - [ ] Lighthouse budget: LCP < 2.5s on mobile
 

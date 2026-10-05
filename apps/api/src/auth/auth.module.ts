@@ -13,6 +13,7 @@ import { AuthGuard } from './auth.guard';
   ],
   controllers: [AuthController],
   providers: [AuthGuard],
-  exports: [AuthGuard, JwtModule],
+  // UsersModule is re-exported so AuthGuard (used in every module) can check the user on each request.
+  exports: [AuthGuard, JwtModule, UsersModule],
 })
 export class AuthModule {}

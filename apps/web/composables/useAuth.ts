@@ -6,35 +6,34 @@ interface AdminUser {
 }
 
 export function useAuth() {
-  const token = useTokenCookie();
   const user = useState<AdminUser | null>('auth-user', () => null);
   const api = useApi();
 
   async function login(email: string, password: string) {
-    const res = await api<{ token: string; user: AdminUser }>('/auth/login', {
+    const res = await api<{ user: AdminUser }>('/auth/login', {
       method: 'POST',
       body: { email, password },
+      headers: { 'x-session': 'cookie' },
     });
-    token.value = res.token;
     user.value = res.user;
   }
 
   async function fetchMe() {
-    if (!token.value) return null;
+    // Without the readable half of the session there is no session; skip the request.
+    if (import.meta.client && !document.cookie.includes('pt_csrf=')) return null;
     try {
       user.value = await api<AdminUser>('/auth/me');
     } catch {
-      token.value = null;
       user.value = null;
     }
     return user.value;
   }
 
-  function logout() {
-    token.value = null;
+  async function logout() {
+    await api('/auth/logout', { method: 'POST' }).catch(() => undefined);
     user.value = null;
     return navigateTo('/admin/login');
   }
 
-  return { token, user, login, fetchMe, logout };
+  return { user, login, fetchMe, logout };
 }

@@ -9,7 +9,9 @@ const nav = [
   { to: '/admin/inbox', label: 'Inbox', icon: 'mdi-inbox-outline' },
   { to: '/admin/media', label: 'Media', icon: 'mdi-image-multiple-outline' },
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
+  { to: '/admin/users', label: 'Users', icon: 'mdi-account-multiple-outline', admin: true },
 ];
+const visibleNav = computed(() => nav.filter((item) => !item.admin || user.value?.role === 'admin'));
 
 // Unread form messages, shown as a badge on Inbox. The inbox page keeps it up to date.
 const api = useApi();
@@ -41,7 +43,7 @@ useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, di
         </NuxtLink>
         <nav class="flex gap-1">
           <NuxtLink
-            v-for="item in nav"
+            v-for="item in visibleNav"
             :key="item.to"
             :to="item.to"
             class="flex items-center gap-2 rounded-full px-4 py-2 text-sm transition"
@@ -63,7 +65,7 @@ useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, di
           <a href="/" target="_blank" class="hidden whitespace-nowrap text-slate-500 hover:text-slate-900 sm:inline">
             <i class="mdi mdi-open-in-new" /> {{ $t('View site') }}
           </a>
-          <span class="hidden text-slate-400 md:inline">{{ user?.email }}</span>
+          <NuxtLink to="/admin/account" class="hidden text-slate-400 hover:text-slate-900 md:inline" :title="$t('Your account')">{{ user?.email }}</NuxtLink>
           <button type="button" class="whitespace-nowrap rounded-full px-3 py-1.5 text-slate-500 hover:bg-slate-100" @click="logout">
             <i class="mdi mdi-logout" /> {{ $t('Log out') }}
           </button>

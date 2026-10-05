@@ -1,0 +1,9 @@
+node_modules
+dist
+.nuxt
+.output
+e2e/.output
+package-lock.json
+apps/api/src/migrations
+apps/web/i18n/admin-fa.ts
+*.md

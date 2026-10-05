@@ -14,7 +14,7 @@ const color = computed(() => COLOR[props.p.color] ?? COLOR.primary);
 
 <template>
   <div class="relative w-full overflow-hidden" :class="HEIGHT[p.size] ?? HEIGHT.md" role="separator" aria-hidden="true">
-    <div v-if="p.shape === 'line'" class="absolute inset-x-[10%] top-1/2 h-px origin-center" v-reveal :style="{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }" />
+    <div v-if="p.shape === 'line'" v-reveal class="absolute inset-x-[10%] top-1/2 h-px origin-center" :style="{ background: `linear-gradient(90deg, transparent, ${color}, transparent)` }" />
     <div v-else-if="p.shape === 'dots'" class="absolute inset-0 flex items-center justify-center gap-3">
       <span v-for="i in 3" :key="i" class="h-2 w-2 rounded-full" :style="{ background: color, opacity: i === 2 ? 1 : 0.5 }" />
     </div>

@@ -1,9 +1,8 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { formBlockTypes, withDefaults } from '@profiterol/blocks';
-import { createTransport, type Transporter } from 'nodemailer';
 import { Repository } from 'typeorm';
-import { config } from '../config';
+import { canSendMail, sendMail } from '../common/mail';
 import { PagesService } from '../pages/pages.service';
 import { SettingsService } from '../settings/settings.controller';
 import { FormSubmission, SubmittedField } from './form-submission.entity';
@@ -73,7 +72,6 @@ export function checkAnswers(fields: FormField[], values: unknown[], locale = 'e
 @Injectable()
 export class FormsService {
   private readonly log = new Logger(FormsService.name);
-  private readonly mailer: Transporter | null = config.smtpUrl ? createTransport(config.smtpUrl) : null;
 
   constructor(
     @InjectRepository(FormSubmission) private readonly submissions: Repository<FormSubmission>,
@@ -98,10 +96,9 @@ export class FormsService {
 
   private async notify(s: FormSubmission) {
     const to = (await this.settings.get()).notifyEmail;
-    if (!this.mailer || !to) return;
+    if (!canSendMail() || !to) return;
     const replyTo = s.data.find((d) => EMAIL.test(d.value))?.value;
-    await this.mailer.sendMail({
-      from: config.smtpFrom,
+    await sendMail({
       to,
       replyTo,
       subject: `New message: ${s.formTitle || 'Contact form'} (${s.pageTitle})`,

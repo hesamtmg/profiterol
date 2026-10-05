@@ -32,6 +32,7 @@ services:
       # Optional: email form messages (e.g. smtps://user:pass@smtp.example.com:465)
       SMTP_URL: ${SMTP_URL:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      SITE_URL: ${SITE_URL:-}
     volumes:
       - uploads:/data/uploads
     depends_on:

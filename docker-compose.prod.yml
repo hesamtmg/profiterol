@@ -46,6 +46,8 @@ services:
       UPLOAD_DIR: /data/uploads
       SMTP_URL: ${SMTP_URL:-}
       SMTP_FROM: ${SMTP_FROM:-}
+      # Used in emailed links (password resets, invitations).
+      SITE_URL: https://${DOMAIN}
     volumes:
       - uploads:/data/uploads
     depends_on:

@@ -14,6 +14,8 @@ function isPlainObject(v: unknown): v is Record<string, unknown> {
  * cannot be hidden inside them.
  */
 export function isSafeUrl(value: string): boolean {
+  // Browsers ignore control characters and spaces inside a scheme ("java\tscript:"), so they are removed first.
+  // eslint-disable-next-line no-control-regex
   const v = value.replace(/[\u0000-\u0020\u007f]/g, '');
   const scheme = v.match(/^([a-z][a-z0-9+.-]*):/i);
   if (!scheme) return true;

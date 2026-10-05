@@ -318,3 +318,99 @@ describe('image sizes', () => {
     assert.equal((await upload(broken, 'broken.jpg', 'image/jpeg')).status, 400);
   });
 });
+
+describe('sessions, users and passwords', () => {
+  // Each test signs in from its own made-up address, so they do not add up to the per-address sign-in limit.
+  const login = (email, password, ip, extra = {}) =>
+    fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': ip, ...extra },
+      body: JSON.stringify({ email, password }),
+    });
+  const cookiesOf = (res) => res.headers.getSetCookie().map((c) => c.split(';')[0]);
+  const resetSecret = (link) => new URL(link).searchParams.get('token');
+
+  test('the admin gets an httpOnly session cookie, and changes need the CSRF header', async () => {
+    const res = await login(ADMIN.email, ADMIN.password, '198.51.100.1', { 'x-session': 'cookie' });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.token, undefined, 'no token in the body');
+    const raw = res.headers.getSetCookie();
+    assert.ok(raw.some((c) => c.startsWith('pt_session=') && /HttpOnly/i.test(c)), 'session cookie is httpOnly');
+    assert.ok(raw.some((c) => c.startsWith('pt_csrf=') && !/HttpOnly/i.test(c)), 'csrf cookie is readable');
+
+    const cookie = cookiesOf(res).join('; ');
+    const csrf = cookiesOf(res).find((c) => c.startsWith('pt_csrf=')).slice('pt_csrf='.length);
+    assert.equal((await fetch(`${API}/auth/me`, { headers: { cookie } })).status, 200);
+    const settings = await (await fetch(`${API}/admin/settings`, { headers: { cookie } })).json();
+    const put = (headers) =>
+      fetch(`${API}/admin/settings`, { method: 'PUT', headers: { cookie, 'content-type': 'application/json', ...headers }, body: JSON.stringify({ siteName: settings.siteName }) });
+    assert.equal((await put({})).status, 403, 'no CSRF header');
+    assert.equal((await put({ 'x-csrf-token': 'wrong' + csrf.slice(5) })).status, 403, 'wrong CSRF header');
+    assert.equal((await put({ 'x-csrf-token': csrf })).status, 200);
+
+    const out = await fetch(`${API}/auth/logout`, { method: 'POST', headers: { cookie } });
+    assert.ok(out.headers.getSetCookie().some((c) => /^pt_session=;/.test(c)), 'logout clears the cookie');
+  });
+
+  test('security headers and body size limit', async () => {
+    const res = await fetch(`${API}/health`);
+    assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+    assert.match(res.headers.get('content-security-policy') ?? '', /default-src 'none'/);
+    const big = await call('POST', '/admin/pages', { name: 'x'.repeat(3 * 1024 * 1024) });
+    assert.equal(big.status, 413);
+  });
+
+  test('invite, choose a password, lockout after 5 wrong passwords, deactivate', async () => {
+    const email = `editor-${Date.now()}@example.com`;
+    const invited = await call('POST', '/admin/users', { email, name: 'Neda', role: 'editor' });
+    assert.equal(invited.status, 201);
+    assert.match(invited.body.link, /\/admin\/reset\?token=/);
+    const id = invited.body.user.id;
+    assert.equal((await login(email, 'anything', '198.51.100.2')).status, 401, 'no password yet');
+
+    const secret = resetSecret(invited.body.link);
+    assert.equal((await call('POST', '/auth/reset', { token: secret, password: 'short' }, false)).status, 400);
+    assert.equal((await call('POST', '/auth/reset', { token: secret, password: 'a-good-password' }, false)).status, 204);
+    assert.equal((await call('POST', '/auth/reset', { token: secret, password: 'another-password' }, false)).status, 400, 'links work once');
+
+    const ok = await login(email, 'a-good-password', '198.51.100.2');
+    assert.equal(ok.status, 200);
+    const editorToken = (await ok.json()).token;
+    const asEditor = (method, path, body) =>
+      fetch(API + path, { method, headers: { authorization: `Bearer ${editorToken}`, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body && JSON.stringify(body) });
+    assert.equal((await asEditor('GET', '/admin/users')).status, 403, 'editors cannot manage users');
+    assert.equal((await asEditor('GET', '/admin/pages')).status, 200);
+
+    for (let i = 0; i < 5; i++) assert.equal((await login(email, 'wrong-password', '198.51.100.3')).status, 401);
+    const locked = await login(email, 'a-good-password', '198.51.100.3');
+    assert.equal(locked.status, 403, 'locked even with the right password');
+    assert.equal((await call('GET', '/admin/users')).body.find((u) => u.id === id).locked, true);
+
+    assert.equal((await call('PATCH', `/admin/users/${id}`, { active: false })).status, 200);
+    assert.equal((await asEditor('GET', '/admin/pages')).status, 401, 'deactivation ends open sessions');
+    assert.equal((await call('PATCH', `/admin/users/${id}`, { active: true })).status, 200);
+    assert.equal((await login(email, 'a-good-password', '198.51.100.4')).status, 200, 'reactivating also unlocks');
+
+    const link = await call('POST', `/admin/users/${id}/reset-link`);
+    assert.equal((await call('POST', '/auth/reset', { token: resetSecret(link.body.link), password: 'brand-new-password' }, false)).status, 204);
+    assert.equal((await login(email, 'a-good-password', '198.51.100.5')).status, 401, 'old password stops working');
+    await call('PATCH', `/admin/users/${id}`, { active: false });
+  });
+
+  test('the last admin stays an admin, and passwords can be changed', async () => {
+    const me = (await call('GET', '/auth/me')).body;
+    assert.equal((await call('PATCH', `/admin/users/${me.id}`, { role: 'editor' })).status, 400);
+    assert.equal((await call('PATCH', `/admin/users/${me.id}`, { active: false })).status, 400);
+    assert.equal((await call('POST', '/auth/password', { current: 'nope', password: 'whatever-123' })).status, 400);
+    assert.equal((await call('POST', '/auth/forgot', { email: 'nobody@example.com' }, false)).status, 204);
+
+    // Change and change back; the first change signs out the old token.
+    assert.equal((await call('POST', '/auth/password', { current: ADMIN.password, password: 'temporary-pass-1' })).status, 204);
+    assert.equal((await call('GET', '/auth/me')).status, 401, 'other sessions end');
+    token = (await (await login(ADMIN.email, 'temporary-pass-1', '198.51.100.6')).json()).token;
+    assert.equal((await call('POST', '/auth/password', { current: 'temporary-pass-1', password: ADMIN.password })).status, 204);
+    token = (await (await login(ADMIN.email, ADMIN.password, '198.51.100.6')).json()).token;
+    assert.equal((await call('GET', '/auth/me')).status, 200);
+  });
+});
