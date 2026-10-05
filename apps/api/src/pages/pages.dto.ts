@@ -3,10 +3,12 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { locales } from '@profiterol/blocks';
@@ -68,6 +70,11 @@ export class UpdatePageDto {
   @IsOptional()
   @IsBoolean()
   isHome?: boolean;
+
+  /** The page's own theme (cleaned in the service), or null to use the site theme. */
+  @ValidateIf((o: UpdatePageDto) => o.theme !== null && o.theme !== undefined)
+  @IsObject()
+  theme?: Record<string, unknown> | null;
 
   @IsOptional()
   @IsArray()

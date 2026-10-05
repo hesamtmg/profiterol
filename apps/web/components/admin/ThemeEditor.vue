@@ -1,0 +1,137 @@
+<script setup lang="ts">
+/** Edits a full theme: ready-made presets, colors, corners, button shape, fonts and header style. */
+import { themeFonts, themePresets, themeRadii, type ThemeTokens } from '@profiterol/blocks';
+
+const theme = defineModel<ThemeTokens>({ required: true });
+defineProps<{ compact?: boolean }>();
+
+const colors: { key: keyof ThemeTokens; label: string }[] = [
+  { key: 'background', label: 'Page background' },
+  { key: 'surface', label: 'Panels' },
+  { key: 'primary', label: 'Main color' },
+  { key: 'secondary', label: 'Second color' },
+  { key: 'dark', label: 'Dark sections' },
+  { key: 'text', label: 'Text' },
+  { key: 'muted', label: 'Soft text' },
+];
+
+function set<K extends keyof ThemeTokens>(key: K, value: ThemeTokens[K]) {
+  theme.value = { ...theme.value, [key]: value };
+}
+
+function isPreset(preset: ThemeTokens) {
+  return (Object.keys(preset) as (keyof ThemeTokens)[]).every((k) => preset[k] === theme.value[k]);
+}
+
+/** Shrinks a panel radius for the small preview tiles. */
+function tileRadius(radius: string) {
+  return `calc(${radius} / 4)`;
+}
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Presets -->
+    <section>
+      <h3 class="field-label !mb-2">Ready-made themes</h3>
+      <div class="grid gap-2" :class="compact ? 'grid-cols-2' : 'grid-cols-3'">
+        <button
+          v-for="preset in themePresets"
+          :key="preset.key"
+          type="button"
+          class="group rounded-2xl p-1.5 text-start ring-2 transition"
+          :class="isPreset(preset.theme) ? 'ring-sky-500' : 'ring-transparent hover:ring-slate-300'"
+          :title="`Use the ${preset.name} theme`"
+          @click="theme = { ...preset.theme }"
+        >
+          <span class="block h-16 p-2" :style="{ background: preset.theme.background, borderRadius: '0.9rem' }">
+            <span
+              class="flex h-full items-end gap-1 p-2"
+              :style="{ background: preset.theme.surface, borderRadius: tileRadius(preset.theme.radius) }"
+            >
+              <span class="h-3 w-3 rounded-full" :style="{ background: preset.theme.primary }" />
+              <span class="h-3 w-3 rounded-full" :style="{ background: preset.theme.secondary }" />
+              <span class="ms-auto h-3 w-6" :style="{ background: preset.theme.dark, borderRadius: preset.theme.buttonRadius }" />
+            </span>
+          </span>
+          <span class="mt-1 block px-1 text-[11px] font-medium text-slate-600">{{ preset.name }}</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Colors -->
+    <section>
+      <h3 class="field-label !mb-2">Colors</h3>
+      <div class="space-y-1.5">
+        <label v-for="c in colors" :key="c.key" class="flex items-center gap-2.5 rounded-xl px-1 py-0.5 hover:bg-slate-50">
+          <input
+            type="color"
+            :value="theme[c.key]"
+            class="h-8 w-10 shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-0.5"
+            :aria-label="c.label"
+            @input="set(c.key, ($event.target as HTMLInputElement).value as never)"
+          />
+          <span class="flex-1 text-xs">{{ c.label }}</span>
+          <code class="text-[10px] text-slate-400">{{ theme[c.key] }}</code>
+        </label>
+      </div>
+    </section>
+
+    <!-- Shapes -->
+    <section class="space-y-3">
+      <div>
+        <label class="field-label" for="theme-radius">Panel corners</label>
+        <select id="theme-radius" class="input" :value="theme.radius" @change="set('radius', ($event.target as HTMLSelectElement).value)">
+          <option v-for="r in themeRadii.panel" :key="r.value" :value="r.value">{{ r.label }}</option>
+        </select>
+      </div>
+      <div>
+        <span class="field-label">Buttons</span>
+        <div class="flex gap-1.5">
+          <button
+            v-for="r in themeRadii.button"
+            :key="r.value"
+            type="button"
+            class="flex-1 border px-2 py-1.5 text-[11px] font-medium transition"
+            :class="theme.buttonRadius === r.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 hover:border-slate-400'"
+            :style="{ borderRadius: r.value }"
+            @click="set('buttonRadius', r.value)"
+          >
+            {{ r.label }}
+          </button>
+        </div>
+      </div>
+      <div>
+        <span class="field-label">Header</span>
+        <div class="flex gap-1.5">
+          <button
+            v-for="h in ([{ value: 'solid', label: 'Solid' }, { value: 'glass', label: 'Frosted glass' }] as const)"
+            :key="h.value"
+            type="button"
+            class="flex-1 rounded-full border px-2 py-1.5 text-[11px] font-medium transition"
+            :class="theme.headerStyle === h.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 hover:border-slate-400'"
+            @click="set('headerStyle', h.value)"
+          >
+            {{ h.label }}
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Fonts -->
+    <section class="space-y-3">
+      <div>
+        <label class="field-label" for="theme-font-fa">Persian font</label>
+        <select id="theme-font-fa" class="input" :value="theme.fontFa" @change="set('fontFa', ($event.target as HTMLSelectElement).value)">
+          <option v-for="f in themeFonts.fa" :key="f.name" :value="f.name">{{ f.name }}</option>
+        </select>
+      </div>
+      <div>
+        <label class="field-label" for="theme-font-en">Latin font</label>
+        <select id="theme-font-en" class="input" :value="theme.fontEn" @change="set('fontEn', ($event.target as HTMLSelectElement).value)">
+          <option v-for="f in themeFonts.en" :key="f.name" :value="f.name">{{ f.name }}</option>
+        </select>
+      </div>
+    </section>
+  </div>
+</template>

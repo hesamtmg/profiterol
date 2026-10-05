@@ -86,3 +86,17 @@ test('link safety: relative links and page addresses pass, hidden schemes do not
     assert.equal(isSafeUrl(bad), false, JSON.stringify(bad));
   }
 });
+
+test('themes: presets are clean, unknown values are dropped, page overrides win', async () => {
+  const { themePresets, cleanTheme, resolveTheme, themeFontsHref, defaultTheme } = await import('../dist/esm/index.js');
+  for (const p of themePresets) assert.deepEqual(cleanTheme(p.theme), p.theme, p.key);
+  assert.deepEqual(cleanTheme({ primary: 'red;}', radius: '99rem', fontEn: 'Comic Sans', headerStyle: 'neon', evil: '#fff' }), {});
+  const t = resolveTheme({ primary: '#111111', fontEn: 'Manrope' }, { primary: '#222222' });
+  assert.equal(t.primary, '#222222');
+  assert.equal(t.fontEn, 'Manrope');
+  assert.equal(t.background, defaultTheme.background);
+  assert.equal(
+    themeFontsHref({ fontFa: 'Vazirmatn', fontEn: 'Playfair Display' }),
+    'https://fonts.googleapis.com/css2?family=Vazirmatn:wght@100..900&family=Playfair+Display:wght@400..900&display=swap',
+  );
+});

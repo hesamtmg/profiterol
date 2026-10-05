@@ -1,4 +1,4 @@
-import type { BlockNode } from '@profiterol/blocks';
+import type { BlockNode, ThemeTokens } from '@profiterol/blocks';
 import {
   Column,
   CreateDateColumn,
@@ -26,6 +26,14 @@ export class Page {
 
   @Column({ type: 'varchar', length: 16, default: 'draft' })
   status: PageStatus;
+
+  /** Draft of this page's own theme on top of the site theme; null means it uses the site theme as is. */
+  @Column({ type: 'jsonb', nullable: true })
+  theme: Partial<ThemeTokens> | null;
+
+  /** The page theme visitors see; Publish copies `theme` here. */
+  @Column({ type: 'jsonb', nullable: true })
+  publishedTheme: Partial<ThemeTokens> | null;
 
   @OneToMany(() => PageTranslation, (t) => t.page, { cascade: true, eager: true })
   translations: PageTranslation[];

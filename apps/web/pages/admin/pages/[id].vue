@@ -9,7 +9,11 @@ import {
   getBlock,
   getLocale,
   locales,
+  defaultTheme,
+  resolveTheme,
+  themeFontsHref,
   themeToCss,
+  type ThemeTokens,
   withDefaults as mergeDefaults,
   type BlockCategory,
   type BlockDef,
@@ -17,6 +21,7 @@ import {
 } from '@profiterol/blocks';
 import draggable from 'vuedraggable';
 import FieldInput from '~/components/admin/FieldInput.vue';
+import ThemeEditor from '~/components/admin/ThemeEditor.vue';
 import type { AdminPage, AdminTranslation } from '~/composables/useAdminTypes';
 import type { SiteSettings } from '~/composables/useSite';
 
@@ -35,7 +40,30 @@ const drafts = reactive<Record<string, Draft>>({});
 const locale = ref(locales[0].code);
 const device = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const selectedId = ref<string | null>(null);
-const leftTab = ref<'add' | 'layers'>('add');
+const leftTab = ref<'add' | 'layers' | 'design'>('add');
+const { user } = useAuth();
+
+// ---------- Theme ----------
+// The site theme (shared by every page) and this page's own changes (null = uses the site theme).
+const siteTheme = ref<ThemeTokens>({ ...defaultTheme });
+const savedSiteTheme = ref('');
+const pageTheme = ref<Partial<ThemeTokens> | null>(null);
+const isAdmin = computed(() => user.value?.role === 'admin');
+/** What the canvas shows: the site theme with this page's changes on top. */
+const canvasTheme = computed(() => resolveTheme(siteTheme.value, pageTheme.value));
+const themeMode = computed<'site' | 'page'>(() => (pageTheme.value ? 'page' : 'site'));
+/** The theme being edited in the Design panel. */
+const editedTheme = computed<ThemeTokens>({
+  get: () => (themeMode.value === 'page' ? canvasTheme.value : siteTheme.value),
+  set: (value) => {
+    if (themeMode.value === 'page') pageTheme.value = { ...value };
+    else siteTheme.value = { ...value };
+  },
+});
+function setThemeMode(mode: 'site' | 'page') {
+  // A page's own theme starts as a copy of the site theme.
+  pageTheme.value = mode === 'page' ? { ...canvasTheme.value } : null;
+}
 const savedSnapshot = ref('');
 const saving = ref(false);
 const message = ref<{ kind: 'error' | 'ok'; text: string } | null>(null);
@@ -44,7 +72,8 @@ const current = computed(() => drafts[locale.value]);
 const localeDir = computed(() => getLocale(locale.value)?.dir ?? 'ltr');
 const selected = computed(() => current.value?.blocks.find((b) => b.id === selectedId.value) ?? null);
 const selectedDef = computed(() => (selected.value ? getBlock(selected.value.type) : undefined));
-const themeCss = computed(() => themeToCss(settings.value?.theme ?? {}));
+const themeCss = computed(() => themeToCss(canvasTheme.value));
+const overlayHeader = computed(() => current.value?.blocks[0]?.type === 'spotlight');
 
 const deviceWidths = { desktop: '100%', tablet: '820px', mobile: '390px' } as const;
 const categories: { key: BlockCategory; label: string }[] = [
@@ -58,7 +87,7 @@ const categories: { key: BlockCategory; label: string }[] = [
 // ---------- Loading & saving ----------
 
 function snapshot() {
-  return JSON.stringify({ name: name.value, isHome: isHome.value, drafts });
+  return JSON.stringify({ name: name.value, isHome: isHome.value, drafts, pageTheme: pageTheme.value, siteTheme: siteTheme.value });
 }
 const dirty = computed(() => savedSnapshot.value !== '' && snapshot() !== savedSnapshot.value);
 
@@ -66,6 +95,7 @@ function fromPage(p: AdminPage) {
   page.value = p;
   name.value = p.name;
   isHome.value = p.isHome;
+  pageTheme.value = p.theme ? { ...p.theme } : null;
   for (const l of locales) {
     const t = p.translations.find((x) => x.locale === l.code);
     drafts[l.code] = {
@@ -89,6 +119,8 @@ async function load() {
       api<SiteSettings>('/public/settings'),
     ]);
     settings.value = s;
+    siteTheme.value = resolveTheme(s.theme);
+    savedSiteTheme.value = JSON.stringify(siteTheme.value);
     fromPage(p);
   } catch (err) {
     message.value = { kind: 'error', text: apiErrorMessage(err) };
@@ -107,12 +139,19 @@ async function save() {
       body: {
         name: name.value,
         isHome: isHome.value,
+        theme: pageTheme.value,
         translations: locales.map((l) => {
           const d = drafts[l.code];
           return { locale: d.locale, title: d.title, slug: d.slug, seoTitle: d.seoTitle, seoDescription: d.seoDescription, blocks: d.blocks };
         }),
       },
     });
+    // The site theme is shared by every page, so only admins can change it.
+    const siteJson = JSON.stringify(siteTheme.value);
+    if (siteJson !== savedSiteTheme.value) {
+      await api('/admin/settings', { method: 'PUT', body: { theme: siteTheme.value } });
+      savedSiteTheme.value = siteJson;
+    }
     page.value = updated;
     savedSnapshot.value = sent;
     message.value = { kind: 'ok', text: 'Saved' };
@@ -194,7 +233,8 @@ async function publish() {
 const hasUnpublished = computed(
   () =>
     page.value?.status !== 'published' ||
-    page.value.translations.some((t) => JSON.stringify(t.blocks) !== JSON.stringify(t.publishedBlocks)),
+    page.value.translations.some((t) => JSON.stringify(t.blocks) !== JSON.stringify(t.publishedBlocks)) ||
+    JSON.stringify(page.value.theme ?? null) !== JSON.stringify(page.value.publishedTheme ?? null),
 );
 
 const liveUrl = computed(() => {
@@ -359,7 +399,12 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload);
 });
 
-useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 'en', dir: 'ltr' } }));
+useHead(() => ({
+  title: `${name.value || 'Page'} · Editor`,
+  htmlAttrs: { lang: 'en', dir: 'ltr' },
+  // Load the theme's fonts so the canvas shows them while editing.
+  link: [{ rel: 'stylesheet', href: themeFontsHref(canvasTheme.value) }],
+}));
 </script>
 
 <template>
@@ -430,17 +475,17 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
 
     <div v-if="current" class="flex min-h-0 flex-1">
       <!-- Left: block library & layers -->
-      <aside class="flex w-64 shrink-0 flex-col border-e border-slate-200 bg-white">
+      <aside class="flex w-72 shrink-0 flex-col border-e border-slate-200 bg-white">
         <div class="flex gap-1 p-2">
           <button
-            v-for="tab in (['add', 'layers'] as const)"
+            v-for="tab in (['add', 'layers', 'design'] as const)"
             :key="tab"
             type="button"
             class="flex-1 rounded-full py-1.5 text-xs font-medium transition"
             :class="leftTab === tab ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'"
             @click="leftTab = tab"
           >
-            {{ tab === 'add' ? 'Add blocks' : `Layers (${current.blocks.length})` }}
+            {{ tab === 'add' ? 'Add blocks' : tab === 'layers' ? `Layers (${current.blocks.length})` : 'Design' }}
           </button>
         </div>
 
@@ -471,6 +516,34 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
           </div>
         </div>
 
+        <div v-else-if="leftTab === 'design'" class="flex-1 overflow-y-auto px-4 pb-8">
+          <div class="rounded-2xl bg-slate-50 p-3">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">This page uses</p>
+            <div class="mt-2 flex rounded-full bg-white p-1 text-xs shadow-sm">
+              <button
+                v-for="m in ([{ value: 'site', label: 'Site theme' }, { value: 'page', label: 'Its own theme' }] as const)"
+                :key="m.value"
+                type="button"
+                class="flex-1 rounded-full py-1.5 font-medium transition"
+                :class="themeMode === m.value ? 'bg-slate-900 text-white' : 'text-slate-500'"
+                @click="setThemeMode(m.value)"
+              >
+                {{ m.label }}
+              </button>
+            </div>
+            <p class="mt-2 text-[11px] leading-relaxed text-slate-500">
+              <template v-if="themeMode === 'site'">
+                Changes here apply to <b>every page</b> that uses the site theme, as soon as you save.
+                <span v-if="!isAdmin" class="text-amber-700">Only admins can change the site theme.</span>
+              </template>
+              <template v-else>Changes apply to this page only and go live when you publish.</template>
+            </p>
+          </div>
+          <fieldset class="mt-5" :disabled="themeMode === 'site' && !isAdmin" :class="{ 'opacity-50': themeMode === 'site' && !isAdmin }">
+            <ThemeEditor v-model="editedTheme" compact />
+          </fieldset>
+        </div>
+
         <div v-else class="flex-1 overflow-y-auto px-3 pb-6">
           <draggable v-model="current.blocks" item-key="id" handle=".layer-handle" :animation="200" class="space-y-1.5">
             <template #item="{ element }">
@@ -492,7 +565,7 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
       <!-- Middle: live canvas -->
       <main class="min-w-0 flex-1 overflow-y-auto p-4" @click.self="selectedId = null">
         <div
-          class="site @container mx-auto min-h-full pb-3 transition-[width] duration-500"
+          class="site @container relative mx-auto min-h-full pb-3 transition-[width] duration-500"
           :class="device === 'desktop' ? '' : 'overflow-hidden rounded-[2rem] shadow-2xl ring-8 ring-slate-800'"
           :style="`width:${deviceWidths[device]};${themeCss}`"
           :dir="localeDir"
@@ -504,7 +577,10 @@ useHead(() => ({ title: `${name.value || 'Page'} · Editor`, htmlAttrs: { lang: 
             :logo="settings?.logo"
             :menu="settings?.menu ?? []"
             :locale="locale"
-            class="pointer-events-none !static"
+            :overlay="overlayHeader"
+            :glass="canvasTheme.headerStyle === 'glass'"
+            class="pointer-events-none"
+            :class="overlayHeader ? '' : '!static'"
           />
           <draggable
             v-model="current.blocks"

@@ -3,7 +3,7 @@
  * Every public URL under a locale. The path is tried, in order, as:
  * a page (`/en/about-us`), a collection item (`/en/projects/my-project`) and a collection index (`/en/projects`).
  */
-import { getLocale, themeToCss, type BlockNode } from '@profiterol/blocks';
+import { defaultTheme, getLocale, resolveTheme, themeFontsHref, themeToCss, type BlockNode, type ThemeTokens } from '@profiterol/blocks';
 import CollectionList from '~/components/blocks/CollectionList.vue';
 import ItemDetail from '~/components/site/ItemDetail.vue';
 import type { CollectionListData, PublicCollection, PublicItem } from '~/composables/useCollections';
@@ -14,6 +14,8 @@ interface PublicPage {
   title: string;
   slug: string;
   isHome: boolean;
+  /** The page's own theme changes, or null to use the site theme. */
+  theme: Partial<ThemeTokens> | null;
   seoTitle: string;
   seoDescription: string;
   blocks: BlockNode[];
@@ -99,10 +101,21 @@ const meta = computed(() => {
   return { title: `${r.collection.name} · ${siteName.value}`, description: '', image: '' };
 });
 
+/** Site theme with this page's own changes on top. */
+const theme = computed(() =>
+  resolveTheme(settings.value?.theme, resolved.value?.kind === 'page' ? resolved.value.page.theme : null),
+);
+/** Full-screen heroes get the header floating over them. */
+const overlayHeader = computed(() => resolved.value?.kind === 'page' && resolved.value.page.blocks[0]?.type === 'spotlight');
+const usesDefaultFonts = computed(() => theme.value.fontFa === defaultTheme.fontFa && theme.value.fontEn === defaultTheme.fontEn);
+
 useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
-  style: [{ innerHTML: `:root{${themeToCss(settings.value?.theme ?? {})}}` }],
+  // html:root outranks the stylesheet's :root defaults, which load after this tag.
+  style: [{ innerHTML: () => `html:root{${themeToCss(theme.value)}}` }],
   link: [
+    // The default fonts are always loaded (nuxt.config); others only when the theme picks them.
+    ...(usesDefaultFonts.value ? [] : [{ rel: 'stylesheet', href: themeFontsHref(theme.value) }]),
     ...(settings.value?.favicon ? [{ rel: 'icon', href: settings.value.favicon }] : []),
     ...alternates.value.map((a) => ({
       rel: 'alternate',
@@ -141,6 +154,8 @@ useSeoMeta({
         :menu="settings?.menu ?? []"
         :locale="locale"
         :alternates="alternates"
+        :overlay="overlayHeader"
+        :glass="theme.headerStyle === 'glass'"
       />
       <main>
         <template v-if="resolved.kind === 'page'">

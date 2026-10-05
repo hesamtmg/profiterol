@@ -13,6 +13,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
+import { cleanTheme } from '@profiterol/blocks';
 import { Repository } from 'typeorm';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
@@ -77,7 +78,9 @@ export class SettingsService {
 
   async update(dto: Partial<SiteSettings>) {
     const current = await this.get();
-    return this.repo.save({ ...current, ...dto, id: 1 });
+    const next = { ...current, ...dto, id: 1 };
+    if (dto.theme) next.theme = cleanTheme(dto.theme);
+    return this.repo.save(next);
   }
 }
 

@@ -88,6 +88,7 @@ This combines:
 
 ## Phase 5: Blocks
 From **amsr-portfolio**:
+- [x] Full-screen spotlight hero from the redesigned AMSR home: cross-fading photo per person, tall side cards (logo + cut-out photo) that switch person, button in the next person's color, moving text, scroll hint, frosted header floating over it (`spotlight`)
 - [x] Expanding person/feature cards hero (`hero-cards`)
 - [x] Card grid in 3 styles: plain icon cards (AMSR services), raised hover cards, photo cards (`card-grid`)
 - [x] FAQ accordion (`faq`)
@@ -146,6 +147,10 @@ New:
 - [x] Site name per language, logo, favicon
 - [x] Menu editor (labels per language, page/anchor/URL links)
 - [x] Theme editor: colors, corner radius, fonts, with live preview
+- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose), button shape (pill/rounded/square), solid or frosted-glass header, a wider choice of Persian and Latin fonts
+- [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page
+- [ ] Upload a custom font (e.g. AMSR's “logotype”)
+- [ ] Save your own themes as presets
 - [ ] Footer and social links as settings, used by the header/footer blocks
 - [ ] Multiple menus and dropdowns
 - [ ] Redirects manager (old URL → new URL), useful when migrating minicms content

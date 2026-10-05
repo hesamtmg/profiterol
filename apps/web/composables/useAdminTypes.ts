@@ -1,4 +1,4 @@
-import type { BlockNode } from '@profiterol/blocks';
+import type { BlockNode, ThemeTokens } from '@profiterol/blocks';
 
 export interface AdminTranslation {
   id?: string;
@@ -18,6 +18,9 @@ export interface AdminPage {
   status: 'draft' | 'published';
   publishedAt: string | null;
   updatedAt: string;
+  /** Draft of the page's own theme; null means it uses the site theme. */
+  theme: Partial<ThemeTokens> | null;
+  publishedTheme: Partial<ThemeTokens> | null;
   translations: AdminTranslation[];
 }
 

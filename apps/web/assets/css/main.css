@@ -12,6 +12,7 @@
     --c-text: #22292f;
     --c-muted: #6b7280;
     --radius-card: 4rem;
+    --radius-button: 9999px;
     --font-fa: 'Vazirmatn';
     --font-en: 'Inter';
   }
@@ -62,8 +63,27 @@
     @apply inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 disabled:opacity-30;
   }
 
+  /* Frosted "liquid glass" bar from the amsr-portfolio header. */
+  .glass {
+    background: rgb(255 255 255 / 0.12);
+    backdrop-filter: blur(10px) saturate(150%);
+    -webkit-backdrop-filter: blur(10px) saturate(150%);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.1),
+      inset 1.8px 3px 0 -2px rgb(255 255 255 / 0.9),
+      inset -2px -2px 0 -2px rgb(255 255 255 / 0.8),
+      inset -3px -8px 1px -6px rgb(255 255 255 / 0.6),
+      inset -0.3px -1px 4px 0 rgb(0 0 0 / 0.12),
+      inset -1.5px 2.5px 0 -2px rgb(0 0 0 / 0.2),
+      inset 0 3px 4px -2px rgb(0 0 0 / 0.2),
+      inset 2px -6.5px 1px -4px rgb(0 0 0 / 0.1),
+      0 1px 5px 0 rgb(0 0 0 / 0.1),
+      0 6px 16px 0 rgb(0 0 0 / 0.08);
+  }
+
   .btn-pill {
-    @apply inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-medium transition-all duration-300;
+    @apply inline-flex items-center gap-2 px-6 py-3 text-sm font-medium transition-all duration-300;
+    border-radius: var(--radius-button, 9999px);
   }
 }
 

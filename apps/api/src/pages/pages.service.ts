@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BlockNode, isLocale, locales, validateBlocks } from '@profiterol/blocks';
+import { BlockNode, cleanTheme, isLocale, locales, validateBlocks } from '@profiterol/blocks';
 import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
 import { CollectionsService } from '../collections/collections.service';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
@@ -56,6 +56,7 @@ export class PagesService {
       if (dto.isHome) await manager.update(Page, { isHome: true }, { isHome: false });
       if (dto.name !== undefined) page.name = dto.name;
       if (dto.isHome !== undefined) page.isHome = dto.isHome;
+      if (dto.theme !== undefined) page.theme = dto.theme === null ? null : cleanTheme(dto.theme);
 
       for (const t of dto.translations ?? []) {
         const existing = page.translations.find((x) => x.locale === t.locale);
@@ -70,6 +71,7 @@ export class PagesService {
   async publish(id: string) {
     const page = await this.get(id);
     page.translations.forEach((t) => (t.publishedBlocks = t.blocks));
+    page.publishedTheme = page.theme;
     page.status = 'published';
     page.publishedAt = new Date();
     return this.pages.save(page);
@@ -113,6 +115,7 @@ export class PagesService {
       title: t.title,
       slug: t.slug,
       isHome: t.page.isHome,
+      theme: t.page.publishedTheme,
       seoTitle: t.seoTitle || t.title,
       seoDescription: t.seoDescription,
       blocks: await this.expandBlocks(t.publishedBlocks ?? [], locale, t.page.id),

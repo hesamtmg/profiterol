@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { defaultTheme, locales, type FieldDef, type ThemeTokens } from '@profiterol/blocks';
+import { locales, resolveTheme, type FieldDef, type ThemeTokens } from '@profiterol/blocks';
 import FieldInput from '~/components/admin/FieldInput.vue';
+import ThemeEditor from '~/components/admin/ThemeEditor.vue';
 import type { SiteSettings } from '~/composables/useSite';
 
 definePageMeta({ layout: 'admin', middleware: 'admin' });
@@ -10,21 +11,11 @@ const settings = ref<(SiteSettings & { notifyEmail: string }) | null>(null);
 const saving = ref(false);
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
-const colorFields: { key: keyof ThemeTokens; label: string }[] = [
-  { key: 'background', label: 'Page background' },
-  { key: 'primary', label: 'Primary' },
-  { key: 'secondary', label: 'Secondary' },
-  { key: 'dark', label: 'Dark sections' },
-  { key: 'surface', label: 'Panels' },
-  { key: 'text', label: 'Text' },
-  { key: 'muted', label: 'Muted text' },
-];
-
 const imageField = (key: string, label: string): FieldDef => ({ key, label, type: 'image' });
 
 async function load() {
   const s = await api<SiteSettings & { notifyEmail: string }>('/admin/settings');
-  s.theme = { ...defaultTheme, ...s.theme };
+  s.theme = resolveTheme(s.theme);
   for (const l of locales) {
     s.siteName[l.code] ??= '';
     s.maintenanceText[l.code] ??= '';
@@ -138,33 +129,10 @@ onMounted(load);
     <!-- Theme -->
     <aside class="space-y-6">
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
-        <h2 class="font-black">Theme</h2>
-        <div class="mt-4 space-y-3">
-          <div v-for="c in colorFields" :key="c.key" class="flex items-center gap-3">
-            <input v-model="settings.theme[c.key]" type="color" class="h-9 w-12 cursor-pointer rounded-lg border border-slate-200 p-1" />
-            <span class="flex-1 text-sm">{{ c.label }}</span>
-            <code class="text-[11px] text-slate-400">{{ settings.theme[c.key] }}</code>
-          </div>
-          <div>
-            <label class="field-label">Panel corner radius</label>
-            <select v-model="settings.theme.radius" class="input">
-              <option value="0.5rem">Small</option>
-              <option value="1.5rem">Medium</option>
-              <option value="2.5rem">Large</option>
-              <option value="4rem">Extra large (default)</option>
-            </select>
-          </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="field-label">Persian font</label>
-              <input v-model="settings.theme.fontFa" class="input" />
-            </div>
-            <div>
-              <label class="field-label">Latin font</label>
-              <input v-model="settings.theme.fontEn" class="input" />
-            </div>
-          </div>
-          <button type="button" class="btn-light w-full" @click="settings.theme = { ...defaultTheme }">Reset to default</button>
+        <h2 class="font-black">Site theme</h2>
+        <p class="mt-1 text-xs text-slate-400">Used by every page, unless a page has its own theme (set in the page editor's Design panel).</p>
+        <div class="mt-5">
+          <ThemeEditor v-model="(settings.theme as ThemeTokens)" compact />
         </div>
       </section>
 
@@ -174,8 +142,8 @@ onMounted(load);
           <p class="text-xl font-black">{{ settings.siteName.en || 'Your site' }}</p>
           <p class="mt-1 text-xs font-light" :style="{ color: settings.theme.muted }">Panel preview</p>
           <div class="mt-4 flex justify-center gap-2">
-            <span class="rounded-full px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.primary }">Primary</span>
-            <span class="rounded-full px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.secondary }">Secondary</span>
+            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.primary, borderRadius: settings.theme.buttonRadius }">Primary</span>
+            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.secondary, borderRadius: settings.theme.buttonRadius }">Secondary</span>
           </div>
         </div>
         <div class="mt-3 p-4 text-center text-xs text-white" :style="{ background: settings.theme.dark, borderRadius: settings.theme.radius }">
