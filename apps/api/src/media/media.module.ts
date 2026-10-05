@@ -9,7 +9,9 @@ import {
   HttpCode,
   Injectable,
   Module,
+  Logger,
   NotFoundException,
+  OnApplicationBootstrap,
   Param,
   ParseUUIDPipe,
   Post,
@@ -23,6 +25,7 @@ import { diskStorage } from 'multer';
 import { Repository } from 'typeorm';
 import { AuthGuard } from '../auth/auth.guard';
 import { config } from '../config';
+import { hasVariants, makeVariants, RESIZABLE_EXT, removeVariants } from './image-variants';
 import { Media } from './media.entity';
 
 /** Allowed upload types. SVG is excluded because it can carry scripts. */
@@ -89,8 +92,32 @@ async function readHead(path: string): Promise<Buffer> {
 const MAX_BYTES = 20 * 1024 * 1024;
 
 @Injectable()
-export class MediaService {
+export class MediaService implements OnApplicationBootstrap {
+  private readonly log = new Logger(MediaService.name);
+
   constructor(@InjectRepository(Media) private readonly repo: Repository<Media>) {}
+
+  /** Photos uploaded before resizing existed get their copies in the background after start-up. */
+  onApplicationBootstrap() {
+    setTimeout(() => this.backfill().catch((err) => this.log.warn(`Could not resize older photos: ${err}`)), 2000);
+  }
+
+  async backfill() {
+    let done = 0;
+    for (const m of await this.repo.find()) {
+      if (!RESIZABLE_EXT.test(m.filename)) continue;
+      if (m.width && (await hasVariants(config.uploadDir, m.filename))) continue;
+      try {
+        const size = await makeVariants(config.uploadDir, m.filename);
+        await this.repo.update(m.id, size);
+        done++;
+      } catch (err) {
+        this.log.warn(`Could not resize ${m.filename}: ${err}`);
+      }
+    }
+    if (done) this.log.log(`Made web sizes for ${done} older photo(s)`);
+    return done;
+  }
 
   list() {
     return this.repo.find({ order: { createdAt: 'DESC' }, take: 500 });
@@ -102,6 +129,17 @@ export class MediaService {
       await unlink(file.path).catch(() => undefined);
       throw new BadRequestException('The file’s contents do not match its type');
     }
+    let size: { width: number; height: number } | null = null;
+    if (RESIZABLE_EXT.test(file.filename)) {
+      try {
+        size = await makeVariants(config.uploadDir, file.filename);
+      } catch {
+        // Passed the first-bytes check but cannot be decoded: refuse it rather than serve a broken photo.
+        await removeVariants(config.uploadDir, file.filename);
+        await unlink(file.path).catch(() => undefined);
+        throw new BadRequestException('This picture could not be read');
+      }
+    }
     return this.repo.save(
       this.repo.create({
         filename: file.filename,
@@ -109,6 +147,8 @@ export class MediaService {
         mime: FONTS[ext] ?? file.mimetype,
         size: file.size,
         url: `/uploads/${file.filename}`,
+        width: size?.width ?? null,
+        height: size?.height ?? null,
       }),
     );
   }
@@ -118,6 +158,7 @@ export class MediaService {
     if (!media) throw new NotFoundException();
     await this.repo.remove(media);
     await unlink(join(config.uploadDir, media.filename)).catch(() => undefined);
+    await removeVariants(config.uploadDir, media.filename);
   }
 }
 

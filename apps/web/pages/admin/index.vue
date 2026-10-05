@@ -36,7 +36,7 @@ async function create() {
 }
 
 async function remove(page: AdminPage) {
-  if (!confirm(`Delete “${page.name}”? This cannot be undone.`)) return;
+  if (!confirm(translate('Delete “{name}”? This cannot be undone.', { name: page.name }))) return;
   try {
     await api(`/admin/pages/${page.id}`, { method: 'DELETE' });
     pages.value = pages.value.filter((p) => p.id !== page.id);
@@ -63,13 +63,13 @@ onMounted(load);
   <div>
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-black">Pages</h1>
-        <p class="mt-1 text-sm font-light text-slate-500">Every page has a version for each language.</p>
+        <h1 class="text-3xl font-black">{{ $t('Pages') }}</h1>
+        <p class="mt-1 text-sm font-light text-slate-500">{{ $t('Every page has a version for each language.') }}</p>
       </div>
       <form class="flex gap-2" @submit.prevent="create">
-        <input v-model="newName" class="input w-56" placeholder="New page name, e.g. About us" />
+        <input v-model="newName" class="input w-56" :placeholder="$t('New page name, e.g. About us')" />
         <button type="submit" class="btn-dark" :disabled="creating || !newName.trim()">
-          <i class="mdi mdi-plus" /> New page
+          <i class="mdi mdi-plus" /> {{ $t('New page') }}
         </button>
       </form>
     </div>
@@ -95,33 +95,33 @@ onMounted(load);
               class="flex flex-1 items-center gap-2 rounded-xl bg-white/95 px-3 text-xs text-slate-500 transition group-hover:bg-white"
             >
               <i class="mdi" :class="def?.icon ?? 'mdi-help'" />
-              {{ def?.label ?? 'Unknown block' }}
+              {{ $t(def?.label ?? 'Unknown block') }}
             </div>
             <div v-if="!outline(page).length" class="flex flex-1 items-center justify-center rounded-xl bg-white/90 text-xs text-slate-400">
-              Empty page
+              {{ $t('Empty page') }}
             </div>
           </div>
         </NuxtLink>
         <div class="flex flex-1 flex-col p-6">
           <div class="flex items-center gap-2">
             <h2 class="text-lg font-black">{{ page.name }}</h2>
-            <span v-if="page.isHome" class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">Home</span>
+            <span v-if="page.isHome" class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{{ $t('Home') }}</span>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span
               class="rounded-full px-2 py-0.5 font-medium"
               :class="page.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'"
             >
-              {{ page.status === 'published' ? 'Published' : 'Draft' }}
+              {{ page.status === 'published' ? $t('Published') : $t('Draft') }}
             </span>
             <span v-for="t in page.translations" :key="t.locale" class="font-mono">/{{ t.locale }}/{{ t.slug }}</span>
           </div>
           <div class="mt-auto flex items-center gap-2 pt-6">
-            <NuxtLink :to="`/admin/pages/${page.id}`" class="btn-dark"><i class="mdi mdi-pencil-outline" /> Edit</NuxtLink>
+            <NuxtLink :to="`/admin/pages/${page.id}`" class="btn-dark"><i class="mdi mdi-pencil-outline" /> {{ $t('Edit') }}</NuxtLink>
             <a v-if="page.status === 'published'" :href="liveUrl(page)" target="_blank" class="btn-light">
-              <i class="mdi mdi-open-in-new" /> View
+              <i class="mdi mdi-open-in-new" /> {{ $t('View') }}
             </a>
-            <button type="button" class="btn-icon ms-auto hover:!text-red-600" title="Delete" @click="remove(page)">
+            <button type="button" class="btn-icon ms-auto hover:!text-red-600" :title="$t('Delete')" @click="remove(page)">
               <i class="mdi mdi-trash-can-outline text-lg" />
             </button>
           </div>

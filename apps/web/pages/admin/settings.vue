@@ -56,7 +56,7 @@ async function save() {
       method: 'PUT',
       body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader },
     });
-    message.value = { kind: 'ok', text: 'Settings saved' };
+    message.value = { kind: 'ok', text: translate('Settings saved') };
   } catch (err) {
     message.value = { kind: 'error', text: apiErrorMessage(err) };
   } finally {
@@ -72,10 +72,10 @@ onMounted(load);
     <div class="space-y-6">
       <div class="flex items-end justify-between">
         <div>
-          <h1 class="text-3xl font-black">Site settings</h1>
-          <p class="mt-1 text-sm font-light text-slate-500">Name, menu and theme for the whole site.</p>
+          <h1 class="text-3xl font-black">{{ $t('Site settings') }}</h1>
+          <p class="mt-1 text-sm font-light text-slate-500">{{ $t('Name, menu and theme for the whole site.') }}</p>
         </div>
-        <button type="button" class="btn-dark" :disabled="saving" @click="save">{{ saving ? 'Saving…' : 'Save settings' }}</button>
+        <button type="button" class="btn-dark" :disabled="saving" @click="save">{{ $t(saving ? 'Saving…' : 'Save settings') }}</button>
       </div>
       <p
         v-if="message"
@@ -86,23 +86,23 @@ onMounted(load);
       </p>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
-        <h2 class="font-black">Identity</h2>
+        <h2 class="font-black">{{ $t('Identity') }}</h2>
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
           <div v-for="l in locales" :key="l.code">
-            <label class="field-label">Site name ({{ l.label }})</label>
+            <label class="field-label">{{ $t('Site name ({lang})', { lang: l.label }) }}</label>
             <input v-model="settings.siteName[l.code]" class="input" :dir="l.dir" />
           </div>
-          <FieldInput v-model="settings.logo" :field="imageField('logo', 'Logo')" />
-          <FieldInput v-model="settings.favicon" :field="imageField('favicon', 'Favicon')" />
+          <FieldInput v-model="settings.logo" :field="imageField('logo', $t('Logo'))" />
+          <FieldInput v-model="settings.favicon" :field="imageField('favicon', $t('Favicon'))" />
         </div>
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
         <div class="flex items-center justify-between">
-          <h2 class="font-black">Menu</h2>
-          <button type="button" class="btn-light" @click="addMenuItem"><i class="mdi mdi-plus" /> Add link</button>
+          <h2 class="font-black">{{ $t('Menu') }}</h2>
+          <button type="button" class="btn-light" @click="addMenuItem"><i class="mdi mdi-plus" /> {{ $t('Add link') }}</button>
         </div>
-        <p class="mt-1 text-xs text-slate-400">Use a page address (e.g. about-us), an anchor (#services) or a full URL.</p>
+        <p class="mt-1 text-xs text-slate-400">{{ $t('Use a page address (e.g. about-us), an anchor (#services) or a full URL.') }}</p>
         <div class="mt-4 space-y-3">
           <div v-for="(item, i) in settings.menu" :key="i" class="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-50 p-3">
             <input
@@ -123,63 +123,63 @@ onMounted(load);
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
-        <h2 class="font-black">Form messages</h2>
+        <h2 class="font-black">{{ $t('Form messages') }}</h2>
         <p class="mt-1 text-xs text-slate-400">
-          Every message is kept in the Inbox. To also receive it by email, enter an address; the server needs SMTP_URL set.
+          {{ $t('Every message is kept in the Inbox. To also receive it by email, enter an address; the server needs SMTP_URL set.') }}
         </p>
-        <label class="field-label mt-4" for="notify">Email new messages to</label>
+        <label class="field-label mt-4" for="notify">{{ $t('Email new messages to') }}</label>
         <input id="notify" v-model="settings.notifyEmail" type="email" class="input max-w-sm" dir="ltr" placeholder="you@example.com" />
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
-        <h2 class="font-black">Fonts</h2>
-        <p class="mt-1 text-xs text-slate-400">Your own fonts, e.g. a logo typeface. After uploading, pick them in a theme's font lists.</p>
+        <h2 class="font-black">{{ $t('Fonts') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">{{ $t('Your own fonts, e.g. a logo typeface. After uploading, pick them in a theme\'s font lists.') }}</p>
         <div class="mt-4">
           <FontManager v-model="settings.fonts" />
         </div>
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
-        <h2 class="font-black">Page loader</h2>
-        <p class="mt-1 text-xs text-slate-400">A screen shown while the site opens, counting up to 100% and then revealing the site name.</p>
+        <h2 class="font-black">{{ $t('Page loader') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">{{ $t('A screen shown while the site opens, counting up to 100% and then revealing the site name.') }}</p>
         <label class="mt-4 flex items-center gap-2 text-sm">
-          <input v-model="settings.loader.enabled" type="checkbox" class="h-4 w-4 rounded" /> Show a loading screen
+          <input v-model="settings.loader.enabled" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Show a loading screen') }}
         </label>
         <div v-if="settings.loader.enabled" class="mt-4 grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="field-label" for="loader-style">Style</label>
+            <label class="field-label" for="loader-style">{{ $t('Style') }}</label>
             <select id="loader-style" v-model="settings.loader.style" class="input">
-              <option value="percent">Percentage counter</option>
-              <option value="bar">Thin bar at the top</option>
-              <option value="name">Site name filling with color</option>
+              <option value="percent">{{ $t('Percentage counter') }}</option>
+              <option value="bar">{{ $t('Thin bar at the top') }}</option>
+              <option value="name">{{ $t('Site name filling with color') }}</option>
             </select>
           </div>
           <label class="flex items-center gap-2 self-end pb-2 text-sm">
-            <input v-model="settings.loader.oncePerSession" type="checkbox" class="h-4 w-4 rounded" /> Only on the first page of a visit
+            <input v-model="settings.loader.oncePerSession" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Only on the first page of a visit') }}
           </label>
           <div v-for="l in locales" :key="l.code">
-            <label class="field-label">Line under the counter ({{ l.label }})</label>
+            <label class="field-label">{{ $t('Line under the counter ({lang})', { lang: l.label }) }}</label>
             <input v-model="settings.loader.text[l.code]" class="input" :dir="l.dir" maxlength="120" />
           </div>
-          <FieldInput v-model="settings.loader.background" :field="imageField('loaderBg', 'Background picture (blurred, sharpening as it loads)')" />
+          <FieldInput v-model="settings.loader.background" :field="imageField('loaderBg', $t('Background picture (blurred, sharpening as it loads)'))" />
         </div>
         <div v-if="settings.loader.enabled" class="mt-4">
-          <button type="button" class="btn-light" @click="loaderPreview++"><i class="mdi mdi-play" /> Preview</button>
+          <button type="button" class="btn-light" @click="loaderPreview++"><i class="mdi mdi-play" /> {{ $t('Preview') }}</button>
           <div v-if="loaderPreview" class="relative mt-3 h-64 overflow-hidden rounded-2xl bg-slate-100">
             <SiteLoader :key="loaderPreview" :loader="settings.loader" :site-name="settings.siteName.en || 'Your site'" locale="en" preview />
-            <p class="flex h-full items-center justify-center text-xs text-slate-400">The site appears here.</p>
+            <p class="flex h-full items-center justify-center text-xs text-slate-400">{{ $t('The site appears here.') }}</p>
           </div>
         </div>
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
-        <h2 class="font-black">Maintenance mode</h2>
+        <h2 class="font-black">{{ $t('Maintenance mode') }}</h2>
         <label class="mt-4 flex items-center gap-2 text-sm">
-          <input v-model="settings.maintenance" type="checkbox" class="h-4 w-4 rounded" /> Show a “back soon” page to visitors
+          <input v-model="settings.maintenance" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Show a “back soon” page to visitors') }}
         </label>
         <div class="mt-4 grid gap-4 sm:grid-cols-2">
           <div v-for="l in locales" :key="l.code">
-            <label class="field-label">Message ({{ l.label }})</label>
+            <label class="field-label">{{ $t('Message ({lang})', { lang: l.label }) }}</label>
             <textarea v-model="settings.maintenanceText[l.code]" rows="2" class="input" :dir="l.dir" />
           </div>
         </div>
@@ -189,8 +189,8 @@ onMounted(load);
     <!-- Theme -->
     <aside class="space-y-6">
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
-        <h2 class="font-black">Site theme</h2>
-        <p class="mt-1 text-xs text-slate-400">Used by every page, unless a page has its own theme (set in the page editor's Design panel).</p>
+        <h2 class="font-black">{{ $t('Site theme') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">{{ $t('Used by every page, unless a page has its own theme (set in the page editor\'s Design panel).') }}</p>
         <div class="mt-5">
           <ThemeEditor
             v-model="(settings.theme as ThemeTokens)"
@@ -206,15 +206,15 @@ onMounted(load);
       <!-- Live preview of the theme -->
       <section class="overflow-hidden rounded-[2rem] p-4" :style="{ background: settings.theme.background }">
         <div class="p-6 text-center" :style="{ background: settings.theme.surface, borderRadius: settings.theme.radius, color: settings.theme.text }">
-          <p class="text-xl font-black">{{ settings.siteName.en || 'Your site' }}</p>
-          <p class="mt-1 text-xs font-light" :style="{ color: settings.theme.muted }">Panel preview</p>
+          <p class="text-xl font-black">{{ settings.siteName.en || $t('Your site') }}</p>
+          <p class="mt-1 text-xs font-light" :style="{ color: settings.theme.muted }">{{ $t('Panel preview') }}</p>
           <div class="mt-4 flex justify-center gap-2">
-            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.primary, borderRadius: settings.theme.buttonRadius }">Primary</span>
-            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.secondary, borderRadius: settings.theme.buttonRadius }">Secondary</span>
+            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.primary, borderRadius: settings.theme.buttonRadius }">{{ $t('Primary') }}</span>
+            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.secondary, borderRadius: settings.theme.buttonRadius }">{{ $t('Secondary') }}</span>
           </div>
         </div>
         <div class="mt-3 p-4 text-center text-xs text-white" :style="{ background: settings.theme.dark, borderRadius: settings.theme.radius }">
-          Dark section
+          {{ $t('Dark section') }}
         </div>
       </section>
     </aside>

@@ -24,6 +24,7 @@ import {
 } from '@profiterol/blocks';
 import draggable from 'vuedraggable';
 import FieldInput from '~/components/admin/FieldInput.vue';
+import AdminLangSwitch from '~/components/admin/AdminLangSwitch.vue';
 import ThemeEditor from '~/components/admin/ThemeEditor.vue';
 import PageTransition from '~/components/site/PageTransition.vue';
 import SiteCursor from '~/components/site/SiteCursor.vue';
@@ -163,7 +164,7 @@ async function save() {
     }
     page.value = updated;
     savedSnapshot.value = sent;
-    message.value = { kind: 'ok', text: 'Saved' };
+    message.value = { kind: 'ok', text: translate('Saved') };
     return true;
   } catch (err) {
     message.value = { kind: 'error', text: apiErrorMessage(err) };
@@ -232,7 +233,7 @@ async function publish() {
   if (dirty.value && !(await save())) return;
   try {
     page.value = await api<AdminPage>(`/admin/pages/${page.value!.id}/publish`, { method: 'POST' });
-    message.value = { kind: 'ok', text: 'Published' };
+    message.value = { kind: 'ok', text: translate('Published') };
   } catch (err) {
     message.value = { kind: 'error', text: apiErrorMessage(err) };
   }
@@ -358,7 +359,7 @@ function select(id: string, scroll = false) {
 
 /** Copies the block layout (with its text) from another language, as a starting point for translating. */
 function copyFrom(code: string) {
-  if (current.value.blocks.length && !confirm('Replace the blocks in this language?')) return;
+  if (current.value.blocks.length && !confirm(translate('Replace the blocks in this language?'))) return;
   current.value.blocks = drafts[code].blocks.map((b) => ({ ...createBlock(b.type), props: JSON.parse(JSON.stringify(b.props)) }));
   selectedId.value = null;
 }
@@ -394,7 +395,7 @@ function beforeUnload(e: BeforeUnloadEvent) {
   if (dirty.value) e.preventDefault();
 }
 
-onBeforeRouteLeave(() => (dirty.value ? confirm('You have unsaved changes. Leave anyway?') : true));
+onBeforeRouteLeave(() => (dirty.value ? confirm(translate('You have unsaved changes. Leave anyway?')) : true));
 
 watch(locale, () => (selectedId.value = null));
 
@@ -408,9 +409,10 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', beforeUnload);
 });
 
+const { lang: adminLang, dir: adminDir } = useAdminI18n();
 useHead(() => ({
   title: `${name.value || 'Page'} · Editor`,
-  htmlAttrs: { lang: 'en', dir: 'ltr' },
+  htmlAttrs: { lang: adminLang.value, dir: adminDir.value },
   // Load the theme's fonts so the canvas shows them while editing.
   link: themeFontsHref(canvasTheme.value) ? [{ rel: 'stylesheet', href: themeFontsHref(canvasTheme.value) }] : [],
   style: [{ innerHTML: fontFaceCss(settings.value?.fonts) }],
@@ -440,10 +442,10 @@ function deleteTheme(key: string) {
   <div class="admin-ui flex h-screen flex-col overflow-hidden bg-slate-100 text-slate-800">
     <!-- Top bar -->
     <header class="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3">
-      <NuxtLink to="/admin" class="btn-icon" title="Back to pages"><i class="mdi mdi-arrow-left text-lg" /></NuxtLink>
-      <input v-model="name" class="w-44 rounded-lg px-2 py-1 text-sm font-bold outline-none hover:bg-slate-50 focus:bg-slate-50" aria-label="Page name" />
+      <NuxtLink to="/admin" class="btn-icon" :title="$t('Back to pages')"><i class="mdi mdi-arrow-left text-lg rtl:rotate-180" /></NuxtLink>
+      <input v-model="name" class="w-44 rounded-lg px-2 py-1 text-sm font-bold outline-none hover:bg-slate-50 focus:bg-slate-50" :aria-label="$t('Page name')" />
 
-      <div class="flex rounded-full bg-slate-100 p-1" role="tablist" aria-label="Language">
+      <div class="flex rounded-full bg-slate-100 p-1" role="tablist" :aria-label="$t('Language')">
         <button
           v-for="l in locales"
           :key="l.code"
@@ -456,7 +458,7 @@ function deleteTheme(key: string) {
         </button>
       </div>
 
-      <div class="mx-auto flex rounded-full bg-slate-100 p-1" aria-label="Preview size">
+      <div class="mx-auto flex rounded-full bg-slate-100 p-1" :aria-label="$t('Preview size')">
         <button
           v-for="d in (['desktop', 'tablet', 'mobile'] as const)"
           :key="d"
@@ -470,27 +472,27 @@ function deleteTheme(key: string) {
         </button>
       </div>
 
-      <button type="button" class="btn-icon" title="Undo (Ctrl+Z)" :disabled="!canUndo" @click="undo"><i class="mdi mdi-undo text-lg" /></button>
-      <button type="button" class="btn-icon" title="Redo (Ctrl+Shift+Z)" :disabled="!canRedo" @click="redo"><i class="mdi mdi-redo text-lg" /></button>
+      <button type="button" class="btn-icon" :title="$t('Undo (Ctrl+Z)')" :disabled="!canUndo" @click="undo"><i class="mdi mdi-undo text-lg" /></button>
+      <button type="button" class="btn-icon" :title="$t('Redo (Ctrl+Shift+Z)')" :disabled="!canRedo" @click="redo"><i class="mdi mdi-redo text-lg" /></button>
 
-      <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500" title="Save automatically a few seconds after each change">
-        <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> Autosave
+      <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500" :title="$t('Save automatically a few seconds after each change')">
+        <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> {{ $t('Autosave') }}
       </label>
       <span class="w-36 text-end text-xs" :class="message?.kind === 'error' ? 'text-red-600' : 'text-slate-400'">
-        <template v-if="saving || uploading">{{ uploading ? 'Uploading…' : 'Saving…' }}</template>
-        <template v-else-if="dirty">Unsaved changes</template>
+        <template v-if="saving || uploading">{{ uploading ? $t('Uploading…') : $t('Saving…') }}</template>
+        <template v-else-if="dirty">{{ $t('Unsaved changes') }}</template>
         <template v-else-if="hasUnpublished && autosave.lastSavedAt.value">
-          Saved {{ autosave.lastSavedAt.value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }} · not live
+          {{ $t('Saved {time} · not live', { time: autosave.lastSavedAt.value.toLocaleTimeString(adminLocale(), { hour: '2-digit', minute: '2-digit' }) }) }}
         </template>
-        <template v-else-if="hasUnpublished">Saved · not live</template>
-        <template v-else>Live</template>
+        <template v-else-if="hasUnpublished">{{ $t('Saved · not live') }}</template>
+        <template v-else>{{ $t('Live') }}</template>
       </span>
       <a :href="liveUrl" target="_blank" class="btn-light" :class="{ 'pointer-events-none opacity-40': page?.status !== 'published' }">
-        <i class="mdi mdi-eye-outline" /> View
+        <i class="mdi mdi-eye-outline" /> {{ $t('View') }}
       </a>
-      <button type="button" class="btn-light" :disabled="saving || !dirty" @click="save">Save</button>
+      <button type="button" class="btn-light" :disabled="saving || !dirty" @click="save">{{ $t('Save') }}</button>
       <button type="button" class="btn-dark !bg-[#00a998] hover:!brightness-110" :disabled="saving" @click="publish">
-        <i class="mdi mdi-rocket-launch-outline" /> Publish
+        <i class="mdi mdi-rocket-launch-outline" /> {{ $t('Publish') }}
       </button>
     </header>
 
@@ -514,14 +516,14 @@ function deleteTheme(key: string) {
             :class="leftTab === tab ? 'bg-slate-900 text-white' : 'text-slate-500 hover:bg-slate-100'"
             @click="leftTab = tab"
           >
-            {{ tab === 'add' ? 'Add blocks' : tab === 'layers' ? `Layers (${current.blocks.length})` : 'Design' }}
+            {{ tab === 'add' ? $t('Add blocks') : tab === 'layers' ? $t('Layers ({n})', { n: current.blocks.length }) : $t('Design') }}
           </button>
         </div>
 
         <div v-if="leftTab === 'add'" class="flex-1 overflow-y-auto px-3 pb-6">
-          <p class="px-1 pb-2 text-[11px] text-slate-400">Click to insert below the selected block, or drag onto the page.</p>
+          <p class="px-1 pb-2 text-[11px] text-slate-400">{{ $t('Click to insert below the selected block, or drag onto the page.') }}</p>
           <div v-for="cat in categories" :key="cat.key" class="mt-3">
-            <h3 class="px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ cat.label }}</h3>
+            <h3 class="px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $t(cat.label) }}</h3>
             <draggable
               :list="blockDefs.filter((b) => b.category === cat.key)"
               :group="{ name: 'blocks', pull: 'clone', put: false }"
@@ -534,11 +536,11 @@ function deleteTheme(key: string) {
                 <button
                   type="button"
                   class="flex cursor-grab flex-col items-center gap-1.5 rounded-2xl border border-slate-200 p-3 text-center text-[11px] leading-tight transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:cursor-grabbing"
-                  :title="element.description"
+                  :title="$t(element.description)"
                   @click="insertBlock(element)"
                 >
                   <i class="mdi text-2xl text-[#00a998]" :class="element.icon" />
-                  {{ element.label }}
+                  {{ $t(element.label) }}
                 </button>
               </template>
             </draggable>
@@ -547,7 +549,7 @@ function deleteTheme(key: string) {
 
         <div v-else-if="leftTab === 'design'" class="flex-1 overflow-y-auto px-4 pb-8">
           <div class="rounded-2xl bg-slate-50 p-3">
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">This page uses</p>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $t('This page uses') }}</p>
             <div class="mt-2 flex rounded-full bg-white p-1 text-xs shadow-sm">
               <button
                 v-for="m in ([{ value: 'site', label: 'Site theme' }, { value: 'page', label: 'Its own theme' }] as const)"
@@ -557,15 +559,15 @@ function deleteTheme(key: string) {
                 :class="themeMode === m.value ? 'bg-slate-900 text-white' : 'text-slate-500'"
                 @click="setThemeMode(m.value)"
               >
-                {{ m.label }}
+                {{ $t(m.label) }}
               </button>
             </div>
             <p class="mt-2 text-[11px] leading-relaxed text-slate-500">
               <template v-if="themeMode === 'site'">
-                Changes here apply to <b>every page</b> that uses the site theme, as soon as you save.
-                <span v-if="!isAdmin" class="text-amber-700">Only admins can change the site theme.</span>
+                {{ $t('Changes here apply to every page that uses the site theme, as soon as you save.') }}
+                <span v-if="!isAdmin" class="text-amber-700">{{ $t('Only admins can change the site theme.') }}</span>
               </template>
-              <template v-else>Changes apply to this page only and go live when you publish.</template>
+              <template v-else>{{ $t('Changes apply to this page only and go live when you publish.') }}</template>
             </p>
           </div>
           <fieldset class="mt-5" :disabled="themeMode === 'site' && !isAdmin" :class="{ 'opacity-50': themeMode === 'site' && !isAdmin }">
@@ -594,7 +596,7 @@ function deleteTheme(key: string) {
               </div>
             </template>
           </draggable>
-          <p v-if="!current.blocks.length" class="py-8 text-center text-xs text-slate-400">No blocks yet.</p>
+          <p v-if="!current.blocks.length" class="py-8 text-center text-xs text-slate-400">{{ $t('No blocks yet.') }}</p>
         </div>
       </aside>
 
@@ -647,13 +649,13 @@ function deleteTheme(key: string) {
                   dir="ltr"
                   @click.stop="select(element.id)"
                 >
-                  <span class="drag-handle flex cursor-grab items-center gap-1 px-2 text-xs font-medium" title="Drag to move">
+                  <span class="drag-handle flex cursor-grab items-center gap-1 px-2 text-xs font-medium" :title="$t('Drag to move')">
                     <i class="mdi mdi-drag text-base" /> {{ getBlock(element.type)?.label }}
                   </span>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" title="Move up" @click="move(element.id, -1)"><i class="mdi mdi-arrow-up" /></button>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" title="Move down" @click="move(element.id, 1)"><i class="mdi mdi-arrow-down" /></button>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" title="Duplicate" @click="duplicate(element.id)"><i class="mdi mdi-content-copy" /></button>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-red-500" title="Delete" @click="remove(element.id)"><i class="mdi mdi-trash-can-outline" /></button>
+                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" :title="$t('Move up')" @click="move(element.id, -1)"><i class="mdi mdi-arrow-up" /></button>
+                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" :title="$t('Move down')" @click="move(element.id, 1)"><i class="mdi mdi-arrow-down" /></button>
+                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" :title="$t('Duplicate')" @click="duplicate(element.id)"><i class="mdi mdi-content-copy" /></button>
+                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-red-500" :title="$t('Delete')" @click="remove(element.id)"><i class="mdi mdi-trash-can-outline" /></button>
                 </div>
                 <span
                   v-if="element.props.showOn"
@@ -661,7 +663,7 @@ function deleteTheme(key: string) {
                   dir="ltr"
                 >
                   <i class="mdi" :class="element.props.showOn === 'mobile' ? 'mdi-cellphone' : 'mdi-monitor'" />
-                  {{ element.props.showOn === 'mobile' ? 'Phones only' : 'Tablets and desktops only' }}
+                  {{ element.props.showOn === 'mobile' ? $t('Phones only') : $t('Tablets and desktops only') }}
                 </span>
                 <div :class="{ 'opacity-30 grayscale': hiddenOnDevice(element) }">
                   <BlockView :block="element" :locale="locale" editable @edit="(path, value) => inlineEdit(element, path, value)" />
@@ -676,7 +678,7 @@ function deleteTheme(key: string) {
                 <button
                   type="button"
                   class="absolute bottom-0 left-1/2 z-20 hidden h-8 w-8 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg group-hover/blk:flex"
-                  title="Add a block below"
+                  :title="$t('Add a block below')"
                   @click.stop="(select(element.id), (leftTab = 'add'))"
                 >
                   <i class="mdi mdi-plus" />
@@ -690,7 +692,7 @@ function deleteTheme(key: string) {
                 dir="ltr"
               >
                 <i class="mdi mdi-gesture-tap-hold text-4xl" />
-                <p class="mt-2 text-sm">Drag a block here, or click one on the left.</p>
+                <p class="mt-2 text-sm">{{ $t('Drag a block here, or click one on the left.') }}</p>
               </div>
             </template>
           </draggable>
@@ -703,10 +705,10 @@ function deleteTheme(key: string) {
           <div class="sticky top-0 z-10 flex items-center gap-2 border-b border-slate-100 bg-white px-5 py-4">
             <i class="mdi text-xl text-[#00a998]" :class="selectedDef.icon" />
             <div class="min-w-0 flex-1">
-              <h2 class="text-sm font-black">{{ selectedDef.label }}</h2>
-              <p class="truncate text-[11px] text-slate-400" :title="selectedDef.description">{{ selectedDef.description }}</p>
+              <h2 class="text-sm font-black">{{ $t(selectedDef.label) }}</h2>
+              <p class="truncate text-[11px] text-slate-400" :title="$t(selectedDef.description)">{{ $t(selectedDef.description) }}</p>
             </div>
-            <button type="button" class="btn-icon" title="Close" @click="selectedId = null"><i class="mdi mdi-close" /></button>
+            <button type="button" class="btn-icon" :title="$t('Close')" @click="selectedId = null"><i class="mdi mdi-close" /></button>
           </div>
           <div class="space-y-4 px-5 py-5">
             <FieldInput
@@ -718,61 +720,64 @@ function deleteTheme(key: string) {
             />
           </div>
           <div class="flex gap-2 border-t border-slate-100 px-5 py-4">
-            <button type="button" class="btn-light flex-1" @click="duplicate(selected.id)"><i class="mdi mdi-content-copy" /> Duplicate</button>
-            <button type="button" class="btn-light flex-1 !text-red-600" @click="remove(selected.id)"><i class="mdi mdi-trash-can-outline" /> Delete</button>
+            <button type="button" class="btn-light flex-1" @click="duplicate(selected.id)"><i class="mdi mdi-content-copy" /> {{ $t('Duplicate') }}</button>
+            <button type="button" class="btn-light flex-1 !text-red-600" @click="remove(selected.id)"><i class="mdi mdi-trash-can-outline" /> {{ $t('Delete') }}</button>
           </div>
         </template>
 
         <template v-else>
           <div class="border-b border-slate-100 px-5 py-4">
-            <h2 class="text-sm font-black">Page settings</h2>
-            <p class="text-[11px] text-slate-400">Select a block on the page to edit it.</p>
+            <h2 class="text-sm font-black">{{ $t('Page settings') }}</h2>
+            <p class="text-[11px] text-slate-400">{{ $t('Select a block on the page to edit it.') }}</p>
           </div>
           <div class="space-y-4 px-5 py-5">
             <label class="flex items-center gap-2 text-sm">
-              <input v-model="isHome" type="checkbox" class="h-4 w-4 rounded" /> Use as home page
+              <input v-model="isHome" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Use as home page') }}
             </label>
             <div class="rounded-2xl bg-slate-50 p-4">
               <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                {{ getLocale(locale)?.label }} version
+                {{ $t('{lang} version', { lang: getLocale(locale)?.label ?? locale }) }}
               </p>
               <div class="space-y-3">
                 <div>
-                  <label class="field-label">Title</label>
+                  <label class="field-label">{{ $t('Title') }}</label>
                   <input v-model="current.title" class="input" :dir="localeDir" />
                 </div>
                 <div>
-                  <label class="field-label">Address</label>
+                  <label class="field-label">{{ $t('Address') }}</label>
                   <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
                     <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span><input v-model="current.slug" class="input font-mono text-xs" />
                   </div>
                 </div>
                 <div>
-                  <label class="field-label">SEO title</label>
+                  <label class="field-label">{{ $t('SEO title') }}</label>
                   <input v-model="current.seoTitle" class="input" :dir="localeDir" :placeholder="current.title" />
                 </div>
                 <div>
-                  <label class="field-label">SEO description</label>
+                  <label class="field-label">{{ $t('SEO description') }}</label>
                   <textarea v-model="current.seoDescription" rows="3" class="input" :dir="localeDir" />
                 </div>
               </div>
             </div>
             <div v-for="l in locales.filter((x) => x.code !== locale)" :key="l.code">
               <button type="button" class="btn-light w-full" :disabled="!drafts[l.code]?.blocks.length" @click="copyFrom(l.code)">
-                <i class="mdi mdi-content-duplicate" /> Copy blocks from {{ l.label }}
+                <i class="mdi mdi-content-duplicate" /> {{ $t('Copy blocks from {lang}', { lang: l.label }) }}
               </button>
             </div>
             <p class="text-[11px] leading-relaxed text-slate-400">
-              Click any text on the page to edit it there. Drop a photo onto a block to use it as that block’s image.
+              {{ $t('Click any text on the page to edit it there. Drop a photo onto a block to use it as that block’s image.') }}
             </p>
+            <div class="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+              {{ $t('Editor language') }} <AdminLangSwitch />
+            </div>
             <p class="text-[11px] leading-relaxed text-slate-400">
-              Shortcuts: Ctrl+S save · Ctrl+Z undo · Ctrl+Shift+Z redo · Delete removes the selected block · Esc deselects.
+              {{ $t('Shortcuts: Ctrl+S save · Ctrl+Z undo · Ctrl+Shift+Z redo · Delete removes the selected block · Esc deselects.') }}
             </p>
           </div>
         </template>
       </aside>
     </div>
 
-    <div v-else class="flex flex-1 items-center justify-center text-sm text-slate-400">Loading…</div>
+    <div v-else class="flex flex-1 items-center justify-center text-sm text-slate-400">{{ $t('Loading…') }}</div>
   </div>
 </template>

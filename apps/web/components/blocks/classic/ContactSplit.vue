@@ -151,7 +151,7 @@ const inputStyle = {
               <EditableText :value="p.submitLabel" path="submitLabel" />
               <i v-if="sending" class="mdi mdi-loading mdi-spin ms-1" />
             </button>
-            <span v-if="editing" class="text-xs text-muted" dir="ltr">Messages can be sent from the published page.</span>
+            <span v-if="editing" class="text-xs text-muted" dir="ltr">{{ $t('Messages can be sent from the published page.') }}</span>
           </div>
         </form>
       </Transition>

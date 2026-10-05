@@ -51,7 +51,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
         dir="ltr"
       >
         <i class="mdi mdi-image-multiple-outline text-4xl" />
-        Add photos in the panel on the right.
+        {{ $t('Add photos in the panel on the right.') }}
       </div>
 
       <div v-else-if="p.layout === 'masonry'" class="columns-1 gap-5" :class="masonry[p.columns] ?? masonry['3']">

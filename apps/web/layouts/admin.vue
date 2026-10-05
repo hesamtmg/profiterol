@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import AdminLangSwitch from '~/components/admin/AdminLangSwitch.vue';
 const { user, logout } = useAuth();
 const route = useRoute();
 
@@ -26,7 +27,8 @@ function isActive(to: string) {
   return to === '/admin' ? route.path === '/admin' : route.path.startsWith(to);
 }
 
-useHead({ title: 'Profiterol admin', htmlAttrs: { lang: 'en', dir: 'ltr' } });
+const { lang, dir, t } = useAdminI18n();
+useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, dir: dir.value } }));
 </script>
 
 <template>
@@ -34,8 +36,8 @@ useHead({ title: 'Profiterol admin', htmlAttrs: { lang: 'en', dir: 'ltr' } });
     <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div class="mx-auto flex max-w-7xl items-center gap-6 px-5 py-3">
         <NuxtLink to="/admin" class="flex items-center gap-2 text-lg font-black">
-          <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00a998] text-white">P</span>
-          Profiterol
+          <span class="flex h-8 w-8 items-center justify-center rounded-xl bg-[#00a998] text-white">{{ $t('P') }}</span>
+          {{ $t('Profiterol') }}
         </NuxtLink>
         <nav class="flex gap-1">
           <NuxtLink
@@ -46,23 +48,24 @@ useHead({ title: 'Profiterol admin', htmlAttrs: { lang: 'en', dir: 'ltr' } });
             :class="isActive(item.to) ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'"
           >
             <i class="mdi" :class="item.icon" />
-            <span class="hidden sm:inline">{{ item.label }}</span>
+            <span class="hidden whitespace-nowrap sm:inline">{{ $t(item.label) }}</span>
             <span
               v-if="item.to === '/admin/inbox' && unread"
               class="rounded-full bg-[#00a998] px-1.5 text-[10px] font-bold leading-4 text-white"
-              :aria-label="`${unread} unread`"
+              :aria-label="$t('{n} unread', { n: unread })"
             >
               {{ unread }}
             </span>
           </NuxtLink>
         </nav>
         <div class="ms-auto flex items-center gap-3 text-sm">
-          <a href="/" target="_blank" class="hidden text-slate-500 hover:text-slate-900 sm:inline">
-            <i class="mdi mdi-open-in-new" /> View site
+          <AdminLangSwitch />
+          <a href="/" target="_blank" class="hidden whitespace-nowrap text-slate-500 hover:text-slate-900 sm:inline">
+            <i class="mdi mdi-open-in-new" /> {{ $t('View site') }}
           </a>
           <span class="hidden text-slate-400 md:inline">{{ user?.email }}</span>
-          <button type="button" class="rounded-full px-3 py-1.5 text-slate-500 hover:bg-slate-100" @click="logout">
-            <i class="mdi mdi-logout" /> Log out
+          <button type="button" class="whitespace-nowrap rounded-full px-3 py-1.5 text-slate-500 hover:bg-slate-100" @click="logout">
+            <i class="mdi mdi-logout" /> {{ $t('Log out') }}
           </button>
         </div>
       </div>

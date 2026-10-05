@@ -146,7 +146,7 @@ onBeforeUnmount(() => {
         </span>
       </h1>
       <p v-if="editing" class="mt-3 text-xs opacity-70" dir="ltr">
-        Changing words: <EditableText :value="p.words" path="words" />
+        {{ $t('Changing words:') }} <EditableText :value="p.words" path="words" />
       </p>
 
       <p

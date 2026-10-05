@@ -31,7 +31,7 @@ function preview(s: Submission) {
 }
 
 function when(date: string) {
-  return new Date(date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+  return new Date(date).toLocaleString(adminLocale(), { dateStyle: 'medium', timeStyle: 'short' });
 }
 
 async function load() {
@@ -59,7 +59,7 @@ async function open(s: Submission) {
 }
 
 async function remove(s: Submission) {
-  if (!confirm('Delete this message? This cannot be undone.')) return;
+  if (!confirm(translate('Delete this message? This cannot be undone.'))) return;
   await api(`/admin/submissions/${s.id}`, { method: 'DELETE' });
   if (!s.read) unread.value--;
   items.value = items.value.filter((x) => x.id !== s.id);
@@ -93,9 +93,9 @@ onMounted(load);
   <div>
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-black">Inbox</h1>
+        <h1 class="text-3xl font-black">{{ $t('Inbox') }}</h1>
         <p class="mt-1 text-sm font-light text-slate-500">
-          Messages sent through contact forms. To also get them by email, set an address in Site settings.
+          {{ $t('Messages sent through contact forms. To also get them by email, set an address in Site settings.') }}
         </p>
       </div>
       <div class="flex gap-2">
@@ -108,10 +108,10 @@ onMounted(load);
             :class="filter === f ? 'bg-slate-900 text-white' : 'text-slate-500'"
             @click="filter = f"
           >
-            {{ f === 'unread' ? `Unread (${unread})` : 'All' }}
+            {{ f === 'unread' ? $t('Unread ({n})', { n: unread }) : $t('All') }}
           </button>
         </div>
-        <button type="button" class="btn-light" :disabled="!items.length" @click="exportCsv"><i class="mdi mdi-download" /> Export CSV</button>
+        <button type="button" class="btn-light" :disabled="!items.length" @click="exportCsv"><i class="mdi mdi-download" /> {{ $t('Export CSV') }}</button>
       </div>
     </div>
 
@@ -132,26 +132,26 @@ onMounted(load);
           <span class="min-w-0 flex-1">
             <span class="flex items-center justify-between gap-2">
               <span class="truncate text-sm" :class="s.read ? 'font-medium' : 'font-black'" :dir="s.locale === 'fa' ? 'rtl' : 'ltr'">{{ preview(s) }}</span>
-              <span class="shrink-0 text-[11px] text-slate-400">{{ new Date(s.createdAt).toLocaleDateString() }}</span>
+              <span class="shrink-0 text-[11px] text-slate-400">{{ new Date(s.createdAt).toLocaleDateString(adminLocale()) }}</span>
             </span>
             <span class="mt-0.5 block truncate text-xs text-slate-500">{{ s.formTitle }} · {{ s.pageTitle }} · {{ s.locale.toUpperCase() }}</span>
           </span>
         </button>
         <p v-if="!loading && !visible.length" class="py-16 text-center text-sm text-slate-400">
-          {{ filter === 'unread' ? 'No unread messages.' : 'No messages yet.' }}
+          {{ filter === 'unread' ? $t('No unread messages.') : $t('No messages yet.') }}
         </p>
       </div>
 
       <section v-if="selected" class="h-fit rounded-[2rem] bg-white p-7 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="text-xl font-black" :dir="selected.locale === 'fa' ? 'rtl' : 'ltr'">{{ selected.formTitle || 'Contact form' }}</h2>
+            <h2 class="text-xl font-black" :dir="selected.locale === 'fa' ? 'rtl' : 'ltr'">{{ selected.formTitle || $t('Contact form') }}</h2>
             <p class="text-xs text-slate-400">{{ when(selected.createdAt) }} · from the {{ selected.locale.toUpperCase() }} page “{{ selected.pageTitle }}”</p>
           </div>
           <div class="flex gap-2">
-            <a v-if="replyTo" :href="`mailto:${replyTo}`" class="btn-dark"><i class="mdi mdi-reply" /> Reply</a>
-            <button type="button" class="btn-light" @click="setRead(selected, false)"><i class="mdi mdi-email-mark-as-unread" /> Mark unread</button>
-            <button type="button" class="btn-icon hover:!text-red-600" title="Delete" @click="remove(selected)"><i class="mdi mdi-trash-can-outline text-lg" /></button>
+            <a v-if="replyTo" :href="`mailto:${replyTo}`" class="btn-dark"><i class="mdi mdi-reply" /> {{ $t('Reply') }}</a>
+            <button type="button" class="btn-light" @click="setRead(selected, false)"><i class="mdi mdi-email-mark-as-unread" /> {{ $t('Mark unread') }}</button>
+            <button type="button" class="btn-icon hover:!text-red-600" :title="$t('Delete')" @click="remove(selected)"><i class="mdi mdi-trash-can-outline text-lg" /></button>
           </div>
         </div>
         <dl class="mt-6 space-y-4" :dir="selected.locale === 'fa' ? 'rtl' : 'ltr'">
@@ -162,7 +162,7 @@ onMounted(load);
         </dl>
       </section>
       <div v-else-if="visible.length" class="hidden items-center justify-center rounded-[2rem] border-2 border-dashed border-slate-200 text-sm text-slate-400 lg:flex">
-        Select a message to read it.
+        {{ $t('Select a message to read it.') }}
       </div>
     </div>
   </div>

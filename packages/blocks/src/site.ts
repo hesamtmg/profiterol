@@ -107,3 +107,17 @@ export function cleanLoader(input: unknown): LoaderSettings {
     oncePerSession: src.oncePerSession !== false,
   };
 }
+
+/** Widths of the WebP copies made for every uploaded photo (never larger than the original). */
+export const imageWidths = [480, 960, 1600, 2400] as const;
+
+const RESIZABLE = /^\/uploads\/([\w-]+)\.(jpe?g|png|webp|avif)$/i;
+
+/**
+ * The `srcset` for an uploaded photo, so browsers download a size that fits the screen instead of the
+ * original. Empty for anything else (GIFs, videos, outside links).
+ */
+export function imageSrcset(url: unknown): string {
+  const m = typeof url === 'string' ? RESIZABLE.exec(url) : null;
+  return m ? imageWidths.map((w) => `/uploads/${m[1]}-${w}.webp ${w}w`).join(', ') : '';
+}

@@ -83,7 +83,7 @@ This combines:
 - [ ] Rich text field (bold, italic, links, lists) with sanitized HTML output
 - [ ] Block presets / "sections": save a configured block and reuse it
 - [ ] Shareable draft preview link (signed token)
-- [ ] Editor UI in Persian as well as English
+- [x] Editor UI in Persian as well as English: a فارسی / English switch in the header, login and editor; right-to-left layout; remembered per browser; block names, fields and help text translated
 - [ ] Real-time multi-user awareness (someone else is editing this page)
 
 ## Phase 5: Blocks
@@ -156,7 +156,8 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Upload (JPG, PNG, WebP, GIF, AVIF, MP4, WebM; 20 MB; no SVG), random file names, list, delete
 - [x] Media picker inside the editor
 - [x] Check the file's real type from its first bytes instead of trusting the browser's MIME type
-- [ ] Image processing (sharp): resize, WebP/AVIF, responsive `srcset`, blur placeholder
+- [x] Image processing (sharp): WebP copies at 480 / 960 / 1600 / 2400 px (never enlarged, EXIF-rotated), responsive `srcset` + `sizes` on every site image, rendered on the server; older photos are converted on start
+- [ ] Blur placeholder while a photo loads; AVIF copies
 - [ ] Alt text per language; folders/tags; search; usage tracking ("used on 3 pages")
 - [ ] S3-compatible storage option (MinIO in Docker)
 

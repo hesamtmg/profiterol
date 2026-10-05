@@ -281,3 +281,40 @@ describe('media types and site fonts', () => {
     await call('PUT', '/admin/settings', { fonts: before.fonts, theme: before.theme, savedThemes: before.savedThemes, loader: before.loader });
   });
 });
+
+describe('image sizes', () => {
+  const ORIGIN = API.replace(/\/api$/, '');
+  const upload = async (bytes, name, type) => {
+    const body = new FormData();
+    body.append('file', new Blob([bytes], { type }), name);
+    const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body });
+    return { status: res.status, body: await res.json() };
+  };
+
+  test('photos get WebP copies at web widths, never enlarged, removed with the photo', async () => {
+    const { default: sharp } = await import('sharp');
+    const jpg = await sharp({ create: { width: 1200, height: 800, channels: 3, background: '#00a998' } }).jpeg().toBuffer();
+    const res = await upload(jpg, 'wide.jpg', 'image/jpeg');
+    assert.equal(res.status, 201);
+    assert.equal(res.body.width, 1200);
+    assert.equal(res.body.height, 800);
+
+    // Every width exists (the site builds srcset from the URL alone); widths above the photo's own are capped.
+    const base = res.body.url.replace(/\.jpg$/, '');
+    for (const w of [480, 960, 1600, 2400]) {
+      const r = await fetch(`${ORIGIN}${base}-${w}.webp`);
+      assert.equal(r.status, 200, `${w}w copy`);
+      assert.equal(r.headers.get('content-type'), 'image/webp');
+      const meta = await sharp(Buffer.from(await r.arrayBuffer())).metadata();
+      assert.equal(meta.width, Math.min(w, 1200), `${w}w copy is not enlarged`);
+    }
+
+    assert.equal((await call('DELETE', `/admin/media/${res.body.id}`)).status, 204);
+    assert.equal((await fetch(`${ORIGIN}${base}-480.webp`)).status, 404, 'copies go with the photo');
+  });
+
+  test('a file that starts like a JPEG but cannot be decoded is refused', async () => {
+    const broken = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 7)]);
+    assert.equal((await upload(broken, 'broken.jpg', 'image/jpeg')).status, 400);
+  });
+});

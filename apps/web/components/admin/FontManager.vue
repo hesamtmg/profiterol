@@ -57,7 +57,7 @@ function removeFile(font: SiteFont, url: string) {
     .filter((f) => f.files.length);
 }
 
-const weightLabel = (w: number) => WEIGHTS.find(([v]) => v === w)?.[1] ?? String(w);
+const weightLabel = (w: number) => translate(WEIGHTS.find(([v]) => v === w)?.[1] ?? String(w));
 </script>
 
 <template>
@@ -78,27 +78,27 @@ const weightLabel = (w: number) => WEIGHTS.find(([v]) => v === w)?.[1] ?? String
             :style="{ fontFamily: `'${font.name}', system-ui`, fontWeight: file.weight, fontStyle: file.style }"
           >
             {{ weightLabel(file.weight) }}{{ file.style === 'italic' ? ' italic' : '' }}
-            <button type="button" class="text-slate-400 hover:text-red-600" aria-label="Remove this file" @click="removeFile(font, file.url)"><i class="mdi mdi-close" /></button>
+            <button type="button" class="text-slate-400 hover:text-red-600" :aria-label="$t('Remove this file')" @click="removeFile(font, file.url)"><i class="mdi mdi-close" /></button>
           </span>
         </div>
       </div>
     </div>
-    <p v-else class="text-xs text-slate-400">No fonts yet. Upload one file per weight; the same name groups them into one font.</p>
+    <p v-else class="text-xs text-slate-400">{{ $t('No fonts yet. Upload one file per weight; the same name groups them into one font.') }}</p>
 
     <div class="mt-4 grid gap-2 sm:grid-cols-[1fr_9rem_7rem]">
-      <input ref="input" type="file" accept=".woff2,.woff,.ttf,.otf" class="input sm:col-span-3" aria-label="Font file" @change="onPick" />
-      <input v-model="name" class="input" placeholder="Font name, e.g. Logotype" aria-label="Font name" />
-      <select v-model.number="weight" class="input" aria-label="Weight">
-        <option v-for="[v, label] in WEIGHTS" :key="v" :value="v">{{ v }} {{ label }}</option>
+      <input ref="input" type="file" accept=".woff2,.woff,.ttf,.otf" class="input sm:col-span-3" :aria-label="$t('Font file')" @change="onPick" />
+      <input v-model="name" class="input" :placeholder="$t('Font name, e.g. Logotype')" :aria-label="$t('Font name')" />
+      <select v-model.number="weight" class="input" :aria-label="$t('Weight')">
+        <option v-for="[v, label] in WEIGHTS" :key="v" :value="v">{{ v }} {{ $t(label) }}</option>
       </select>
-      <select v-model="style" class="input" aria-label="Style">
-        <option value="normal">Normal</option>
-        <option value="italic">Italic</option>
+      <select v-model="style" class="input" :aria-label="$t('Style')">
+        <option value="normal">{{ $t('Normal') }}</option>
+        <option value="italic">{{ $t('Italic') }}</option>
       </select>
     </div>
     <div class="mt-3 flex items-center gap-3">
       <button type="button" class="btn-dark" :disabled="uploading" @click="add">
-        <i class="mdi" :class="uploading ? 'mdi-loading mdi-spin' : 'mdi-upload'" /> Upload font
+        <i class="mdi" :class="uploading ? 'mdi-loading mdi-spin' : 'mdi-upload'" /> {{ $t('Upload font') }}
       </button>
       <span v-if="problem || error" class="text-xs text-red-600">{{ problem || error }}</span>
     </div>

@@ -64,7 +64,7 @@ function duplicateItem(i: number) {
 function itemTitle(item: Record<string, unknown>, i: number) {
   const key = props.field.itemLabel;
   const label = key ? String(item[key] ?? '') : '';
-  return label || `Item ${i + 1}`;
+  return label || translate('Item {n}', { n: i + 1 });
 }
 
 function setItemField(i: number, key: string, value: unknown) {
@@ -78,7 +78,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
 
 <template>
   <div>
-    <label class="field-label">{{ field.label }}</label>
+    <label class="field-label">{{ $t(field.label) }}</label>
 
     <input v-if="field.type === 'text'" v-model="model" type="text" class="input" :dir="dir" />
     <input v-else-if="field.type === 'url'" v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="/page, #anchor or https://…" />
@@ -86,13 +86,13 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     <RichTextInput v-else-if="field.type === 'richtext'" :model-value="(model as string)" :dir="dir" @update:model-value="model = $event" />
     <input v-else-if="field.type === 'number'" v-model.number="model" type="number" class="input" />
     <label v-else-if="field.type === 'boolean'" class="flex items-center gap-2 text-sm">
-      <input v-model="model" type="checkbox" class="h-4 w-4 rounded" /> {{ field.label }}
+      <input v-model="model" type="checkbox" class="h-4 w-4 rounded" /> {{ $t(field.label) }}
     </label>
     <select v-else-if="field.type === 'select'" v-model="model" class="input">
-      <option v-for="o in field.options" :key="o.value" :value="o.value">{{ o.label }}</option>
+      <option v-for="o in field.options" :key="o.value" :value="o.value">{{ $t(o.label) }}</option>
     </select>
     <select v-else-if="field.type === 'collection'" v-model="model" class="input">
-      <option v-if="!collections?.length" disabled value="">No collections yet</option>
+      <option v-if="!collections?.length" disabled value="">{{ $t('No collections yet') }}</option>
       <option v-for="c in collections ?? []" :key="c.key" :value="c.key">{{ c.name.en || c.key }}</option>
     </select>
     <div v-else-if="field.type === 'color'" class="flex items-center gap-2">
@@ -128,11 +128,11 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
           v-model="model"
           type="text"
           class="input min-w-0 font-mono text-xs"
-          dir="ltr"
-:placeholder="field.type === 'video' ? 'Drop a video' : 'Drop an image'"
+          :dir="model ? 'ltr' : undefined"
+          :placeholder="field.type === 'video' ? $t('Drop a video') : $t('Drop an image')"
           @paste="onImagePaste"
         />
-        <button type="button" class="btn-light shrink-0 !px-3" title="Choose from media" @click="picking = true">
+        <button type="button" class="btn-light shrink-0 !px-3" :title="$t('Choose from media')" @click="picking = true">
           <i class="mdi mdi-folder-image" />
         </button>
       </div>
@@ -147,10 +147,10 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
             <i class="mdi text-slate-400" :class="openItem === i ? 'mdi-chevron-down' : 'mdi-chevron-right'" />
             <span class="truncate" :dir="dir">{{ itemTitle(item, i) }}</span>
           </button>
-          <button type="button" class="btn-icon !h-7 !w-7" title="Move up" :disabled="i === 0" @click="moveItem(i, -1)"><i class="mdi mdi-arrow-up" /></button>
-          <button type="button" class="btn-icon !h-7 !w-7" title="Move down" :disabled="i === list.length - 1" @click="moveItem(i, 1)"><i class="mdi mdi-arrow-down" /></button>
-          <button type="button" class="btn-icon !h-7 !w-7" title="Duplicate" :disabled="atMax" @click="duplicateItem(i)"><i class="mdi mdi-content-copy" /></button>
-          <button type="button" class="btn-icon !h-7 !w-7 hover:!text-red-600" title="Remove" @click="removeItem(i)"><i class="mdi mdi-close" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Move up')" :disabled="i === 0" @click="moveItem(i, -1)"><i class="mdi mdi-arrow-up" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Move down')" :disabled="i === list.length - 1" @click="moveItem(i, 1)"><i class="mdi mdi-arrow-down" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Duplicate')" :disabled="atMax" @click="duplicateItem(i)"><i class="mdi mdi-content-copy" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7 hover:!text-red-600" :title="$t('Remove')" @click="removeItem(i)"><i class="mdi mdi-close" /></button>
         </div>
         <div v-if="openItem === i" class="space-y-3 border-t border-slate-200 px-3 py-3">
           <FieldInput
@@ -168,6 +168,6 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
       </button>
     </div>
 
-    <p v-if="field.help" class="mt-1 text-[11px] text-slate-400">{{ field.help }}</p>
+    <p v-if="field.help" class="mt-1 text-[11px] text-slate-400">{{ $t(field.help) }}</p>
   </div>
 </template>

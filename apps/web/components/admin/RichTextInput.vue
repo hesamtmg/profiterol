@@ -21,7 +21,7 @@ function run(command: string, value?: string) {
 }
 
 function addLink() {
-  const url = window.prompt('Link address (https://…, /page or #anchor)');
+  const url = window.prompt(translate('Link address (https://…, /page or #anchor)'));
   if (url) run('createLink', url.trim());
 }
 
@@ -48,14 +48,14 @@ const tools: { icon: string; title: string; action: () => void }[] = [
 
 <template>
   <div class="overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-900/5">
-    <div class="flex flex-wrap gap-0.5 border-b border-slate-100 bg-slate-50 p-1" role="toolbar" aria-label="Formatting">
+    <div class="flex flex-wrap gap-0.5 border-b border-slate-100 bg-slate-50 p-1" role="toolbar" :aria-label="$t('Formatting')">
       <button
         v-for="t in tools"
         :key="t.icon"
         type="button"
         class="flex h-7 w-7 items-center justify-center rounded-md text-slate-600 hover:bg-white hover:text-slate-900 hover:shadow-sm"
-        :title="t.title"
-        :aria-label="t.title"
+        :title="$t(t.title)"
+        :aria-label="$t(t.title)"
         @mousedown.prevent
         @click="t.action"
       >

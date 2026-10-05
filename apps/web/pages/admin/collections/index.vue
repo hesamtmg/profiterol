@@ -73,37 +73,37 @@ onMounted(refresh);
   <div>
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 class="text-3xl font-black">Collections</h1>
+        <h1 class="text-3xl font-black">{{ $t('Collections') }}</h1>
         <p class="mt-1 text-sm font-light text-slate-500">
-          Content that repeats, like projects, blog posts or team members. Show it on any page with the “Collection list” block.
+          {{ $t('Content that repeats, like projects, blog posts or team members. Show it on any page with the “Collection list” block.') }}
         </p>
       </div>
       <button v-if="user?.role === 'admin'" type="button" class="btn-dark" @click="showForm = !showForm">
-        <i class="mdi mdi-plus" /> New collection
+        <i class="mdi mdi-plus" /> {{ $t('New collection') }}
       </button>
     </div>
 
     <form v-if="showForm" class="mt-6 rounded-[2rem] bg-white p-7 shadow-sm" @submit.prevent="create">
-      <h2 class="font-black">New collection</h2>
+      <h2 class="font-black">{{ $t('New collection') }}</h2>
       <div class="mt-4 grid gap-4 md:grid-cols-2">
         <div v-for="l in locales" :key="l.code">
-          <label class="field-label" :for="`name-${l.code}`">Name ({{ l.label }})</label>
+          <label class="field-label" :for="`name-${l.code}`">{{ $t('Name ({lang})', { lang: l.label }) }}</label>
           <input :id="`name-${l.code}`" v-model="form.name[l.code]" class="input" :dir="l.dir" :placeholder="l.code === 'fa' ? 'تیم' : 'Team'" required />
         </div>
         <div v-for="l in locales" :key="`s-${l.code}`">
-          <label class="field-label" :for="`slug-${l.code}`">Address ({{ l.label }})</label>
+          <label class="field-label" :for="`slug-${l.code}`">{{ $t('Address ({lang})', { lang: l.label }) }}</label>
           <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
             <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span><input :id="`slug-${l.code}`" v-model="form.slugs[l.code]" class="input font-mono text-xs" required />
           </div>
         </div>
         <div>
-          <label class="field-label" for="key">Key (used by blocks; cannot be changed later)</label>
+          <label class="field-label" for="key">{{ $t('Key (used by blocks; cannot be changed later)') }}</label>
           <input id="key" v-model="form.key" class="input font-mono text-xs" dir="ltr" required pattern="[a-z][a-z0-9\-]{1,39}" />
         </div>
       </div>
       <div class="mt-6 flex gap-2">
-        <button type="submit" class="btn-dark" :disabled="creating">{{ creating ? 'Creating…' : 'Create collection' }}</button>
-        <button type="button" class="btn-light" @click="showForm = false">Cancel</button>
+        <button type="submit" class="btn-dark" :disabled="creating">{{ $t(creating ? 'Creating…' : 'Create collection') }}</button>
+        <button type="button" class="btn-light" @click="showForm = false">{{ $t('Cancel') }}</button>
       </div>
     </form>
 
@@ -135,6 +135,6 @@ onMounted(refresh);
         </div>
       </NuxtLink>
     </div>
-    <p v-if="!loading && !collections.length" class="mt-16 text-center text-sm text-slate-400">No collections yet.</p>
+    <p v-if="!loading && !collections.length" class="mt-16 text-center text-sm text-slate-400">{{ $t('No collections yet.') }}</p>
   </div>
 </template>

@@ -58,7 +58,7 @@ function onPaste(e: ClipboardEvent) {
     contenteditable="plaintext-only"
     role="textbox"
     :aria-multiline="multiline ? 'true' : 'false'"
-    :data-placeholder="placeholder ?? 'Type here…'"
+    :data-placeholder="$t(placeholder ?? 'Type here…')"
     @input="onInput"
     @blur="sync"
     @keydown="onKeydown"

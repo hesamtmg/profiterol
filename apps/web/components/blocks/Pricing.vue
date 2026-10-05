@@ -93,7 +93,7 @@ const isNumber = (v: string) => /^[\d.,۰-۹٬]+$/.test(String(v ?? '').trim());
               {{ f.text }}
             </li>
           </ul>
-          <p v-if="editing" class="mt-3 text-[11px] opacity-60" dir="ltr">Edit features in the panel: one per line, “-” for not included.</p>
+          <p v-if="editing" class="mt-3 text-[11px] opacity-60" dir="ltr">{{ $t('Edit features in the panel: one per line, “-” for not included.') }}</p>
 
           <a
             v-if="plan.buttonLabel"

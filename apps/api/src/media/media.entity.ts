@@ -20,6 +20,13 @@ export class Media {
   @Column()
   url: string;
 
+  /** Pixel size of photos (null for videos and fonts). */
+  @Column({ type: 'int', nullable: true })
+  width: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  height: number | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }
