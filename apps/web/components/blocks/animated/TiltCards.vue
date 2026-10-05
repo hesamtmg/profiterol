@@ -39,7 +39,9 @@ function onLeave(e: PointerEvent) {
 <template>
   <section class="bg-surface px-6 py-20 text-ink @3xl:px-16 @3xl:py-28">
     <div class="mx-auto max-w-6xl">
-      <h2 v-if="p.title || editing" class="mb-12 text-center text-3xl font-black @3xl:text-5xl"><EditableText :value="p.title" path="title" placeholder="Title" /></h2>
+      <h2 v-if="p.title || editing" class="mb-12 text-center text-3xl font-black @3xl:text-5xl">
+        <EditableText :value="p.title" path="title" placeholder="Title" />
+      </h2>
       <div class="grid gap-6 @2xl:grid-cols-2 @4xl:grid-cols-3">
         <component
           :is="item.link && !editing ? 'a' : 'article'"
@@ -53,18 +55,29 @@ function onLeave(e: PointerEvent) {
           <!-- Shine -->
           <div
             class="pointer-events-none absolute inset-0 transition-opacity duration-300"
-            style="opacity: var(--glare, 0); background: radial-gradient(400px circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.22), transparent 55%)"
+            style="
+              opacity: var(--glare, 0);
+              background: radial-gradient(400px circle at var(--gx, 50%) var(--gy, 50%), rgb(255 255 255 / 0.22), transparent 55%);
+            "
             aria-hidden="true"
           />
           <!-- Colored edge glow -->
-          <div class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary opacity-40 blur-3xl" aria-hidden="true" />
+          <div
+            class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary opacity-40 blur-3xl"
+            aria-hidden="true"
+          />
           <div class="relative [transform:translateZ(50px)]">
             <img v-if="item.image" :src="item.image" alt="" class="mb-8 h-16 w-16 rounded-2xl object-cover" loading="lazy" />
-            <span v-else class="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-3xl text-primary ring-1 ring-white/15">
+            <span
+              v-else
+              class="mb-8 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/10 text-3xl text-primary ring-1 ring-white/15"
+            >
               <i class="mdi" :class="/^mdi-[a-z0-9-]+$/.test(item.icon) ? item.icon : 'mdi-star-four-points-outline'" />
             </span>
             <h3 class="text-2xl font-bold"><EditableText :value="item.title" :path="`items.${i}.title`" /></h3>
-            <p v-if="item.text || editing" class="mt-3 font-light leading-relaxed opacity-75"><EditableText :value="item.text" :path="`items.${i}.text`" multiline /></p>
+            <p v-if="item.text || editing" class="mt-3 font-light leading-relaxed opacity-75">
+              <EditableText :value="item.text" :path="`items.${i}.text`" multiline />
+            </p>
             <span v-if="item.link" class="mt-8 inline-flex items-center gap-1 text-sm font-semibold text-primary">
               <i class="mdi mdi-arrow-right rtl:rotate-180" />
             </span>

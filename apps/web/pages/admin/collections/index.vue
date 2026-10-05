@@ -88,12 +88,20 @@ onMounted(refresh);
       <div class="mt-4 grid gap-4 md:grid-cols-2">
         <div v-for="l in locales" :key="l.code">
           <label class="field-label" :for="`name-${l.code}`">{{ $t('Name ({lang})', { lang: l.label }) }}</label>
-          <input :id="`name-${l.code}`" v-model="form.name[l.code]" class="input" :dir="l.dir" :placeholder="l.code === 'fa' ? 'تیم' : 'Team'" required />
+          <input
+            :id="`name-${l.code}`"
+            v-model="form.name[l.code]"
+            class="input"
+            :dir="l.dir"
+            :placeholder="l.code === 'fa' ? 'تیم' : 'Team'"
+            required
+          />
         </div>
         <div v-for="l in locales" :key="`s-${l.code}`">
           <label class="field-label" :for="`slug-${l.code}`">{{ $t('Address ({lang})', { lang: l.label }) }}</label>
           <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-            <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span><input :id="`slug-${l.code}`" v-model="form.slugs[l.code]" class="input text-xs" required />
+            <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span
+            ><input :id="`slug-${l.code}`" v-model="form.slugs[l.code]" class="input text-xs" required />
           </div>
         </div>
         <div>
@@ -130,7 +138,8 @@ onMounted(refresh);
             <span v-for="l in locales" :key="l.code" dir="ltr">/{{ l.code }}/{{ c.slugs[l.code] }}</span>
           </div>
           <p class="mt-3 text-xs text-slate-400">
-            {{ c.fields.length }} custom {{ c.fields.length === 1 ? 'field' : 'fields' }}<span v-if="c.fields.length">: {{ c.fields.map((f) => f.label).join(', ') }}</span>
+            {{ c.fields.length }} custom {{ c.fields.length === 1 ? 'field' : 'fields'
+            }}<span v-if="c.fields.length">: {{ c.fields.map((f) => f.label).join(', ') }}</span>
           </p>
         </div>
       </NuxtLink>

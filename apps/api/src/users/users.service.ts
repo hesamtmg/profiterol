@@ -23,11 +23,7 @@ export class UsersService {
 
   /** Returns the user with its password hash, for login only. */
   findForLogin(email: string) {
-    return this.users
-      .createQueryBuilder('u')
-      .addSelect('u.passwordHash')
-      .where('LOWER(u.email) = LOWER(:email)', { email })
-      .getOne();
+    return this.users.createQueryBuilder('u').addSelect('u.passwordHash').where('LOWER(u.email) = LOWER(:email)', { email }).getOne();
   }
 
   findByEmail(email: string) {

@@ -17,7 +17,11 @@ const editing = Boolean(useBlockEditing());
 
 <template>
   <section class="w-full bg-surface py-12 text-ink">
-    <h2 v-if="p.title || editing" v-reveal class="mx-4 pb-8 pt-8 text-center text-2xl font-semibold @3xl:mx-10 @3xl:pb-12 @3xl:pt-12 @3xl:text-4xl">
+    <h2
+      v-if="p.title || editing"
+      v-reveal
+      class="mx-4 pb-8 pt-8 text-center text-2xl font-semibold @3xl:mx-10 @3xl:pb-12 @3xl:pt-12 @3xl:text-4xl"
+    >
       <EditableText :value="p.title" path="title" placeholder="Title" />
     </h2>
 
@@ -46,7 +50,9 @@ const editing = Boolean(useBlockEditing());
           class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
         />
         <div class="absolute inset-0 flex flex-col justify-end p-4 text-start text-white @3xl:p-6">
-          <h3 class="translate-y-8 text-lg font-bold transition-all duration-700 group-hover:translate-y-0 @3xl:text-2xl [@media(hover:none)]:translate-y-0">
+          <h3
+            class="translate-y-8 text-lg font-bold transition-all duration-700 group-hover:translate-y-0 @3xl:text-2xl [@media(hover:none)]:translate-y-0"
+          >
             <EditableText :value="item.title" :path="`items.${i}.title`" />
           </h3>
           <p

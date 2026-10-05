@@ -103,8 +103,7 @@
 .photo-placeholder {
   background:
     radial-gradient(circle at 25% 25%, color-mix(in srgb, var(--c-primary) 80%, white), transparent 60%),
-    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--c-secondary) 85%, white), transparent 55%),
-    var(--c-dark);
+    radial-gradient(circle at 80% 80%, color-mix(in srgb, var(--c-secondary) 85%, white), transparent 55%), var(--c-dark);
 }
 
 /* v-reveal (plugins/reveal.ts): slides in when scrolled into view. */
@@ -344,7 +343,9 @@
   border-radius: 0.3rem;
   outline: none;
   cursor: text;
-  transition: box-shadow 0.15s, background-color 0.15s;
+  transition:
+    box-shadow 0.15s,
+    background-color 0.15s;
 }
 .editable:hover {
   box-shadow: 0 0 0 2px rgb(14 165 233 / 0.45);

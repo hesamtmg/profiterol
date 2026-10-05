@@ -101,7 +101,7 @@ onMounted(load);
       <div class="flex gap-2">
         <div class="flex rounded-full bg-white p-1 text-xs shadow-sm">
           <button
-            v-for="f in (['all', 'unread'] as const)"
+            v-for="f in ['all', 'unread'] as const"
             :key="f"
             type="button"
             class="rounded-full px-3 py-1.5 capitalize transition"
@@ -111,7 +111,9 @@ onMounted(load);
             {{ f === 'unread' ? $t('Unread ({n})', { n: unread }) : $t('All') }}
           </button>
         </div>
-        <button type="button" class="btn-light" :disabled="!items.length" @click="exportCsv"><i class="mdi mdi-download" /> {{ $t('Export CSV') }}</button>
+        <button type="button" class="btn-light" :disabled="!items.length" @click="exportCsv">
+          <i class="mdi mdi-download" /> {{ $t('Export CSV') }}
+        </button>
       </div>
     </div>
 
@@ -128,13 +130,21 @@ onMounted(load);
           :class="selectedId === s.id ? 'ring-2 ring-slate-900' : 'ring-slate-200/60'"
           @click="open(s)"
         >
-          <span class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" :class="s.read ? 'bg-transparent' : 'bg-[#00a998]'" :title="s.read ? '' : 'Unread'" />
+          <span
+            class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+            :class="s.read ? 'bg-transparent' : 'bg-[#00a998]'"
+            :title="s.read ? '' : 'Unread'"
+          />
           <span class="min-w-0 flex-1">
             <span class="flex items-center justify-between gap-2">
-              <span class="truncate text-sm" :class="s.read ? 'font-medium' : 'font-black'" :dir="s.locale === 'fa' ? 'rtl' : 'ltr'">{{ preview(s) }}</span>
+              <span class="truncate text-sm" :class="s.read ? 'font-medium' : 'font-black'" :dir="s.locale === 'fa' ? 'rtl' : 'ltr'">{{
+                preview(s)
+              }}</span>
               <span class="shrink-0 text-[11px] text-slate-400">{{ new Date(s.createdAt).toLocaleDateString(adminLocale()) }}</span>
             </span>
-            <span class="mt-0.5 block truncate text-xs text-slate-500">{{ s.formTitle }} · {{ s.pageTitle }} · {{ s.locale.toUpperCase() }}</span>
+            <span class="mt-0.5 block truncate text-xs text-slate-500"
+              >{{ s.formTitle }} · {{ s.pageTitle }} · {{ s.locale.toUpperCase() }}</span
+            >
           </span>
         </button>
         <p v-if="!loading && !visible.length" class="py-16 text-center text-sm text-slate-400">
@@ -145,13 +155,21 @@ onMounted(load);
       <section v-if="selected" class="h-fit rounded-[2rem] bg-white p-7 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h2 class="text-xl font-black" :dir="selected.locale === 'fa' ? 'rtl' : 'ltr'">{{ selected.formTitle || $t('Contact form') }}</h2>
-            <p class="text-xs text-slate-400">{{ when(selected.createdAt) }} · from the {{ selected.locale.toUpperCase() }} page “{{ selected.pageTitle }}”</p>
+            <h2 class="text-xl font-black" :dir="selected.locale === 'fa' ? 'rtl' : 'ltr'">
+              {{ selected.formTitle || $t('Contact form') }}
+            </h2>
+            <p class="text-xs text-slate-400">
+              {{ when(selected.createdAt) }} · from the {{ selected.locale.toUpperCase() }} page “{{ selected.pageTitle }}”
+            </p>
           </div>
           <div class="flex gap-2">
             <a v-if="replyTo" :href="`mailto:${replyTo}`" class="btn-dark"><i class="mdi mdi-reply" /> {{ $t('Reply') }}</a>
-            <button type="button" class="btn-light" @click="setRead(selected, false)"><i class="mdi mdi-email-mark-as-unread" /> {{ $t('Mark unread') }}</button>
-            <button type="button" class="btn-icon hover:!text-red-600" :title="$t('Delete')" @click="remove(selected)"><i class="mdi mdi-trash-can-outline text-lg" /></button>
+            <button type="button" class="btn-light" @click="setRead(selected, false)">
+              <i class="mdi mdi-email-mark-as-unread" /> {{ $t('Mark unread') }}
+            </button>
+            <button type="button" class="btn-icon hover:!text-red-600" :title="$t('Delete')" @click="remove(selected)">
+              <i class="mdi mdi-trash-can-outline text-lg" />
+            </button>
           </div>
         </div>
         <dl class="mt-6 space-y-4" :dir="selected.locale === 'fa' ? 'rtl' : 'ltr'">
@@ -161,7 +179,10 @@ onMounted(load);
           </div>
         </dl>
       </section>
-      <div v-else-if="visible.length" class="hidden items-center justify-center rounded-[2rem] border-2 border-dashed border-slate-200 text-sm text-slate-400 lg:flex">
+      <div
+        v-else-if="visible.length"
+        class="hidden items-center justify-center rounded-[2rem] border-2 border-dashed border-slate-200 text-sm text-slate-400 lg:flex"
+      >
         {{ $t('Select a message to read it.') }}
       </div>
     </div>

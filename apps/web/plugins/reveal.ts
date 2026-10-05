@@ -17,10 +17,13 @@ export default defineNuxtPlugin((nuxtApp) => {
           el.classList.add('reveal-in');
           observer!.unobserve(el);
           // Afterwards, hand the element back its own transitions (e.g. hover effects), without the delay.
-          setTimeout(() => {
-            el.classList.remove('reveal', 'reveal-up', 'reveal-left', 'reveal-right', 'reveal-in');
-            el.style.transitionDelay = '';
-          }, 850 + (parseFloat(el.style.transitionDelay) || 0));
+          setTimeout(
+            () => {
+              el.classList.remove('reveal', 'reveal-up', 'reveal-left', 'reveal-right', 'reveal-in');
+              el.style.transitionDelay = '';
+            },
+            850 + (parseFloat(el.style.transitionDelay) || 0),
+          );
         }
       },
       { threshold: 0.05, rootMargin: '0px 0px -60px 0px' },

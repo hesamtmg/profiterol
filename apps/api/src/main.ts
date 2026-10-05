@@ -19,7 +19,9 @@ async function bootstrap() {
   // The API only answers JSON and serves uploads, so the strictest headers fit; pages get theirs from the web app.
   app.use(
     helmet({
-      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], imgSrc: ["'self'"], mediaSrc: ["'self'"], fontSrc: ["'self'"], frameAncestors: ["'none'"] } },
+      contentSecurityPolicy: {
+        directives: { defaultSrc: ["'none'"], imgSrc: ["'self'"], mediaSrc: ["'self'"], fontSrc: ["'self'"], frameAncestors: ["'none'"] },
+      },
       crossOriginResourcePolicy: { policy: 'same-origin' },
     }),
   );

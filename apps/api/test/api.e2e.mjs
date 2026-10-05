@@ -62,7 +62,9 @@ describe('pages', () => {
   test('block validation rejects unsafe links', async () => {
     const pages = (await call('GET', '/admin/pages')).body;
     const res = await call('PATCH', `/admin/pages/${pages[0].id}`, {
-      translations: [{ locale: 'en', title: 'x', slug: 'home', blocks: [{ id: 'a', type: 'statement', props: { buttonLink: 'javascript:alert(1)' } }] }],
+      translations: [
+        { locale: 'en', title: 'x', slug: 'home', blocks: [{ id: 'a', type: 'statement', props: { buttonLink: 'javascript:alert(1)' } }] },
+      ],
     });
     assert.equal(res.status, 400);
   });
@@ -78,7 +80,9 @@ describe('pages', () => {
       { id: 'rt', type: 'rich-text', props: { html } },
       { id: 'cs', type: 'contact-split', props: { title: 'Talk to us', fields } },
     ];
-    const saved = await call('PATCH', `/admin/pages/${id}`, { translations: [{ locale: 'en', title: 'Classic test', slug: 'classic-test', blocks }] });
+    const saved = await call('PATCH', `/admin/pages/${id}`, {
+      translations: [{ locale: 'en', title: 'Classic test', slug: 'classic-test', blocks }],
+    });
     assert.equal(saved.status, 200);
     const clean = saved.body.translations.find((t) => t.locale === 'en').blocks[0].props.html;
     assert.equal(clean, '<h2>Hi</h2><p><a>bad</a> <a href="https://example.com" target="_blank" rel="noopener noreferrer">ok</a></p>');
@@ -137,7 +141,14 @@ describe('collections', () => {
     const ok = await call('PATCH', `/admin/collections/${collection.id}/items/${item.id}`, {
       cover: '/uploads/sara.jpg',
       translations: [
-        { locale: 'en', title: 'Sara Ahmadi', slug: 'sara', excerpt: 'Designer', tags: ['Design', 'Design', ' '], data: { role: 'Designer', removed: 'x' } },
+        {
+          locale: 'en',
+          title: 'Sara Ahmadi',
+          slug: 'sara',
+          excerpt: 'Designer',
+          tags: ['Design', 'Design', ' '],
+          data: { role: 'Designer', removed: 'x' },
+        },
         { locale: 'fa', title: 'سارا احمدی', slug: 'سارا', data: { role: 'طراح' } },
       ],
     });
@@ -151,10 +162,7 @@ describe('collections', () => {
     const pub = await call('GET', `/public/en/item?collection=team-e2e&slug=sara`);
     assert.equal(pub.status, 200);
     assert.equal(pub.body.item.data.role, 'Designer');
-    assert.deepEqual(
-      pub.body.alternates.map((a) => a.path).sort(),
-      ['team-e2e/sara', 'تیم-آزمایشی/سارا'].sort(),
-    );
+    assert.deepEqual(pub.body.alternates.map((a) => a.path).sort(), ['team-e2e/sara', 'تیم-آزمایشی/سارا'].sort());
 
     const list = await call('GET', '/public/en/items?collection=team-e2e&tag=Design');
     assert.equal(list.body.items.length, 1);
@@ -215,7 +223,10 @@ describe('contact forms', () => {
     assert.equal(unread.body.count, 1);
     const list = await call('GET', '/admin/submissions');
     const msg = list.body[0];
-    assert.deepEqual(msg.data.map((d) => d.label), ['Name', 'Email', 'What do you need?', 'Message']);
+    assert.deepEqual(
+      msg.data.map((d) => d.label),
+      ['Name', 'Email', 'What do you need?', 'Message'],
+    );
     assert.equal(msg.data[3].value, 'We need a new logo.');
     assert.equal(msg.pageTitle, 'Contact');
 
@@ -235,7 +246,6 @@ describe('contact forms', () => {
     // The hidden-field and too-fast attempts are refused before they are counted.
     assert.equal((await send(['Sara', 'sara@example.com', 'Website', 'Again'])).status, 429);
   });
-
 });
 
 describe('media types and site fonts', () => {
@@ -261,13 +271,19 @@ describe('media types and site fonts', () => {
     // Uploaded fonts can then be used by themes, saved themes and pages.
     const before = (await call('GET', '/admin/settings')).body;
     const res = await call('PUT', '/admin/settings', {
-      fonts: [{ name: 'Brand', files: [{ url: font.body.url, weight: 700, style: 'normal' }] }, { name: 'x;}', files: [] }],
+      fonts: [
+        { name: 'Brand', files: [{ url: font.body.url, weight: 700, style: 'normal' }] },
+        { name: 'x;}', files: [] },
+      ],
       theme: { fontEn: 'Brand', primary: '#112233' },
       savedThemes: [{ key: 'brand', name: 'Brand look', theme: { fontEn: 'Brand', primary: 'not-a-color' } }],
       loader: { enabled: true, style: 'name', text: { en: 'Loading' } },
     });
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body.fonts.map((f) => f.name), ['Brand']);
+    assert.deepEqual(
+      res.body.fonts.map((f) => f.name),
+      ['Brand'],
+    );
     assert.equal(res.body.theme.fontEn, 'Brand');
     assert.deepEqual(res.body.savedThemes, [{ key: 'brand', name: 'Brand look', theme: { fontEn: 'Brand' } }]);
     assert.equal(res.body.loader.style, 'name');
@@ -278,7 +294,12 @@ describe('media types and site fonts', () => {
 
     // Put things back for the other tests.
     await call('PATCH', `/admin/pages/${page.id}`, { theme: page.theme });
-    await call('PUT', '/admin/settings', { fonts: before.fonts, theme: before.theme, savedThemes: before.savedThemes, loader: before.loader });
+    await call('PUT', '/admin/settings', {
+      fonts: before.fonts,
+      theme: before.theme,
+      savedThemes: before.savedThemes,
+      loader: before.loader,
+    });
   });
 });
 
@@ -293,7 +314,9 @@ describe('image sizes', () => {
 
   test('photos get WebP copies at web widths, never enlarged, removed with the photo', async () => {
     const { default: sharp } = await import('sharp');
-    const jpg = await sharp({ create: { width: 1200, height: 800, channels: 3, background: '#00a998' } }).jpeg().toBuffer();
+    const jpg = await sharp({ create: { width: 1200, height: 800, channels: 3, background: '#00a998' } })
+      .jpeg()
+      .toBuffer();
     const res = await upload(jpg, 'wide.jpg', 'image/jpeg');
     assert.equal(res.status, 201);
     assert.equal(res.body.width, 1200);
@@ -336,21 +359,36 @@ describe('sessions, users and passwords', () => {
     const body = await res.json();
     assert.equal(body.token, undefined, 'no token in the body');
     const raw = res.headers.getSetCookie();
-    assert.ok(raw.some((c) => c.startsWith('pt_session=') && /HttpOnly/i.test(c)), 'session cookie is httpOnly');
-    assert.ok(raw.some((c) => c.startsWith('pt_csrf=') && !/HttpOnly/i.test(c)), 'csrf cookie is readable');
+    assert.ok(
+      raw.some((c) => c.startsWith('pt_session=') && /HttpOnly/i.test(c)),
+      'session cookie is httpOnly',
+    );
+    assert.ok(
+      raw.some((c) => c.startsWith('pt_csrf=') && !/HttpOnly/i.test(c)),
+      'csrf cookie is readable',
+    );
 
     const cookie = cookiesOf(res).join('; ');
-    const csrf = cookiesOf(res).find((c) => c.startsWith('pt_csrf=')).slice('pt_csrf='.length);
+    const csrf = cookiesOf(res)
+      .find((c) => c.startsWith('pt_csrf='))
+      .slice('pt_csrf='.length);
     assert.equal((await fetch(`${API}/auth/me`, { headers: { cookie } })).status, 200);
     const settings = await (await fetch(`${API}/admin/settings`, { headers: { cookie } })).json();
     const put = (headers) =>
-      fetch(`${API}/admin/settings`, { method: 'PUT', headers: { cookie, 'content-type': 'application/json', ...headers }, body: JSON.stringify({ siteName: settings.siteName }) });
+      fetch(`${API}/admin/settings`, {
+        method: 'PUT',
+        headers: { cookie, 'content-type': 'application/json', ...headers },
+        body: JSON.stringify({ siteName: settings.siteName }),
+      });
     assert.equal((await put({})).status, 403, 'no CSRF header');
     assert.equal((await put({ 'x-csrf-token': 'wrong' + csrf.slice(5) })).status, 403, 'wrong CSRF header');
     assert.equal((await put({ 'x-csrf-token': csrf })).status, 200);
 
     const out = await fetch(`${API}/auth/logout`, { method: 'POST', headers: { cookie } });
-    assert.ok(out.headers.getSetCookie().some((c) => /^pt_session=;/.test(c)), 'logout clears the cookie');
+    assert.ok(
+      out.headers.getSetCookie().some((c) => /^pt_session=;/.test(c)),
+      'logout clears the cookie',
+    );
   });
 
   test('security headers and body size limit', async () => {
@@ -372,13 +410,21 @@ describe('sessions, users and passwords', () => {
     const secret = resetSecret(invited.body.link);
     assert.equal((await call('POST', '/auth/reset', { token: secret, password: 'short' }, false)).status, 400);
     assert.equal((await call('POST', '/auth/reset', { token: secret, password: 'a-good-password' }, false)).status, 204);
-    assert.equal((await call('POST', '/auth/reset', { token: secret, password: 'another-password' }, false)).status, 400, 'links work once');
+    assert.equal(
+      (await call('POST', '/auth/reset', { token: secret, password: 'another-password' }, false)).status,
+      400,
+      'links work once',
+    );
 
     const ok = await login(email, 'a-good-password', '198.51.100.2');
     assert.equal(ok.status, 200);
     const editorToken = (await ok.json()).token;
     const asEditor = (method, path, body) =>
-      fetch(API + path, { method, headers: { authorization: `Bearer ${editorToken}`, ...(body ? { 'content-type': 'application/json' } : {}) }, body: body && JSON.stringify(body) });
+      fetch(API + path, {
+        method,
+        headers: { authorization: `Bearer ${editorToken}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+        body: body && JSON.stringify(body),
+      });
     assert.equal((await asEditor('GET', '/admin/users')).status, 403, 'editors cannot manage users');
     assert.equal((await asEditor('GET', '/admin/pages')).status, 200);
 
@@ -393,7 +439,10 @@ describe('sessions, users and passwords', () => {
     assert.equal((await login(email, 'a-good-password', '198.51.100.4')).status, 200, 'reactivating also unlocks');
 
     const link = await call('POST', `/admin/users/${id}/reset-link`);
-    assert.equal((await call('POST', '/auth/reset', { token: resetSecret(link.body.link), password: 'brand-new-password' }, false)).status, 204);
+    assert.equal(
+      (await call('POST', '/auth/reset', { token: resetSecret(link.body.link), password: 'brand-new-password' }, false)).status,
+      204,
+    );
     assert.equal((await login(email, 'a-good-password', '198.51.100.5')).status, 401, 'old password stops working');
     await call('PATCH', `/admin/users/${id}`, { active: false });
   });

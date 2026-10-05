@@ -3,10 +3,22 @@
 import { spawnSync } from 'node:child_process';
 
 const SEEDS = ['amsr', 'classic', 'motion', 'extras'];
-const SUITES = ['forms-and-blocks', 'editor', 'collections', 'themes', 'classic', 'motion', 'motion-scroll', 'extras', 'persian-admin-and-images', 'security'];
+const SUITES = [
+  'forms-and-blocks',
+  'editor',
+  'collections',
+  'themes',
+  'classic',
+  'motion',
+  'motion-scroll',
+  'extras',
+  'persian-admin-and-images',
+  'security',
+];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;
-const run = (file) => spawnSync(process.execPath, [dir + file], { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout: 10 * 60_000 });
+const run = (file) =>
+  spawnSync(process.execPath, [dir + file], { stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', timeout: 10 * 60_000 });
 
 if (!process.env.SKIP_SEEDS) {
   for (const seed of SEEDS) {
@@ -29,6 +41,12 @@ for (const suite of only.length ? only : SUITES) {
   const ok = r.status === 0 && fail === 0;
   results.push(ok);
   console.log(`${ok ? '✓' : '✗'} ${suite}: ${pass} passed, ${fail} failed (${Math.round((Date.now() - started) / 1000)}s)`);
-  if (!ok) console.log(out.split('\n').filter((l) => !l.startsWith('PASS ')).join('\n'));
+  if (!ok)
+    console.log(
+      out
+        .split('\n')
+        .filter((l) => !l.startsWith('PASS '))
+        .join('\n'),
+    );
 }
 process.exit(results.every(Boolean) ? 0 : 1);

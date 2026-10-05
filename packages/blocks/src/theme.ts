@@ -216,23 +216,25 @@ export function cleanTheme(input: unknown, customFonts: string[] = []): Partial<
   if (themeFonts.en.some((f) => f.name === src.fontEn) || customFonts.includes(src.fontEn as string)) out.fontEn = src.fontEn as string;
   if (src.headerStyle === 'solid' || src.headerStyle === 'glass') out.headerStyle = src.headerStyle;
   if (themeMotion.cursor.some((c) => c.value === src.cursor)) out.cursor = src.cursor as ThemeCursor;
-  if (themeMotion.pageTransition.some((t) => t.value === src.pageTransition)) out.pageTransition = src.pageTransition as ThemePageTransition;
+  if (themeMotion.pageTransition.some((t) => t.value === src.pageTransition))
+    out.pageTransition = src.pageTransition as ThemePageTransition;
   if (themeMotion.scrollMode.some((m) => m.value === src.scrollMode)) out.scrollMode = src.scrollMode as ThemeScrollMode;
   return out;
 }
 
 /** The theme a page actually uses: defaults, then the site theme, then the page's own changes. */
-export function resolveTheme(site?: Partial<ThemeTokens> | null, page?: Partial<ThemeTokens> | null, customFonts: string[] = []): ThemeTokens {
+export function resolveTheme(
+  site?: Partial<ThemeTokens> | null,
+  page?: Partial<ThemeTokens> | null,
+  customFonts: string[] = [],
+): ThemeTokens {
   return { ...defaultTheme, ...cleanTheme(site, customFonts), ...cleanTheme(page, customFonts) };
 }
 
 /** A Google Fonts stylesheet URL for the theme's fonts. */
 export function themeFontsHref(theme: Partial<ThemeTokens>): string {
   const t = { ...defaultTheme, ...theme };
-  const families = [
-    themeFonts.fa.find((f) => f.name === t.fontFa),
-    themeFonts.en.find((f) => f.name === t.fontEn),
-  ]
+  const families = [themeFonts.fa.find((f) => f.name === t.fontFa), themeFonts.en.find((f) => f.name === t.fontEn)]
     .filter((f): f is { name: string; weights: string } => Boolean(f))
     .map((f) => `family=${f.name.replace(/ /g, '+')}:${f.weights}`);
   // Uploaded fonts are not on Google Fonts; with only those, there is nothing to load from there.
@@ -247,9 +249,7 @@ function clean(value: unknown): string {
 /** Turns theme tokens into CSS custom properties. */
 export function themeToCss(theme: Partial<ThemeTokens>): string {
   const merged = { ...defaultTheme, ...theme };
-  const t = Object.fromEntries(
-    Object.entries(merged).map(([k, v]) => [k, clean(v)]),
-  ) as unknown as ThemeTokens;
+  const t = Object.fromEntries(Object.entries(merged).map(([k, v]) => [k, clean(v)])) as unknown as ThemeTokens;
   return [
     `--c-primary:${t.primary}`,
     `--c-secondary:${t.secondary}`,

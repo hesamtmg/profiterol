@@ -35,17 +35,25 @@ onMounted(() => {
   measure();
 });
 onBeforeUnmount(() => resize?.disconnect());
-watch(() => props.p.items?.length, () => nextTick(measure));
+watch(
+  () => props.p.items?.length,
+  () => nextTick(measure),
+);
 </script>
 
 <template>
   <section class="bg-surface px-6 py-20 text-ink @3xl:px-16 @3xl:py-28">
     <div class="mx-auto max-w-5xl">
-      <h2 v-if="p.title || editing" class="mb-16 text-center text-3xl font-black @3xl:text-5xl"><EditableText :value="p.title" path="title" placeholder="Title" /></h2>
+      <h2 v-if="p.title || editing" class="mb-16 text-center text-3xl font-black @3xl:text-5xl">
+        <EditableText :value="p.title" path="title" placeholder="Title" />
+      </h2>
 
       <div ref="list" class="relative">
         <!-- The line, and its drawn part -->
-        <div class="absolute bottom-0 start-[15px] top-0 w-0.5 bg-slate-200 @3xl:start-1/2 @3xl:-translate-x-1/2 rtl:@3xl:translate-x-1/2" aria-hidden="true">
+        <div
+          class="absolute bottom-0 start-[15px] top-0 w-0.5 bg-slate-200 @3xl:start-1/2 @3xl:-translate-x-1/2 rtl:@3xl:translate-x-1/2"
+          aria-hidden="true"
+        >
           <div
             class="h-full origin-top bg-gradient-to-b from-primary to-secondary"
             :style="{ transform: `scaleY(${editing || reduced ? 1 : progress})` }"
@@ -64,13 +72,21 @@ watch(() => props.p.items?.length, () => nextTick(measure));
               class="rounded-[1.5rem] bg-white p-6 shadow-lg ring-1 ring-black/5 transition-all duration-700 @3xl:p-8"
               :class="[
                 i % 2 ? '@3xl:col-start-2' : '@3xl:col-start-1 @3xl:text-end',
-                lit(i) ? 'translate-x-0 opacity-100' : i % 2 ? 'opacity-0 @3xl:translate-x-12 rtl:@3xl:-translate-x-12' : 'opacity-0 @3xl:-translate-x-12 rtl:@3xl:translate-x-12',
+                lit(i)
+                  ? 'translate-x-0 opacity-100'
+                  : i % 2
+                    ? 'opacity-0 @3xl:translate-x-12 rtl:@3xl:-translate-x-12'
+                    : 'opacity-0 @3xl:-translate-x-12 rtl:@3xl:translate-x-12',
                 !lit(i) ? 'translate-y-6 @3xl:translate-y-0' : '',
               ]"
             >
-              <p class="text-sm font-bold uppercase tracking-widest text-primary"><EditableText :value="item.date" :path="`items.${i}.date`" /></p>
+              <p class="text-sm font-bold uppercase tracking-widest text-primary">
+                <EditableText :value="item.date" :path="`items.${i}.date`" />
+              </p>
               <h3 class="mt-2 text-xl font-bold @3xl:text-2xl"><EditableText :value="item.title" :path="`items.${i}.title`" /></h3>
-              <p v-if="item.text || editing" class="mt-2 font-light text-muted"><EditableText :value="item.text" :path="`items.${i}.text`" multiline /></p>
+              <p v-if="item.text || editing" class="mt-2 font-light text-muted">
+                <EditableText :value="item.text" :path="`items.${i}.text`" multiline />
+              </p>
             </div>
           </li>
         </ol>

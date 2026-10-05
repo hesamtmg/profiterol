@@ -21,11 +21,16 @@ check('aurora: light follows the mouse', (await page.locator('#m1 section').eval
 
 // Entrance animation: hidden before it is scrolled to, then played and cleaned up
 const zoomWrap = page.locator('#m6 > div');
-check('entrance: block waits hidden below the fold', (await zoomWrap.evaluate((e) => e.classList.contains('anim-zoom') && getComputedStyle(e).opacity === '0')));
+check(
+  'entrance: block waits hidden below the fold',
+  await zoomWrap.evaluate((e) => e.classList.contains('anim-zoom') && getComputedStyle(e).opacity === '0'),
+);
 
 // Scroll-lit text
 const opac = () => page.locator('#m3 p span').evaluateAll((s) => s.map((x) => Number(x.style.opacity)));
-await page.evaluate(() => window.scrollTo(0, document.getElementById('m3').getBoundingClientRect().top + scrollY - window.innerHeight * 0.75));
+await page.evaluate(() =>
+  window.scrollTo(0, document.getElementById('m3').getBoundingClientRect().top + scrollY - window.innerHeight * 0.75),
+);
 await page.waitForTimeout(400);
 const early = await opac();
 await page.evaluate(() => window.scrollTo(0, document.getElementById('m3').getBoundingClientRect().top + scrollY - 100));
@@ -48,7 +53,11 @@ check('entrance: rise animation played and cleaned up', !(await page.locator('#m
 await page.screenshot({ path: out + 'm4-counters.png' });
 
 // Logo strip
-const pos = () => page.locator('#m2 .flex.w-max').first().evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).m41);
+const pos = () =>
+  page
+    .locator('#m2 .flex.w-max')
+    .first()
+    .evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).m41);
 await top(page, 'm2');
 const x1 = await pos();
 await page.waitForTimeout(700);
@@ -57,7 +66,11 @@ check('logos: the strip keeps moving', (await pos()) < x1 - 5);
 // Horizontal scroll
 await top(page, 'm5');
 await page.waitForTimeout(300);
-const trackX = () => page.locator('#m5 [style*="translateX"]').first().evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).m41);
+const trackX = () =>
+  page
+    .locator('#m5 [style*="translateX"]')
+    .first()
+    .evaluate((e) => new DOMMatrix(getComputedStyle(e).transform).m41);
 const h = await page.locator('#m5 section').evaluate((s) => s.offsetHeight);
 check('horizontal: the section is pinned (taller than the screen)', h > 1200, String(h));
 const tx0 = await trackX();
@@ -66,7 +79,10 @@ await page.evaluate((d) => window.scrollBy(0, d), (h - 900) / 2);
 await page.waitForTimeout(400);
 const tx1 = await trackX();
 check('horizontal: cards slide sideways while scrolling down', tx1 < tx0 - 200, `${tx0} -> ${tx1}`);
-check('horizontal: the panel stays on screen', Math.abs(await page.locator('#m5 .sticky').evaluate((e) => e.getBoundingClientRect().top)) < 2);
+check(
+  'horizontal: the panel stays on screen',
+  Math.abs(await page.locator('#m5 .sticky').evaluate((e) => e.getBoundingClientRect().top)) < 2,
+);
 await page.screenshot({ path: out + 'm5-horizontal.png' });
 
 // Tilt cards
@@ -86,7 +102,13 @@ await top(page, 'm7');
 await page.waitForTimeout(1400);
 await page.locator('#m7 .flip').nth(1).hover();
 await page.waitForTimeout(900);
-check('flip: card turns over on hover', (await page.locator('#m7 .flip-inner').nth(1).evaluate((e) => getComputedStyle(e).transform)) !== 'none');
+check(
+  'flip: card turns over on hover',
+  (await page
+    .locator('#m7 .flip-inner')
+    .nth(1)
+    .evaluate((e) => getComputedStyle(e).transform)) !== 'none',
+);
 await page.screenshot({ path: out + 'm7-flip.png' });
 await page.mouse.move(5, 5);
 
@@ -166,10 +188,20 @@ await ed.click('button[type=submit]');
 await ed.waitForURL(`${BASE}/admin`);
 await ed.locator('article', { hasText: 'Motion' }).getByText('Edit').click();
 await ed.waitForSelector('main [id^=blk-]');
-check('editor: Animated group lists 12 blocks', (await ed.locator('aside h3', { hasText: /^Animated$/ }).locator('xpath=following-sibling::div[1]/button').count()) === 12);
+check(
+  'editor: Animated group lists 12 blocks',
+  (await ed
+    .locator('aside h3', { hasText: /^Animated$/ })
+    .locator('xpath=following-sibling::div[1]/button')
+    .count()) === 12,
+);
 await ed.screenshot({ path: out + 'editor-animated.png' });
 await ed.locator('main [id^=blk-m2]').click({ position: { x: 30, y: 20 } });
-const select = ed.locator('aside').last().locator('select').filter({ has: ed.locator('option[value="flip"]') });
+const select = ed
+  .locator('aside')
+  .last()
+  .locator('select')
+  .filter({ has: ed.locator('option[value="flip"]') });
 await select.selectOption('zoom');
 await ed.waitForTimeout(150);
 check('editor: choosing an animation replays it on the canvas', (await ed.locator('main [id^=blk-m2] [class*="anim-zoom"]').count()) === 1);

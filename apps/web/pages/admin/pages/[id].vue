@@ -124,10 +124,7 @@ function fromPage(p: AdminPage) {
 
 async function load() {
   try {
-    const [p, s] = await Promise.all([
-      api<AdminPage>(`/admin/pages/${route.params.id}`),
-      api<SiteSettings>('/public/settings'),
-    ]);
+    const [p, s] = await Promise.all([api<AdminPage>(`/admin/pages/${route.params.id}`), api<SiteSettings>('/public/settings')]);
     settings.value = s;
     siteTheme.value = resolveTheme(s.theme, null, fontNames(s.fonts));
     savedSiteTheme.value = JSON.stringify(siteTheme.value);
@@ -152,7 +149,14 @@ async function save() {
         theme: pageTheme.value,
         translations: locales.map((l) => {
           const d = drafts[l.code];
-          return { locale: d.locale, title: d.title, slug: d.slug, seoTitle: d.seoTitle, seoDescription: d.seoDescription, blocks: d.blocks };
+          return {
+            locale: d.locale,
+            title: d.title,
+            slug: d.slug,
+            seoTitle: d.seoTitle,
+            seoDescription: d.seoDescription,
+            blocks: d.blocks,
+          };
         }),
       },
     });
@@ -429,7 +433,12 @@ async function storeSavedThemes(list: SavedTheme[]) {
 }
 
 function saveTheme(name: string) {
-  const key = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'theme'}-${Date.now().toString(36)}`.slice(0, 40);
+  const key = `${
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'theme'
+  }-${Date.now().toString(36)}`.slice(0, 40);
   storeSavedThemes([...(settings.value?.savedThemes ?? []), { key, name, theme: { ...editedTheme.value } }]);
 }
 
@@ -443,7 +452,11 @@ function deleteTheme(key: string) {
     <!-- Top bar -->
     <header class="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-3">
       <NuxtLink to="/admin" class="btn-icon" :title="$t('Back to pages')"><i class="mdi mdi-arrow-left text-lg rtl:rotate-180" /></NuxtLink>
-      <input v-model="name" class="w-44 rounded-lg px-2 py-1 text-sm font-bold outline-none hover:bg-slate-50 focus:bg-slate-50" :aria-label="$t('Page name')" />
+      <input
+        v-model="name"
+        class="w-44 rounded-lg px-2 py-1 text-sm font-bold outline-none hover:bg-slate-50 focus:bg-slate-50"
+        :aria-label="$t('Page name')"
+      />
 
       <div class="flex rounded-full bg-slate-100 p-1" role="tablist" :aria-label="$t('Language')">
         <button
@@ -460,7 +473,7 @@ function deleteTheme(key: string) {
 
       <div class="mx-auto flex rounded-full bg-slate-100 p-1" :aria-label="$t('Preview size')">
         <button
-          v-for="d in (['desktop', 'tablet', 'mobile'] as const)"
+          v-for="d in ['desktop', 'tablet', 'mobile'] as const"
           :key="d"
           type="button"
           class="flex h-7 w-9 items-center justify-center rounded-full transition"
@@ -472,17 +485,28 @@ function deleteTheme(key: string) {
         </button>
       </div>
 
-      <button type="button" class="btn-icon" :title="$t('Undo (Ctrl+Z)')" :disabled="!canUndo" @click="undo"><i class="mdi mdi-undo text-lg" /></button>
-      <button type="button" class="btn-icon" :title="$t('Redo (Ctrl+Shift+Z)')" :disabled="!canRedo" @click="redo"><i class="mdi mdi-redo text-lg" /></button>
+      <button type="button" class="btn-icon" :title="$t('Undo (Ctrl+Z)')" :disabled="!canUndo" @click="undo">
+        <i class="mdi mdi-undo text-lg" />
+      </button>
+      <button type="button" class="btn-icon" :title="$t('Redo (Ctrl+Shift+Z)')" :disabled="!canRedo" @click="redo">
+        <i class="mdi mdi-redo text-lg" />
+      </button>
 
-      <label class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500" :title="$t('Save automatically a few seconds after each change')">
+      <label
+        class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500"
+        :title="$t('Save automatically a few seconds after each change')"
+      >
         <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> {{ $t('Autosave') }}
       </label>
       <span class="w-36 text-end text-xs" :class="message?.kind === 'error' ? 'text-red-600' : 'text-slate-400'">
         <template v-if="saving || uploading">{{ uploading ? $t('Uploading…') : $t('Saving…') }}</template>
         <template v-else-if="dirty">{{ $t('Unsaved changes') }}</template>
         <template v-else-if="hasUnpublished && autosave.lastSavedAt.value">
-          {{ $t('Saved {time} · not live', { time: autosave.lastSavedAt.value.toLocaleTimeString(adminLocale(), { hour: '2-digit', minute: '2-digit' }) }) }}
+          {{
+            $t('Saved {time} · not live', {
+              time: autosave.lastSavedAt.value.toLocaleTimeString(adminLocale(), { hour: '2-digit', minute: '2-digit' }),
+            })
+          }}
         </template>
         <template v-else-if="hasUnpublished">{{ $t('Saved · not live') }}</template>
         <template v-else>{{ $t('Live') }}</template>
@@ -509,7 +533,7 @@ function deleteTheme(key: string) {
       <aside class="flex w-72 shrink-0 flex-col border-e border-slate-200 bg-white">
         <div class="flex gap-1 p-2">
           <button
-            v-for="tab in (['add', 'layers', 'design'] as const)"
+            v-for="tab in ['add', 'layers', 'design'] as const"
             :key="tab"
             type="button"
             class="flex-1 rounded-full py-1.5 text-xs font-medium transition"
@@ -552,7 +576,10 @@ function deleteTheme(key: string) {
             <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $t('This page uses') }}</p>
             <div class="mt-2 flex rounded-full bg-white p-1 text-xs shadow-sm">
               <button
-                v-for="m in ([{ value: 'site', label: 'Site theme' }, { value: 'page', label: 'Its own theme' }] as const)"
+                v-for="m in [
+                  { value: 'site', label: 'Site theme' },
+                  { value: 'page', label: 'Its own theme' },
+                ] as const"
                 :key="m.value"
                 type="button"
                 class="flex-1 rounded-full py-1.5 font-medium transition"
@@ -575,7 +602,7 @@ function deleteTheme(key: string) {
               v-model="editedTheme"
               compact
               :custom-fonts="customFonts"
-              :saved-themes="isAdmin ? settings?.savedThemes ?? [] : undefined"
+              :saved-themes="isAdmin ? (settings?.savedThemes ?? []) : undefined"
               @save-theme="saveTheme"
               @delete-theme="deleteTheme"
             />
@@ -638,7 +665,11 @@ function deleteTheme(key: string) {
               <div
                 :id="`blk-${element.id}`"
                 class="group/blk relative cursor-pointer outline-offset-[-4px]"
-                :class="selectedId === element.id ? 'z-10 outline outline-4 outline-sky-500' : 'hover:outline hover:outline-2 hover:outline-sky-400/70'"
+                :class="
+                  selectedId === element.id
+                    ? 'z-10 outline outline-4 outline-sky-500'
+                    : 'hover:outline hover:outline-2 hover:outline-sky-400/70'
+                "
                 @click="select(element.id)"
                 @dragover="onBlockDragOver(element, $event)"
                 @drop="onBlockDrop(element, $event)"
@@ -652,10 +683,38 @@ function deleteTheme(key: string) {
                   <span class="drag-handle flex cursor-grab items-center gap-1 px-2 text-xs font-medium" :title="$t('Drag to move')">
                     <i class="mdi mdi-drag text-base" /> {{ getBlock(element.type)?.label }}
                   </span>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" :title="$t('Move up')" @click="move(element.id, -1)"><i class="mdi mdi-arrow-up" /></button>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" :title="$t('Move down')" @click="move(element.id, 1)"><i class="mdi mdi-arrow-down" /></button>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15" :title="$t('Duplicate')" @click="duplicate(element.id)"><i class="mdi mdi-content-copy" /></button>
-                  <button type="button" class="btn-icon !h-7 !w-7 !text-white hover:!bg-red-500" :title="$t('Delete')" @click="remove(element.id)"><i class="mdi mdi-trash-can-outline" /></button>
+                  <button
+                    type="button"
+                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15"
+                    :title="$t('Move up')"
+                    @click="move(element.id, -1)"
+                  >
+                    <i class="mdi mdi-arrow-up" />
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15"
+                    :title="$t('Move down')"
+                    @click="move(element.id, 1)"
+                  >
+                    <i class="mdi mdi-arrow-down" />
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15"
+                    :title="$t('Duplicate')"
+                    @click="duplicate(element.id)"
+                  >
+                    <i class="mdi mdi-content-copy" />
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-red-500"
+                    :title="$t('Delete')"
+                    @click="remove(element.id)"
+                  >
+                    <i class="mdi mdi-trash-can-outline" />
+                  </button>
                 </div>
                 <span
                   v-if="element.props.showOn"
@@ -673,7 +732,10 @@ function deleteTheme(key: string) {
                   class="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-card border-4 border-dashed border-sky-400 bg-sky-500/20 text-lg font-bold text-white"
                   dir="ltr"
                 >
-                  <span class="rounded-full bg-sky-600 px-5 py-2 shadow-lg"><i class="mdi" :class="dropKind === 'video' ? 'mdi-movie-plus' : 'mdi-image-plus'" /> Drop to use as {{ imageFieldOf(element, dropKind)?.label.toLowerCase() }}</span>
+                  <span class="rounded-full bg-sky-600 px-5 py-2 shadow-lg"
+                    ><i class="mdi" :class="dropKind === 'video' ? 'mdi-movie-plus' : 'mdi-image-plus'" /> Drop to use as
+                    {{ imageFieldOf(element, dropKind)?.label.toLowerCase() }}</span
+                  >
                 </div>
                 <button
                   type="button"
@@ -720,8 +782,12 @@ function deleteTheme(key: string) {
             />
           </div>
           <div class="flex gap-2 border-t border-slate-100 px-5 py-4">
-            <button type="button" class="btn-light flex-1" @click="duplicate(selected.id)"><i class="mdi mdi-content-copy" /> {{ $t('Duplicate') }}</button>
-            <button type="button" class="btn-light flex-1 !text-red-600" @click="remove(selected.id)"><i class="mdi mdi-trash-can-outline" /> {{ $t('Delete') }}</button>
+            <button type="button" class="btn-light flex-1" @click="duplicate(selected.id)">
+              <i class="mdi mdi-content-copy" /> {{ $t('Duplicate') }}
+            </button>
+            <button type="button" class="btn-light flex-1 !text-red-600" @click="remove(selected.id)">
+              <i class="mdi mdi-trash-can-outline" /> {{ $t('Delete') }}
+            </button>
           </div>
         </template>
 
@@ -746,7 +812,8 @@ function deleteTheme(key: string) {
                 <div>
                   <label class="field-label" for="page-slug">{{ $t('Address') }}</label>
                   <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-                    <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span><input id="page-slug" v-model="current.slug" class="input text-xs" />
+                    <span class="shrink-0 whitespace-nowrap">/{{ locale }}/</span
+                    ><input id="page-slug" v-model="current.slug" class="input text-xs" />
                   </div>
                 </div>
                 <div>

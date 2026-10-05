@@ -6,7 +6,11 @@ const props = defineProps<{ p: { eyebrow: string; text: string }; locale: string
 const editing = Boolean(useBlockEditing());
 const reduced = useReducedMotion();
 const box = ref<HTMLElement | null>(null);
-const words = computed(() => String(props.p.text ?? '').split(/\s+/).filter(Boolean));
+const words = computed(() =>
+  String(props.p.text ?? '')
+    .split(/\s+/)
+    .filter(Boolean),
+);
 
 // 0 when the text's top reaches 85% of the screen height, 1 when its bottom passes 45%.
 const progress = useScrollProgress(box, (r, vh) => (vh * 0.85 - r.top) / (r.height + vh * 0.4), 1);
@@ -29,7 +33,8 @@ function opacity(i: number) {
         <EditableText v-if="editing" :value="p.text" path="text" multiline />
         <template v-else>
           <template v-for="(w, i) in words" :key="i">
-            <span class="transition-opacity duration-200" :style="{ opacity: opacity(i) }">{{ w }}</span>{{ ' ' }}
+            <span class="transition-opacity duration-200" :style="{ opacity: opacity(i) }">{{ w }}</span
+            >{{ ' ' }}
           </template>
         </template>
       </p>

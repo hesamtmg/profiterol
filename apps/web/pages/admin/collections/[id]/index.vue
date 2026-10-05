@@ -72,7 +72,12 @@ function addField() {
 }
 
 function keyFor(label: string) {
-  const words = label.trim().toLowerCase().replace(/[^a-z0-9 ]/g, '').split(/\s+/).filter(Boolean);
+  const words = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
+    .split(/\s+/)
+    .filter(Boolean);
   return words.map((w, i) => (i ? w[0].toUpperCase() + w.slice(1) : w)).join('');
 }
 
@@ -110,7 +115,15 @@ async function saveSettings() {
 }
 
 async function removeCollection() {
-  if (!confirm(translate('Delete “{name}” and all {n} of its items? This cannot be undone.', { name: collection.value?.name.en ?? '', n: items.value.length }))) return;
+  if (
+    !confirm(
+      translate('Delete “{name}” and all {n} of its items? This cannot be undone.', {
+        name: collection.value?.name.en ?? '',
+        n: items.value.length,
+      }),
+    )
+  )
+    return;
   await api(`/admin/collections/${id}`, { method: 'DELETE' });
   await reloadCollections(true);
   await navigateTo('/admin/collections');
@@ -121,7 +134,9 @@ onMounted(load);
 
 <template>
   <div v-if="collection">
-    <NuxtLink to="/admin/collections" class="text-sm text-slate-500 hover:text-slate-900"><i class="mdi mdi-arrow-left" /> {{ $t('Collections') }}</NuxtLink>
+    <NuxtLink to="/admin/collections" class="text-sm text-slate-500 hover:text-slate-900"
+      ><i class="mdi mdi-arrow-left" /> {{ $t('Collections') }}</NuxtLink
+    >
     <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl font-black">{{ collection.name.en || collection.key }}</h1>
@@ -130,13 +145,15 @@ onMounted(load);
         </p>
       </div>
       <div class="flex gap-2">
-        <a :href="`/en/${collection.slugs.en}`" target="_blank" class="btn-light"><i class="mdi mdi-open-in-new" /> {{ $t('View on site') }}</a>
+        <a :href="`/en/${collection.slugs.en}`" target="_blank" class="btn-light"
+          ><i class="mdi mdi-open-in-new" /> {{ $t('View on site') }}</a
+        >
       </div>
     </div>
 
     <div class="mt-6 flex gap-1">
       <button
-        v-for="t in (['items', 'settings'] as const)"
+        v-for="t in ['items', 'settings'] as const"
         :key="t"
         type="button"
         class="rounded-full px-4 py-2 text-sm transition"
@@ -160,7 +177,7 @@ onMounted(load);
       <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
         <div class="flex rounded-full bg-white p-1 text-xs shadow-sm">
           <button
-            v-for="f in (['all', 'published', 'draft'] as const)"
+            v-for="f in ['all', 'published', 'draft'] as const"
             :key="f"
             type="button"
             class="rounded-full px-3 py-1.5 capitalize transition"
@@ -172,7 +189,9 @@ onMounted(load);
         </div>
         <form class="flex gap-2" @submit.prevent="createItem">
           <input v-model="newTitle" class="input w-60" :placeholder="$t('New item title')" :aria-label="$t('New item title')" />
-          <button type="submit" class="btn-dark" :disabled="busy || !newTitle.trim()"><i class="mdi mdi-plus" /> {{ $t('Add item') }}</button>
+          <button type="submit" class="btn-dark" :disabled="busy || !newTitle.trim()">
+            <i class="mdi mdi-plus" /> {{ $t('Add item') }}
+          </button>
         </form>
       </div>
 
@@ -184,7 +203,12 @@ onMounted(load);
           class="group overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-200/60 transition-all duration-500 hover:-translate-y-1 hover:shadow-2xl hover:shadow-slate-300/50"
         >
           <div class="aspect-[16/10] overflow-hidden">
-            <img v-if="item.cover" :src="item.cover" alt="" class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <img
+              v-if="item.cover"
+              :src="item.cover"
+              alt=""
+              class="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
             <div
               v-else
               class="flex h-full items-end bg-gradient-to-br p-5 text-4xl font-black text-white/80"
@@ -201,7 +225,9 @@ onMounted(load);
               >
                 {{ item.status === 'published' ? $t('Published') : $t('Draft') }}
               </span>
-              <span class="text-[11px] text-slate-400">{{ $t('Updated {date}', { date: new Date(item.updatedAt).toLocaleDateString(adminLocale()) }) }}</span>
+              <span class="text-[11px] text-slate-400">{{
+                $t('Updated {date}', { date: new Date(item.updatedAt).toLocaleDateString(adminLocale()) })
+              }}</span>
             </div>
             <h2 class="mt-2 font-black">{{ title(item, 'en') }}</h2>
             <p class="text-sm text-slate-500" dir="rtl">{{ title(item, 'fa') }}</p>
@@ -223,7 +249,8 @@ onMounted(load);
           <div v-for="l in locales" :key="`cs-${l.code}`">
             <label class="field-label" :for="`cs-${l.code}`">{{ $t('Address ({lang})', { lang: l.label }) }}</label>
             <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-              <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span><input :id="`cs-${l.code}`" v-model="draft.slugs[l.code]" class="input text-xs" />
+              <span class="shrink-0 whitespace-nowrap">/{{ l.code }}/</span
+              ><input :id="`cs-${l.code}`" v-model="draft.slugs[l.code]" class="input text-xs" />
             </div>
           </div>
         </div>
@@ -262,14 +289,28 @@ onMounted(load);
               <input :id="`fk-${i}`" v-model="f.key" class="input font-mono text-xs" dir="ltr" />
             </div>
             <div class="flex gap-1 pb-0.5">
-              <button type="button" class="btn-icon" :title="$t('Move up')" :disabled="i === 0" @click="moveField(i, -1)"><i class="mdi mdi-arrow-up" /></button>
-              <button type="button" class="btn-icon" :title="$t('Move down')" :disabled="i === draft.fields.length - 1" @click="moveField(i, 1)"><i class="mdi mdi-arrow-down" /></button>
-              <button type="button" class="btn-icon hover:!text-red-600" :title="$t('Remove')" @click="draft.fields.splice(i, 1)"><i class="mdi mdi-close" /></button>
+              <button type="button" class="btn-icon" :title="$t('Move up')" :disabled="i === 0" @click="moveField(i, -1)">
+                <i class="mdi mdi-arrow-up" />
+              </button>
+              <button
+                type="button"
+                class="btn-icon"
+                :title="$t('Move down')"
+                :disabled="i === draft.fields.length - 1"
+                @click="moveField(i, 1)"
+              >
+                <i class="mdi mdi-arrow-down" />
+              </button>
+              <button type="button" class="btn-icon hover:!text-red-600" :title="$t('Remove')" @click="draft.fields.splice(i, 1)">
+                <i class="mdi mdi-close" />
+              </button>
             </div>
           </div>
           <p v-if="!draft.fields.length" class="py-6 text-center text-sm text-slate-400">{{ $t('No custom fields.') }}</p>
         </div>
-        <p class="mt-4 text-xs text-slate-400">{{ $t('Removing a field hides its values; they are deleted from an item the next time it is saved.') }}</p>
+        <p class="mt-4 text-xs text-slate-400">
+          {{ $t('Removing a field hides its values; they are deleted from an item the next time it is saved.') }}
+        </p>
       </section>
 
       <div class="mt-6 flex flex-wrap items-center gap-3">

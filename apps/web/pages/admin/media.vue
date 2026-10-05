@@ -71,7 +71,9 @@ onMounted(load);
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
         <h1 class="text-3xl font-black">{{ $t('Media') }}</h1>
-        <p class="mt-1 text-sm font-light text-slate-500">{{ $t('JPG, PNG, WebP, GIF, AVIF, MP4 and WebM, up to 20 MB each. Drop files anywhere on this page to upload them.') }}</p>
+        <p class="mt-1 text-sm font-light text-slate-500">
+          {{ $t('JPG, PNG, WebP, GIF, AVIF, MP4 and WebM, up to 20 MB each. Drop files anywhere on this page to upload them.') }}
+        </p>
       </div>
       <label class="btn-dark cursor-pointer">
         <i class="mdi mdi-upload" /> {{ $t(uploading ? 'Uploading…' : 'Upload files') }}
@@ -87,13 +89,23 @@ onMounted(load);
         class="group overflow-hidden rounded-[1.75rem] bg-white shadow-sm ring-1 ring-slate-200/60 transition hover:-translate-y-1 hover:shadow-xl"
       >
         <div class="aspect-square bg-slate-100">
-          <img v-if="item.mime.startsWith('image/')" :src="item.url" :alt="item.originalName" loading="lazy" class="h-full w-full object-cover" />
+          <img
+            v-if="item.mime.startsWith('image/')"
+            :src="item.url"
+            :alt="item.originalName"
+            loading="lazy"
+            class="h-full w-full object-cover"
+          />
           <video v-else :src="item.url" class="h-full w-full object-cover" muted />
         </div>
         <div class="flex items-center gap-1 p-3">
           <div class="min-w-0 flex-1">
-            <p class="truncate text-xs font-medium" :title="item.originalName"><bdi>{{ item.originalName }}</bdi></p>
-            <p class="text-[11px] text-slate-400"><bdi dir="ltr">{{ size(item.size) }}</bdi></p>
+            <p class="truncate text-xs font-medium" :title="item.originalName">
+              <bdi>{{ item.originalName }}</bdi>
+            </p>
+            <p class="text-[11px] text-slate-400">
+              <bdi dir="ltr">{{ size(item.size) }}</bdi>
+            </p>
           </div>
           <button type="button" class="btn-icon" :title="copied === item.id ? 'Copied' : 'Copy URL'" @click="copy(item)">
             <i class="mdi" :class="copied === item.id ? 'mdi-check text-emerald-600' : 'mdi-link-variant'" />

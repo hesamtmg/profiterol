@@ -33,7 +33,10 @@ const duration = computed(() => `${Math.max(Number(props.p.seconds) || 30, 5)}s`
       :key="String(reverse)"
       class="group relative flex overflow-hidden py-3"
       dir="ltr"
-      style="mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent); -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent)"
+      style="
+        mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+        -webkit-mask-image: linear-gradient(90deg, transparent, black 12%, black 88%, transparent);
+      "
     >
       <div
         class="motion-safe-only flex w-max shrink-0 items-center group-hover:[animation-play-state:paused]"
@@ -49,7 +52,13 @@ const duration = computed(() => `${Math.max(Number(props.p.seconds) || 30, 5)}s`
             :tabindex="copy === 2 || i >= (p.logos?.length ?? 0) ? -1 : undefined"
             class="mx-6 flex h-14 shrink-0 items-center opacity-50 grayscale transition duration-300 hover:scale-110 hover:opacity-100 hover:grayscale-0 @3xl:mx-10"
           >
-            <img v-if="logo.image" :src="logo.image" :alt="logo.name" class="h-10 w-auto max-w-[160px] object-contain @3xl:h-12" loading="lazy" />
+            <img
+              v-if="logo.image"
+              :src="logo.image"
+              :alt="logo.name"
+              class="h-10 w-auto max-w-[160px] object-contain @3xl:h-12"
+              loading="lazy"
+            />
             <span v-else class="whitespace-nowrap text-2xl font-black tracking-tight @3xl:text-3xl">{{ logo.name }}</span>
           </component>
         </template>

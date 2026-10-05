@@ -13,7 +13,10 @@ const { lang, setLang } = useAdminI18n();
   >
     <i class="mdi mdi-translate px-1.5 text-slate-400" aria-hidden="true" />
     <button
-      v-for="l in ([{ code: 'en', label: 'EN', name: 'English' }, { code: 'fa', label: 'فا', name: 'فارسی' }] as const)"
+      v-for="l in [
+        { code: 'en', label: 'EN', name: 'English' },
+        { code: 'fa', label: 'فا', name: 'فارسی' },
+      ] as const"
       :key="l.code"
       type="button"
       role="radio"

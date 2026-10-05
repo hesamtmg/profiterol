@@ -7,13 +7,7 @@ import type { Config } from 'tailwindcss';
  * Colors and the card radius come from theme tokens set as CSS variables.
  */
 export default <Partial<Config>>{
-  content: [
-    './components/**/*.{vue,ts}',
-    './layouts/**/*.vue',
-    './pages/**/*.vue',
-    './app.vue',
-    './error.vue',
-  ],
+  content: ['./components/**/*.{vue,ts}', './layouts/**/*.vue', './pages/**/*.vue', './app.vue', './error.vue'],
   theme: {
     extend: {
       colors: {

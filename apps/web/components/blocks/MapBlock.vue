@@ -23,7 +23,9 @@ const embed = computed(() => {
   return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat.value.toFixed(5)},${lng.value.toFixed(5)}`;
 });
 const googleLink = computed(() => `https://www.google.com/maps/search/?api=1&query=${lat.value},${lng.value}`);
-const osmLink = computed(() => `https://www.openstreetmap.org/?mlat=${lat.value}&mlon=${lng.value}#map=${props.p.zoom || 15}/${lat.value}/${lng.value}`);
+const osmLink = computed(
+  () => `https://www.openstreetmap.org/?mlat=${lat.value}&mlon=${lng.value}#map=${props.p.zoom || 15}/${lat.value}/${lng.value}`,
+);
 const side = computed(() => props.p.layout === 'side');
 </script>
 
@@ -54,7 +56,9 @@ const side = computed(() => props.p.layout === 'side');
           <a :href="googleLink" target="_blank" rel="noopener noreferrer" class="btn-pill bg-primary text-white hover:brightness-110">
             <i class="mdi mdi-directions" /> {{ fa ? 'مسیریابی' : 'Directions' }}
           </a>
-          <a :href="osmLink" target="_blank" rel="noopener noreferrer" class="btn-pill bg-slate-100 text-ink hover:bg-slate-200">OpenStreetMap</a>
+          <a :href="osmLink" target="_blank" rel="noopener noreferrer" class="btn-pill bg-slate-100 text-ink hover:bg-slate-200"
+            >OpenStreetMap</a
+          >
         </div>
       </div>
 

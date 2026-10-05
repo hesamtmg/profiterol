@@ -29,7 +29,9 @@ function toggle(i: number, e: Event) {
 <template>
   <section class="bg-surface px-6 py-20 text-ink @3xl:px-16 @3xl:py-28">
     <div class="mx-auto max-w-6xl">
-      <h2 v-if="p.title || editing" class="mb-12 text-center text-3xl font-black @3xl:text-5xl"><EditableText :value="p.title" path="title" placeholder="Title" /></h2>
+      <h2 v-if="p.title || editing" class="mb-12 text-center text-3xl font-black @3xl:text-5xl">
+        <EditableText :value="p.title" path="title" placeholder="Title" />
+      </h2>
       <div class="grid gap-6 @2xl:grid-cols-2 @4xl:grid-cols-3">
         <div
           v-for="(item, i) in p.items"
@@ -43,7 +45,9 @@ function toggle(i: number, e: Event) {
           @click="toggle(i, $event)"
           @keydown.enter.prevent="toggle(i, $event)"
         >
-          <div class="flip-inner relative h-full w-full rounded-[2rem] shadow-xl transition-transform duration-700 [transform-style:preserve-3d]">
+          <div
+            class="flip-inner relative h-full w-full rounded-[2rem] shadow-xl transition-transform duration-700 [transform-style:preserve-3d]"
+          >
             <!-- Front -->
             <div class="absolute inset-0 overflow-hidden rounded-[2rem] [backface-visibility:hidden]">
               <img v-if="item.image" :src="item.image" :alt="item.title" loading="lazy" class="h-full w-full object-cover" />
@@ -51,15 +55,22 @@ function toggle(i: number, e: Event) {
               <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
               <div class="absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 p-6 text-white">
                 <h3 class="text-2xl font-bold"><EditableText :value="item.title" :path="`items.${i}.title`" /></h3>
-                <span class="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full" aria-hidden="true"><i class="mdi mdi-rotate-3d-variant" /></span>
+                <span class="glass flex h-10 w-10 shrink-0 items-center justify-center rounded-full" aria-hidden="true"
+                  ><i class="mdi mdi-rotate-3d-variant"
+                /></span>
               </div>
             </div>
             <!-- Back -->
             <div
               class="absolute inset-0 flex flex-col justify-center gap-6 overflow-hidden rounded-[2rem] bg-primary p-8 text-white [backface-visibility:hidden] [transform:rotateY(180deg)]"
             >
-              <div class="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-white/15 blur-2xl" aria-hidden="true" />
-              <p class="relative text-xl font-light leading-relaxed"><EditableText :value="item.back" :path="`items.${i}.back`" multiline /></p>
+              <div
+                class="pointer-events-none absolute -bottom-20 -right-20 h-64 w-64 rounded-full bg-white/15 blur-2xl"
+                aria-hidden="true"
+              />
+              <p class="relative text-xl font-light leading-relaxed">
+                <EditableText :value="item.back" :path="`items.${i}.back`" multiline />
+              </p>
               <a
                 v-if="item.buttonLabel"
                 :href="editing ? undefined : resolveHref(item.buttonLink, locale)"

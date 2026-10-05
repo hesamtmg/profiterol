@@ -80,7 +80,14 @@ export class CollectionsService {
 
   /** Keeps only known locales, as trimmed strings. */
   private localized(input: Localized): Localized {
-    return Object.fromEntries(locales.map((l) => [l.code, String(input?.[l.code] ?? '').trim().slice(0, 120)]));
+    return Object.fromEntries(
+      locales.map((l) => [
+        l.code,
+        String(input?.[l.code] ?? '')
+          .trim()
+          .slice(0, 120),
+      ]),
+    );
   }
 
   /** Every locale needs a one-segment URL slug that no other collection uses in that locale. */
@@ -91,7 +98,8 @@ export class CollectionsService {
     for (const l of locales) {
       const s = slugs[l.code];
       if (!SEGMENT_PATTERN.test(s)) errors.push({ path: `slugs.${l.code}`, message: 'must be one word or words joined by dashes' });
-      else if (others.some((o) => o.slugs?.[l.code] === s)) errors.push({ path: `slugs.${l.code}`, message: 'is used by another collection' });
+      else if (others.some((o) => o.slugs?.[l.code] === s))
+        errors.push({ path: `slugs.${l.code}`, message: 'is used by another collection' });
     }
     if (errors.length) throw invalid('Invalid collection address', errors);
     return slugs;
@@ -202,10 +210,7 @@ export class CollectionsService {
   /** The collection whose URL segment is `slug` in this locale, for its automatic index page. */
   async findPublicCollection(locale: string, slug: string) {
     if (!isLocale(locale)) throw new NotFoundException();
-    const c = await this.collections
-      .createQueryBuilder('c')
-      .where(`c.slugs ->> :locale = :slug`, { locale, slug })
-      .getOne();
+    const c = await this.collections.createQueryBuilder('c').where(`c.slugs ->> :locale = :slug`, { locale, slug }).getOne();
     if (!c) throw new NotFoundException('Collection not found');
     return this.publicCollection(c, locale);
   }

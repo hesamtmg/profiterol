@@ -18,7 +18,9 @@ function has(v: unknown) {
 
 /** Short values go in the details list beside the story; long ones go below it. */
 const details = computed(() =>
-  props.entry.collection.fields.filter((f) => ['text', 'number', 'url', 'boolean', 'color'].includes(f.type) && has(item.value.data[f.key])),
+  props.entry.collection.fields.filter(
+    (f) => ['text', 'number', 'url', 'boolean', 'color'].includes(f.type) && has(item.value.data[f.key]),
+  ),
 );
 const longText = computed(() => props.entry.collection.fields.filter((f) => f.type === 'textarea' && has(item.value.data[f.key])));
 const images = computed(() => props.entry.collection.fields.filter((f) => f.type === 'image' && has(item.value.data[f.key])));
@@ -45,7 +47,9 @@ const lightbox = ref<string | null>(null);
             <i class="mdi mdi-arrow-left rtl:rotate-180" /> {{ entry.collection.name }}
           </a>
           <div v-if="item.tags.length" class="mt-6 flex flex-wrap gap-2">
-            <span v-for="t in item.tags" :key="t" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-primary">{{ t }}</span>
+            <span v-for="t in item.tags" :key="t" class="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-primary">{{
+              t
+            }}</span>
           </div>
           <h1 class="mt-4 max-w-4xl text-4xl font-black leading-tight @3xl:text-7xl">{{ item.title }}</h1>
           <p v-if="item.excerpt" class="mt-5 max-w-2xl text-lg font-extralight text-muted @3xl:text-2xl">{{ item.excerpt }}</p>
@@ -59,7 +63,10 @@ const lightbox = ref<string | null>(null);
     </section>
 
     <!-- Story + details -->
-    <section v-if="paragraphs(item.body).length || details.length || longText.length || images.length || videos.length" class="px-3 py-3 @3xl:px-6">
+    <section
+      v-if="paragraphs(item.body).length || details.length || longText.length || images.length || videos.length"
+      class="px-3 py-3 @3xl:px-6"
+    >
       <div class="panel grid gap-10 px-6 py-10 @3xl:grid-cols-[2fr_1fr] @3xl:gap-16 @3xl:px-20 @3xl:py-16">
         <div class="min-w-0 space-y-5 text-base font-extralight leading-loose @3xl:text-lg">
           <p v-for="(para, i) in paragraphs(item.body)" :key="i" class="whitespace-pre-line">{{ para }}</p>
@@ -134,7 +141,9 @@ const lightbox = ref<string | null>(null);
     <section v-if="entry.related.length" class="px-3 py-3 @3xl:px-6">
       <div class="panel px-6 py-10 @3xl:px-20 @3xl:py-16">
         <div class="flex flex-wrap items-end justify-between gap-4">
-          <h2 class="text-2xl font-black @3xl:text-3xl">{{ fa ? `بیشتر از ${entry.collection.name}` : `More ${entry.collection.name.toLowerCase()}` }}</h2>
+          <h2 class="text-2xl font-black @3xl:text-3xl">
+            {{ fa ? `بیشتر از ${entry.collection.name}` : `More ${entry.collection.name.toLowerCase()}` }}
+          </h2>
           <a :href="entry.collection.href" class="btn-pill border border-slate-200 hover:border-primary hover:text-primary">
             {{ fa ? 'مشاهده همه' : 'See all' }} <i class="mdi mdi-arrow-right rtl:rotate-180" />
           </a>

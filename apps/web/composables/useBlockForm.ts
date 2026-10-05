@@ -19,9 +19,11 @@ export function formChoices(options: string) {
  * Sending logic shared by the form blocks. Messages go to the admin inbox (and optionally by email);
  * the API checks every answer against the published form.
  */
-export function useBlockForm(
-  props: { p: { fields: FormField[]; successMessage: string }; locale: string; data?: { pageId: string; blockId: string } },
-) {
+export function useBlockForm(props: {
+  p: { fields: FormField[]; successMessage: string };
+  locale: string;
+  data?: { pageId: string; blockId: string };
+}) {
   const editing = Boolean(useBlockEditing());
   const api = useApi();
   const values = ref<string[]>([]);

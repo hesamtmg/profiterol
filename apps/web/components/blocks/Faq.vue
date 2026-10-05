@@ -32,9 +32,15 @@ function toggle(i: number, e: MouseEvent) {
             @click="toggle(i, $event)"
           >
             <EditableText :value="item.q" :path="`items.${i}.q`" />
-            <i class="faq-toggle mdi mdi-plus cursor-pointer text-xl transition-transform duration-500" :class="{ 'rotate-45 text-primary': open === i }" />
+            <i
+              class="faq-toggle mdi mdi-plus cursor-pointer text-xl transition-transform duration-500"
+              :class="{ 'rotate-45 text-primary': open === i }"
+            />
           </component>
-          <div class="grid transition-all duration-700 ease-in-out" :class="open === i ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'">
+          <div
+            class="grid transition-all duration-700 ease-in-out"
+            :class="open === i ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'"
+          >
             <p class="overflow-hidden whitespace-pre-line text-sm font-extralight leading-loose text-muted @3xl:text-base">
               <span class="block pb-5"><EditableText :value="item.a" :path="`items.${i}.a`" multiline /></span>
             </p>

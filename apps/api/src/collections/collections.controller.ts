@@ -1,16 +1,4 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  HttpCode,
-  Param,
-  ParseUUIDPipe,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { CreateCollectionDto, CreateItemDto, UpdateCollectionDto, UpdateItemDto } from './collections.dto';
 import { CollectionsService } from './collections.service';
@@ -65,11 +53,7 @@ export class AdminCollectionsController {
   }
 
   @Patch(':id/items/:itemId')
-  updateItem(
-    @Param('id', ParseUUIDPipe) id: string,
-    @Param('itemId', ParseUUIDPipe) itemId: string,
-    @Body() dto: UpdateItemDto,
-  ) {
+  updateItem(@Param('id', ParseUUIDPipe) id: string, @Param('itemId', ParseUUIDPipe) itemId: string, @Body() dto: UpdateItemDto) {
     return this.service.updateItem(id, itemId, dto);
   }
 
@@ -98,12 +82,7 @@ export class PublicCollectionsController {
   constructor(private readonly service: CollectionsService) {}
 
   @Get('items')
-  list(
-    @Param('locale') locale: string,
-    @Query('collection') key = '',
-    @Query('limit') limit = '12',
-    @Query('tag') tag = '',
-  ) {
+  list(@Param('locale') locale: string, @Query('collection') key = '', @Query('limit') limit = '12', @Query('tag') tag = '') {
     return this.service.listPublished(locale, key, { limit: Number(limit) || 12, tag: tag || undefined });
   }
 

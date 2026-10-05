@@ -10,7 +10,13 @@ watch(page, /429/);
 page.on('dialog', (d) => (dialogs.push(d.message()), d.dismiss()));
 await page.goto(`${BASE}/en/classic`, { waitUntil: 'networkidle' });
 await page.waitForTimeout(1500);
-check('kind 1 video plays muted', await page.locator('#k1 video').first().evaluate((v) => v.muted && !v.paused));
+check(
+  'kind 1 video plays muted',
+  await page
+    .locator('#k1 video')
+    .first()
+    .evaluate((v) => v.muted && !v.paused),
+);
 
 const ids = ['k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7', 'k8', 'k9', 'k10', 'k11', 'k12'];
 for (const id of ids) {
@@ -20,14 +26,23 @@ for (const id of ids) {
   await el.screenshot({ path: `${out}en-${id}.png` });
 }
 check('all 12 kinds render', (await page.locator('section').count()) >= 12);
-check('kind 9 sanitized: no script, no onerror, no javascript: link', (await page.locator('#k9 script, #k9 img, #k9 a[href^="javascript"]').count()) === 0 && dialogs.length === 0);
+check(
+  'kind 9 sanitized: no script, no onerror, no javascript: link',
+  (await page.locator('#k9 script, #k9 img, #k9 a[href^="javascript"]').count()) === 0 && dialogs.length === 0,
+);
 check('kind 9 formatting kept', (await page.locator('#k9 ol li').count()) === 4 && (await page.locator('#k9 blockquote').count()) === 1);
 
 // kind 2: hover reveals text
 await page.locator('#k2').scrollIntoViewIfNeeded();
 await page.locator('#k2 a').first().hover();
 await page.waitForTimeout(900);
-check('kind 2 hover shows the description', (await page.locator('#k2 a p').first().evaluate((e) => getComputedStyle(e).opacity)) === '1');
+check(
+  'kind 2 hover shows the description',
+  (await page
+    .locator('#k2 a p')
+    .first()
+    .evaluate((e) => getComputedStyle(e).opacity)) === '1',
+);
 await page.locator('#k2').screenshot({ path: `${out}en-k2-hover.png` });
 
 // kind 4: paragraphs open on hover
@@ -43,12 +58,30 @@ check('kind 4 paragraph opens on hover', (await para.boundingBox()).height > clo
 await page.locator('#k10').scrollIntoViewIfNeeded();
 await page.locator('#k10 button[aria-label="Play"]').first().click();
 await page.waitForTimeout(1500);
-check('kind 10 plays with the custom button', await page.locator('#k10 video').nth(1).evaluate((v) => !v.paused));
+check(
+  'kind 10 plays with the custom button',
+  await page
+    .locator('#k10 video')
+    .nth(1)
+    .evaluate((v) => !v.paused),
+);
 await page.locator('#k10 button[aria-label="Playback speed"]').click();
 await page.locator('#k10 [role=menuitemradio]', { hasText: '1.5x' }).click();
-check('kind 10 speed menu sets 1.5x', (await page.locator('#k10 video').nth(1).evaluate((v) => v.playbackRate)) === 1.5);
+check(
+  'kind 10 speed menu sets 1.5x',
+  (await page
+    .locator('#k10 video')
+    .nth(1)
+    .evaluate((v) => v.playbackRate)) === 1.5,
+);
 await page.locator('#k10 button[aria-label="Forward 5 seconds"]').click();
-check('kind 10 skips forward', (await page.locator('#k10 video').nth(1).evaluate((v) => v.currentTime)) > 5);
+check(
+  'kind 10 skips forward',
+  (await page
+    .locator('#k10 video')
+    .nth(1)
+    .evaluate((v) => v.currentTime)) > 5,
+);
 await page.locator('#k10 [role=region]').hover();
 await page.locator('#k10').screenshot({ path: `${out}en-k10-playing.png` });
 await page.locator('#k10 button[aria-label="Pause"]').first().click();
@@ -94,7 +127,10 @@ for (const id of ['k2', 'k4', 'k5', 'k7', 'k11', 'k12']) {
   await el.screenshot({ path: `${out}fa-mobile-${id}.png` });
 }
 check('no sideways scrolling on phones', await phone.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
-check('kind 12 uses the phone grid (2 columns)', (await phone.locator('#k12 .grid:visible').evaluate((g) => getComputedStyle(g).gridTemplateColumns.split(' ').length)) === 2);
+check(
+  'kind 12 uses the phone grid (2 columns)',
+  (await phone.locator('#k12 .grid:visible').evaluate((g) => getComputedStyle(g).gridTemplateColumns.split(' ').length)) === 2,
+);
 
 // Editor: the Classic category and the rich-text toolbar
 const ed = await browser.newPage({ viewport: { width: 1440, height: 900 } });
@@ -106,7 +142,10 @@ await ed.click('button[type=submit]');
 await ed.waitForURL(`${BASE}/admin`);
 await ed.locator('article', { hasText: 'Classic' }).getByText('Edit').click();
 await ed.waitForSelector('main [id^=blk-]');
-check('editor lists the 12 classic sections', (await ed.locator('aside h3', { hasText: 'Classic sections' }).locator('xpath=following-sibling::div[1]/button').count()) === 12);
+check(
+  'editor lists the 12 classic sections',
+  (await ed.locator('aside h3', { hasText: 'Classic sections' }).locator('xpath=following-sibling::div[1]/button').count()) === 12,
+);
 await ed.locator('aside h3', { hasText: 'Classic sections' }).scrollIntoViewIfNeeded();
 await ed.screenshot({ path: `${out}editor-library.png` });
 
@@ -121,7 +160,10 @@ await ed.keyboard.press('Enter');
 await ed.keyboard.type('Added from the toolbar');
 await ed.locator('aside [role=toolbar] button[title="Heading"]').click();
 await ed.waitForTimeout(400);
-check('toolbar heading shows on the canvas', (await ed.locator('main [id^=blk-k9] h2', { hasText: 'Added from the toolbar' }).count()) === 1);
+check(
+  'toolbar heading shows on the canvas',
+  (await ed.locator('main [id^=blk-k9] h2', { hasText: 'Added from the toolbar' }).count()) === 1,
+);
 await ed.screenshot({ path: `${out}editor-richtext.png` });
 
 // Insert a new classic block by clicking it
@@ -131,7 +173,11 @@ await ed.waitForTimeout(500);
 check('clicking a classic section inserts it', (await ed.locator('main [id^=blk-]').count()) === before + 1);
 await ed.click('header button:has-text("Save")');
 await ed.waitForTimeout(1500);
-check('page saves with the new blocks', (await ed.locator('header', { hasText: 'Saved' }).count()) + (await ed.locator('header', { hasText: 'Unpublished' }).count()) > 0 || (await ed.locator('header >> text=Unsaved').count()) === 0);
+check(
+  'page saves with the new blocks',
+  (await ed.locator('header', { hasText: 'Saved' }).count()) + (await ed.locator('header', { hasText: 'Unpublished' }).count()) > 0 ||
+    (await ed.locator('header >> text=Unsaved').count()) === 0,
+);
 
 // Phone preview in the editor uses the phone photos/grid
 await ed.click('button[title=mobile]');

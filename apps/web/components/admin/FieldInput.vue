@@ -81,9 +81,16 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     <label class="field-label">{{ $t(field.label) }}</label>
 
     <input v-if="field.type === 'text'" v-model="model" type="text" class="input" :dir="dir" />
-    <input v-else-if="field.type === 'url'" v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="/page, #anchor or https://…" />
+    <input
+      v-else-if="field.type === 'url'"
+      v-model="model"
+      type="text"
+      class="input font-mono text-xs"
+      dir="ltr"
+      placeholder="/page, #anchor or https://…"
+    />
     <textarea v-else-if="field.type === 'textarea'" v-model="model" rows="4" class="input resize-y leading-relaxed" :dir="dir" />
-    <RichTextInput v-else-if="field.type === 'richtext'" :model-value="(model as string)" :dir="dir" @update:model-value="model = $event" />
+    <RichTextInput v-else-if="field.type === 'richtext'" :model-value="model as string" :dir="dir" @update:model-value="model = $event" />
     <input v-else-if="field.type === 'number'" v-model.number="model" type="number" class="input" />
     <label v-else-if="field.type === 'boolean'" class="flex items-center gap-2 text-sm">
       <input v-model="model" type="checkbox" class="h-4 w-4 rounded" /> {{ $t(field.label) }}
@@ -115,7 +122,13 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     >
       <div class="flex items-center gap-2">
         <div class="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-slate-100">
-          <video v-if="model && field.type === 'video'" :src="model as string" muted preload="metadata" class="h-full w-full object-cover" />
+          <video
+            v-if="model && field.type === 'video'"
+            :src="model as string"
+            muted
+            preload="metadata"
+            class="h-full w-full object-cover"
+          />
           <img v-else-if="model" :src="model as string" alt="" class="h-full w-full object-cover" />
           <span v-else class="flex h-full items-center justify-center text-slate-300">
             <i class="mdi text-xl" :class="field.type === 'video' ? 'mdi-movie-outline' : 'mdi-image-outline'" />
@@ -144,14 +157,32 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     <div v-else-if="field.type === 'list'" class="space-y-2">
       <div v-for="(item, i) in list" :key="i" class="rounded-2xl border border-slate-200 bg-slate-50/60">
         <div class="flex items-center gap-1 px-3 py-2">
-          <button type="button" class="flex min-w-0 flex-1 items-center gap-2 text-start text-sm font-medium" @click="openItem = openItem === i ? null : i">
+          <button
+            type="button"
+            class="flex min-w-0 flex-1 items-center gap-2 text-start text-sm font-medium"
+            @click="openItem = openItem === i ? null : i"
+          >
             <i class="mdi text-slate-400" :class="openItem === i ? 'mdi-chevron-down' : 'mdi-chevron-right'" />
             <span class="truncate" :dir="dir">{{ itemTitle(item, i) }}</span>
           </button>
-          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Move up')" :disabled="i === 0" @click="moveItem(i, -1)"><i class="mdi mdi-arrow-up" /></button>
-          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Move down')" :disabled="i === list.length - 1" @click="moveItem(i, 1)"><i class="mdi mdi-arrow-down" /></button>
-          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Duplicate')" :disabled="atMax" @click="duplicateItem(i)"><i class="mdi mdi-content-copy" /></button>
-          <button type="button" class="btn-icon !h-7 !w-7 hover:!text-red-600" :title="$t('Remove')" @click="removeItem(i)"><i class="mdi mdi-close" /></button>
+          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Move up')" :disabled="i === 0" @click="moveItem(i, -1)">
+            <i class="mdi mdi-arrow-up" />
+          </button>
+          <button
+            type="button"
+            class="btn-icon !h-7 !w-7"
+            :title="$t('Move down')"
+            :disabled="i === list.length - 1"
+            @click="moveItem(i, 1)"
+          >
+            <i class="mdi mdi-arrow-down" />
+          </button>
+          <button type="button" class="btn-icon !h-7 !w-7" :title="$t('Duplicate')" :disabled="atMax" @click="duplicateItem(i)">
+            <i class="mdi mdi-content-copy" />
+          </button>
+          <button type="button" class="btn-icon !h-7 !w-7 hover:!text-red-600" :title="$t('Remove')" @click="removeItem(i)">
+            <i class="mdi mdi-close" />
+          </button>
         </div>
         <div v-if="openItem === i" class="space-y-3 border-t border-slate-200 px-3 py-3">
           <FieldInput

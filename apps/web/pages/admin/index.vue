@@ -105,7 +105,9 @@ onMounted(load);
         <div class="flex flex-1 flex-col p-6">
           <div class="flex items-center gap-2">
             <h2 class="text-lg font-black">{{ page.name }}</h2>
-            <span v-if="page.isHome" class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{{ $t('Home') }}</span>
+            <span v-if="page.isHome" class="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-medium text-amber-700">{{
+              $t('Home')
+            }}</span>
           </div>
           <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span

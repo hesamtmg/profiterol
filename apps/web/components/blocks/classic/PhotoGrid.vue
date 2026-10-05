@@ -15,7 +15,9 @@ const editing = Boolean(useBlockEditing());
 const open = ref<Item | null>(null);
 
 function parse(size: string, fallback: [number, number]): [number, number] {
-  const [r, c] = String(size ?? '').split('*').map(Number);
+  const [r, c] = String(size ?? '')
+    .split('*')
+    .map(Number);
   return r > 0 && c > 0 ? [r, c] : fallback;
 }
 
@@ -87,8 +89,20 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey));
     </div>
 
     <Teleport to="body">
-      <Transition enter-active-class="transition duration-300" leave-active-class="transition duration-300" enter-from-class="opacity-0" leave-to-class="opacity-0">
-        <div v-if="open" class="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4" role="dialog" aria-modal="true" :aria-label="open.title" @click.self="open = null">
+      <Transition
+        enter-active-class="transition duration-300"
+        leave-active-class="transition duration-300"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="open"
+          class="fixed inset-0 z-[70] flex items-center justify-center bg-black/75 p-4"
+          role="dialog"
+          aria-modal="true"
+          :aria-label="open.title"
+          @click.self="open = null"
+        >
           <div class="relative flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-lg bg-black shadow-2xl">
             <button
               type="button"

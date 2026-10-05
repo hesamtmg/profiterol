@@ -21,7 +21,12 @@ let failsafe: ReturnType<typeof setTimeout> | undefined;
 
 if (!props.preview && props.loader.oncePerSession) {
   useHead({
-    script: [{ key: 'loader-seen', innerHTML: `try{if(sessionStorage.getItem('${SEEN}'))document.documentElement.classList.add('loader-seen')}catch(e){}` }],
+    script: [
+      {
+        key: 'loader-seen',
+        innerHTML: `try{if(sessionStorage.getItem('${SEEN}'))document.documentElement.classList.add('loader-seen')}catch(e){}`,
+      },
+    ],
   });
 }
 
@@ -39,10 +44,13 @@ function finish() {
     }
   }
   // Let the name show for a moment, then fade out.
-  setTimeout(() => {
-    shown.value = false;
-    emit('done');
-  }, props.loader.style === 'bar' ? 400 : 1400);
+  setTimeout(
+    () => {
+      shown.value = false;
+      emit('done');
+    },
+    props.loader.style === 'bar' ? 400 : 1400,
+  );
 }
 
 onMounted(() => {
@@ -76,7 +84,9 @@ onBeforeUnmount(() => {
 });
 
 const shownPercent = computed(() => Math.round(percent.value));
-const digits = computed(() => (props.locale === 'fa' ? new Intl.NumberFormat('fa-IR').format(shownPercent.value) : String(shownPercent.value)));
+const digits = computed(() =>
+  props.locale === 'fa' ? new Intl.NumberFormat('fa-IR').format(shownPercent.value) : String(shownPercent.value),
+);
 const line = computed(() => props.loader.text?.[props.locale] ?? '');
 </script>
 
@@ -115,13 +125,26 @@ const line = computed(() => props.loader.text?.[props.locale] ?? '');
         <!-- Name filling with color -->
         <div v-if="loader.style === 'name'" class="relative text-5xl font-black tracking-tight @3xl:text-8xl" dir="auto">
           <span class="text-transparent [-webkit-text-stroke:1px_rgb(255_255_255/0.35)]">{{ siteName }}</span>
-          <span class="absolute inset-0 overflow-hidden whitespace-nowrap text-primary" :style="{ clipPath: `inset(0 ${100 - percent}% 0 0)` }" aria-hidden="true">{{ siteName }}</span>
+          <span
+            class="absolute inset-0 overflow-hidden whitespace-nowrap text-primary"
+            :style="{ clipPath: `inset(0 ${100 - percent}% 0 0)` }"
+            aria-hidden="true"
+            >{{ siteName }}</span
+          >
         </div>
 
         <!-- Percentage, then the name -->
         <template v-else>
-          <Transition mode="out-in" enter-active-class="transition duration-700 ease-out" enter-from-class="opacity-0 scale-90 tracking-[0.6em]" leave-active-class="transition duration-300" leave-to-class="opacity-0">
-            <p v-if="!finishing" key="count" class="text-6xl font-black tabular-nums @3xl:text-8xl" dir="ltr">{{ digits }}<span class="text-primary">%</span></p>
+          <Transition
+            mode="out-in"
+            enter-active-class="transition duration-700 ease-out"
+            enter-from-class="opacity-0 scale-90 tracking-[0.6em]"
+            leave-active-class="transition duration-300"
+            leave-to-class="opacity-0"
+          >
+            <p v-if="!finishing" key="count" class="text-6xl font-black tabular-nums @3xl:text-8xl" dir="ltr">
+              {{ digits }}<span class="text-primary">%</span>
+            </p>
             <p v-else key="name" class="text-5xl font-black tracking-tight @3xl:text-7xl" dir="auto">{{ siteName }}</p>
           </Transition>
           <div class="mx-auto mt-6 h-0.5 w-56 overflow-hidden rounded-full bg-white/15">

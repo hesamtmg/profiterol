@@ -18,7 +18,11 @@ export function useReducedMotion() {
  * at most once per frame. Scroll events are caught in the capture phase, so this also works inside the
  * editor canvas, which scrolls in its own box rather than the window.
  */
-export function useScrollProgress(target: Ref<HTMLElement | null>, compute: (rect: DOMRect, viewportHeight: number) => number, initial = 0) {
+export function useScrollProgress(
+  target: Ref<HTMLElement | null>,
+  compute: (rect: DOMRect, viewportHeight: number) => number,
+  initial = 0,
+) {
   const value = ref(initial);
   let frame = 0;
 

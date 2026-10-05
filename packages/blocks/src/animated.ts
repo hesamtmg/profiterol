@@ -26,7 +26,8 @@ export const animatedDefinitions: BlockDef[] = [
     label: 'Aurora hero',
     icon: 'mdi-creation',
     category: 'animated',
-    description: 'Glowing colors drifting behind a headline whose words rise in one by one, with a word that keeps changing and a light that follows the mouse.',
+    description:
+      'Glowing colors drifting behind a headline whose words rise in one by one, with a word that keeps changing and a light that follows the mouse.',
     fields: [
       { key: 'eyebrow', label: 'Small line above', type: 'text' },
       { key: 'title', label: 'Headline', type: 'text' },
@@ -239,9 +240,21 @@ export const animatedDefinitions: BlockDef[] = [
     defaults: {
       title: 'Meet the team',
       items: [
-        { image: '', title: 'Sara, design', back: 'Loves typography, plants and very small details.', buttonLabel: 'Say hi', buttonLink: '' },
+        {
+          image: '',
+          title: 'Sara, design',
+          back: 'Loves typography, plants and very small details.',
+          buttonLabel: 'Say hi',
+          buttonLink: '',
+        },
         { image: '', title: 'Omid, code', back: 'Makes things fast. Has opinions about coffee.', buttonLabel: 'Say hi', buttonLink: '' },
-        { image: '', title: 'Lena, projects', back: 'Keeps every launch on time and every client calm.', buttonLabel: 'Say hi', buttonLink: '' },
+        {
+          image: '',
+          title: 'Lena, projects',
+          back: 'Keeps every launch on time and every client calm.',
+          buttonLabel: 'Say hi',
+          buttonLink: '',
+        },
       ],
     },
   },
@@ -286,8 +299,18 @@ export const animatedDefinitions: BlockDef[] = [
     defaults: {
       title: 'Kind words',
       items: [
-        { quote: 'They understood what we wanted before we could explain it. The new site doubled our bookings.', name: 'Maryam K.', role: 'Harbor Hotel', photo: '' },
-        { quote: 'Fast, friendly and honest about what matters. We will work with them again.', name: 'Daniel R.', role: 'Kite', photo: '' },
+        {
+          quote: 'They understood what we wanted before we could explain it. The new site doubled our bookings.',
+          name: 'Maryam K.',
+          role: 'Harbor Hotel',
+          photo: '',
+        },
+        {
+          quote: 'Fast, friendly and honest about what matters. We will work with them again.',
+          name: 'Daniel R.',
+          role: 'Kite',
+          photo: '',
+        },
         { quote: 'Our customers keep telling us how good the shop feels to use.', name: 'Nora S.', role: 'Northwind Coffee', photo: '' },
       ],
       seconds: 6,
@@ -329,7 +352,8 @@ export const animatedDefinitions: BlockDef[] = [
     label: 'Parallax layers',
     icon: 'mdi-layers-triple-outline',
     category: 'animated',
-    description: 'Layers of pictures that move at different speeds as the visitor scrolls (and a little with the mouse), giving depth. Without photos it shows layered hills in your colors.',
+    description:
+      'Layers of pictures that move at different speeds as the visitor scrolls (and a little with the mouse), giving depth. Without photos it shows layered hills in your colors.',
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'text', label: 'Text', type: 'textarea' },
@@ -425,7 +449,12 @@ export const animatedDefinitions: BlockDef[] = [
       title: 'How it works',
       imageSide: 'start',
       steps: [
-        { image: '', eyebrow: 'Step 1', title: 'We listen', text: 'A first call to understand who you are, who you serve and what success looks like.' },
+        {
+          image: '',
+          eyebrow: 'Step 1',
+          title: 'We listen',
+          text: 'A first call to understand who you are, who you serve and what success looks like.',
+        },
         { image: '', eyebrow: 'Step 2', title: 'We sketch', text: 'Ideas on paper, then in the browser, shared with you every week.' },
         { image: '', eyebrow: 'Step 3', title: 'We build', text: 'Fast pages, easy editing, and every detail checked on real phones.' },
         { image: '', eyebrow: 'Step 4', title: 'We launch', text: 'Go live, measure, and keep improving together.' },

@@ -35,7 +35,12 @@ const definitions: BlockDef[] = [
           { key: 'photo', label: 'Background photo', type: 'image' },
           { key: 'mobilePhoto', label: 'Background photo on phones', type: 'image', help: 'Optional; a portrait crop looks best.' },
           { key: 'cardPhoto', label: 'Side card photo (cut-out)', type: 'image' },
-          { key: 'cardLogo', label: 'Side card logo (vertical)', type: 'image', help: 'Optional; the name is written vertically if empty.' },
+          {
+            key: 'cardLogo',
+            label: 'Side card logo (vertical)',
+            type: 'image',
+            help: 'Optional; the name is written vertically if empty.',
+          },
           { key: 'color', label: 'Color', type: 'color' },
           ...button,
         ],
@@ -220,7 +225,12 @@ const definitions: BlockDef[] = [
       { key: 'limit', label: 'How many items', type: 'number' },
       { key: 'tag', label: 'Only items with this tag', type: 'text' },
       { key: 'showFilters', label: 'Show tag filters', type: 'boolean' },
-      { key: 'buttonLabel', label: '“See all” button label', type: 'text', help: 'Links to the collection’s own page. Leave empty to hide.' },
+      {
+        key: 'buttonLabel',
+        label: '“See all” button label',
+        type: 'text',
+        help: 'Links to the collection’s own page. Leave empty to hide.',
+      },
     ],
     defaults: {
       title: 'Recent projects',

@@ -33,7 +33,10 @@ await gridTitle.click();
 await page.keyboard.press('Control+A');
 await page.keyboard.type('Built in place');
 check('canvas shows typed text', (await gridTitle.innerText()) === 'Built in place');
-check('right panel follows the canvas', (await panel().locator('label:has-text("Title") + input').first().inputValue()) === 'Built in place');
+check(
+  'right panel follows the canvas',
+  (await panel().locator('label:has-text("Title") + input').first().inputValue()) === 'Built in place',
+);
 await page.keyboard.press('Enter');
 check('Enter finishes a single-line field', await page.evaluate(() => !document.activeElement?.classList.contains('editable')));
 
@@ -46,7 +49,9 @@ await page.locator('main').click({ position: { x: 5, y: 5 } });
 await page.screenshot({ path: out + 'inline-edit.png' });
 
 // Multiline: FAQ answer
-const faq = blocks().filter({ has: page.locator('.faq-toggle') }).first();
+const faq = blocks()
+  .filter({ has: page.locator('.faq-toggle') })
+  .first();
 await faq.scrollIntoViewIfNeeded();
 const answer = faq.locator('li').first().locator('.editable').nth(1);
 await answer.click();
@@ -68,7 +73,10 @@ check('redo brings it back', (await answer.innerText()).includes('A second line.
 // ---------- Autosave ----------
 await page.waitForSelector('text=/Saved \\d/', { timeout: 10000 });
 const draftEn = await apiDraft('en');
-check('autosave stored the inline edit', JSON.stringify(draftEn).includes('Built in place') && JSON.stringify(draftEn).includes('Edited on the card.'));
+check(
+  'autosave stored the inline edit',
+  JSON.stringify(draftEn).includes('Built in place') && JSON.stringify(draftEn).includes('Edited on the card.'),
+);
 
 // ---------- Show on: phones only ----------
 const statement = blocks().filter({ hasText: 'Speed is our key power' }).first();
@@ -98,7 +106,11 @@ await page.waitForTimeout(100);
 check('drop overlay appears', (await page.locator('text=Drop to use as background image').count()) === 1);
 await page.screenshot({ path: out + 'drop-overlay.png' });
 await statement.dispatchEvent('drop', { dataTransfer: dt });
-await page.waitForFunction(() => document.querySelector('aside:last-of-type input[placeholder="Drop an image"]')?.value.startsWith('/uploads/'), null, { timeout: 10000 });
+await page.waitForFunction(
+  () => document.querySelector('aside:last-of-type input[placeholder="Drop an image"]')?.value.startsWith('/uploads/'),
+  null,
+  { timeout: 10000 },
+);
 check('dropped photo becomes the background image', true);
 await page.waitForTimeout(800);
 await page.screenshot({ path: out + 'after-drop.png' });
@@ -116,10 +128,14 @@ const dt2 = await page.evaluateHandle((data) => {
 const imageInput = panel().locator('input[placeholder="Drop an image"]');
 const before = await imageInput.inputValue();
 await imageInput.dispatchEvent('drop', { dataTransfer: dt2 });
-await page.waitForFunction((prev) => {
-  const v = document.querySelector('aside:last-of-type input[placeholder="Drop an image"]')?.value;
-  return v && v !== prev && v.startsWith('/uploads/');
-}, before, { timeout: 10000 });
+await page.waitForFunction(
+  (prev) => {
+    const v = document.querySelector('aside:last-of-type input[placeholder="Drop an image"]')?.value;
+    return v && v !== prev && v.startsWith('/uploads/');
+  },
+  before,
+  { timeout: 10000 },
+);
 check('dropping on the image field uploads and sets it', true);
 
 // ---------- Persian inline edit ----------

@@ -7,14 +7,27 @@ import { getLocale } from '@profiterol/blocks';
 import EditableText from '../../site/EditableText.vue';
 import ResponsiveImg from '../../site/ResponsiveImg.vue';
 
-const props = defineProps<{ p: { image: string; mobileImage: string; title: string; text: string }; locale: string; side: 'left' | 'right' }>();
+const props = defineProps<{
+  p: { image: string; mobileImage: string; title: string; text: string };
+  locale: string;
+  side: 'left' | 'right';
+}>();
 const dir = computed(() => getLocale(props.locale)?.dir ?? 'ltr');
 </script>
 
 <template>
-  <section class="flex min-h-[60dvh] w-full items-stretch overflow-x-clip bg-surface text-ink @3xl:min-h-[90dvh]" :class="{ 'flex-row-reverse': side === 'right' }" dir="ltr">
+  <section
+    class="flex min-h-[60dvh] w-full items-stretch overflow-x-clip bg-surface text-ink @3xl:min-h-[90dvh]"
+    :class="{ 'flex-row-reverse': side === 'right' }"
+    dir="ltr"
+  >
     <div v-reveal="{ from: side }" class="relative w-2/5 shrink-0">
-      <ResponsiveImg v-if="p.image || p.mobileImage" :src="p.image" :mobile="p.mobileImage" img-class="absolute inset-0 h-full w-full object-cover" />
+      <ResponsiveImg
+        v-if="p.image || p.mobileImage"
+        :src="p.image"
+        :mobile="p.mobileImage"
+        img-class="absolute inset-0 h-full w-full object-cover"
+      />
       <div v-else class="photo-placeholder absolute inset-0" />
     </div>
 
@@ -31,7 +44,12 @@ const dir = computed(() => getLocale(props.locale)?.dir ?? 'ltr');
       >
         <EditableText :value="p.title" path="title" placeholder="Title" />
       </h2>
-      <p v-reveal="{ delay: 150 }" class="self-center text-xs font-extralight leading-relaxed @3xl:text-lg" style="text-align: justify" :dir="dir">
+      <p
+        v-reveal="{ delay: 150 }"
+        class="self-center text-xs font-extralight leading-relaxed @3xl:text-lg"
+        style="text-align: justify"
+        :dir="dir"
+      >
         <EditableText :value="p.text" path="text" multiline />
       </p>
     </div>

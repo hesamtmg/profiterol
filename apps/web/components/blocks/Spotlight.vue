@@ -144,10 +144,7 @@ function fallback(color: string) {
     </Transition>
 
     <!-- The other people, as tall cards at the side -->
-    <div
-      class="absolute bottom-10 z-20 flex gap-3"
-      :class="textLeft ? 'right-2 @3xl:-right-20' : 'left-2 flex-row-reverse @3xl:-left-20'"
-    >
+    <div class="absolute bottom-10 z-20 flex gap-3" :class="textLeft ? 'right-2 @3xl:-right-20' : 'left-2 flex-row-reverse @3xl:-left-20'">
       <button
         v-for="{ person, i } in others"
         :key="`card-${i}`"
@@ -162,9 +159,20 @@ function fallback(color: string) {
         :title="person.name"
         @click.stop="show(i)"
       >
-        <span class="absolute inset-x-0 top-8 flex justify-center" :class="textLeft ? '@3xl:justify-start @3xl:ps-2' : '@3xl:justify-end @3xl:pe-2'">
-          <img v-if="person.cardLogo" :src="person.cardLogo" alt="" class="h-32 w-10 object-contain @3xl:h-48 @3xl:w-7" style="filter: brightness(0) invert(1)" />
-          <span v-else class="text-xs font-black uppercase tracking-[0.2em] [writing-mode:vertical-rl] @3xl:w-7 @3xl:text-sm" :dir="dir">{{ person.name }}</span>
+        <span
+          class="absolute inset-x-0 top-8 flex justify-center"
+          :class="textLeft ? '@3xl:justify-start @3xl:ps-2' : '@3xl:justify-end @3xl:pe-2'"
+        >
+          <img
+            v-if="person.cardLogo"
+            :src="person.cardLogo"
+            alt=""
+            class="h-32 w-10 object-contain @3xl:h-48 @3xl:w-7"
+            style="filter: brightness(0) invert(1)"
+          />
+          <span v-else class="text-xs font-black uppercase tracking-[0.2em] [writing-mode:vertical-rl] @3xl:w-7 @3xl:text-sm" :dir="dir">{{
+            person.name
+          }}</span>
         </span>
         <span
           v-if="person.cardPhoto"

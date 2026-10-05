@@ -63,7 +63,9 @@ function tileRadius(radius: string) {
           <i class="mdi mdi-content-save-outline" /> {{ $t('Save current') }}
         </button>
       </div>
-      <p v-if="!savedThemes.length" class="text-[11px] text-slate-400">{{ $t('Save the colors, fonts and shapes you chose to reuse them on other pages.') }}</p>
+      <p v-if="!savedThemes.length" class="text-[11px] text-slate-400">
+        {{ $t('Save the colors, fonts and shapes you chose to reuse them on other pages.') }}
+      </p>
       <div v-else class="grid gap-2" :class="compact ? 'grid-cols-2' : 'grid-cols-3'">
         <div v-for="saved in savedThemes" :key="saved.key" class="group relative">
           <button
@@ -167,7 +169,10 @@ function tileRadius(radius: string) {
         <span class="field-label">{{ $t('Header') }}</span>
         <div class="flex gap-1.5">
           <button
-            v-for="h in ([{ value: 'solid', label: 'Solid' }, { value: 'glass', label: 'Frosted glass' }] as const)"
+            v-for="h in [
+              { value: 'solid', label: 'Solid' },
+              { value: 'glass', label: 'Frosted glass' },
+            ] as const"
             :key="h.value"
             type="button"
             class="flex-1 rounded-full border px-2 py-1.5 text-[11px] font-medium transition"
@@ -185,7 +190,12 @@ function tileRadius(radius: string) {
       <h3 class="field-label !mb-2">{{ $t('Motion') }}</h3>
       <div>
         <label class="field-label" for="theme-cursor">{{ $t('Mouse pointer') }}</label>
-        <select id="theme-cursor" class="input" :value="theme.cursor" @change="set('cursor', ($event.target as HTMLSelectElement).value as ThemeTokens['cursor'])">
+        <select
+          id="theme-cursor"
+          class="input"
+          :value="theme.cursor"
+          @change="set('cursor', ($event.target as HTMLSelectElement).value as ThemeTokens['cursor'])"
+        >
           <option v-for="c in themeMotion.cursor" :key="c.value" :value="c.value">{{ $t(c.label) }}</option>
         </select>
       </div>
@@ -211,7 +221,13 @@ function tileRadius(radius: string) {
           <option v-for="m in themeMotion.scrollMode" :key="m.value" :value="m.value">{{ $t(m.label) }}</option>
         </select>
       </div>
-      <p class="text-[11px] leading-snug text-slate-400">{{ $t('Pointer and transition are skipped for visitors who turn off animations, and the pointer only changes for a mouse or trackpad.') }}</p>
+      <p class="text-[11px] leading-snug text-slate-400">
+        {{
+          $t(
+            'Pointer and transition are skipped for visitors who turn off animations, and the pointer only changes for a mouse or trackpad.',
+          )
+        }}
+      </p>
     </section>
 
     <!-- Fonts -->

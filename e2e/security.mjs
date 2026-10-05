@@ -6,12 +6,22 @@ const browser = await launch();
 
 // ---------- CSP: no page breaks under it ----------
 const violations = [];
-const csp = (p) => p.on('console', (m) => /Content Security Policy|Refused to (load|execute|apply|frame)/i.test(m.text()) && violations.push(`${p.url()}: ${m.text().slice(0, 160)}`));
+const csp = (p) =>
+  p.on(
+    'console',
+    (m) =>
+      /Content Security Policy|Refused to (load|execute|apply|frame)/i.test(m.text()) &&
+      violations.push(`${p.url()}: ${m.text().slice(0, 160)}`),
+  );
 const site = watch(await browser.newPage({ viewport: { width: 1440, height: 900 } }), /openstreetmap|youtube|429/);
 csp(site);
 for (const path of ['/en', '/fa', '/en/amsr', '/en/classic', '/en/motion', '/en/extras', '/en/contact']) {
   const res = await site.goto(BASE + path, { waitUntil: 'networkidle' });
-  if (path === '/en') check('pages send a Content-Security-Policy with a nonce', /script-src 'self' 'nonce-/.test(res.headers()['content-security-policy'] ?? ''));
+  if (path === '/en')
+    check(
+      'pages send a Content-Security-Policy with a nonce',
+      /script-src 'self' 'nonce-/.test(res.headers()['content-security-policy'] ?? ''),
+    );
   await site.mouse.wheel(0, 3000);
   await site.waitForTimeout(400);
 }
@@ -23,10 +33,23 @@ const ad = watch(await ctx.newPage(), /status of 40[134]/);
 csp(ad);
 await adminLogin(ad);
 const cookies = await ctx.cookies();
-check('session cookie is httpOnly', cookies.some((c) => c.name === 'pt_session' && c.httpOnly));
+check(
+  'session cookie is httpOnly',
+  cookies.some((c) => c.name === 'pt_session' && c.httpOnly),
+);
 check('scripts cannot read the session', !(await ad.evaluate(() => document.cookie)).includes('pt_session'));
 const status = (headers) =>
-  ad.evaluate(async (h) => (await fetch('/api/admin/pages/00000000-0000-0000-0000-000000000000', { method: 'PATCH', headers: { 'content-type': 'application/json', ...h }, body: '{}' })).status, headers);
+  ad.evaluate(
+    async (h) =>
+      (
+        await fetch('/api/admin/pages/00000000-0000-0000-0000-000000000000', {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json', ...h },
+          body: '{}',
+        })
+      ).status,
+    headers,
+  );
 check('a change without the CSRF header is refused', (await status({})) === 403);
 const csrf = await ad.evaluate(() => decodeURIComponent(document.cookie.match(/pt_csrf=([^;]*)/)[1]));
 check('with the header it reaches the API (404 for a missing page)', (await status({ 'x-csrf-token': csrf })) === 404);
@@ -62,7 +85,13 @@ await edPage.goto(link, { waitUntil: 'networkidle' });
 await edPage.fill('#pw', 'another-password');
 await edPage.fill('#pw2', 'another-password');
 await edPage.click('button[type=submit]');
-check('the link works only once', await edPage.waitForSelector('text=expired or was already used', { timeout: 5000 }).then(() => true, () => false));
+check(
+  'the link works only once',
+  await edPage.waitForSelector('text=expired or was already used', { timeout: 5000 }).then(
+    () => true,
+    () => false,
+  ),
+);
 
 await edPage.goto(`${BASE}/admin/login`, { waitUntil: 'networkidle' });
 await edPage.fill('#login-email', email);

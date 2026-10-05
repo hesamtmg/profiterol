@@ -34,7 +34,12 @@ async function load() {
 /** Saved themes are kept with the other settings and stored with "Save settings". */
 function saveTheme(name: string) {
   const list = settings.value!.savedThemes;
-  const key = `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'theme'}-${Date.now().toString(36)}`.slice(0, 40);
+  const key = `${
+    name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '') || 'theme'
+  }-${Date.now().toString(36)}`.slice(0, 40);
   list.push({ key, name, theme: { ...settings.value!.theme } });
 }
 
@@ -114,10 +119,17 @@ onMounted(load);
               :placeholder="l.label"
             />
             <input v-model="item.href" class="input w-40 flex-1 font-mono text-xs" dir="ltr" placeholder="#services" />
-            <button type="button" class="btn-icon" :disabled="i === 0" @click="settings.menu.splice(i - 1, 0, ...settings.menu.splice(i, 1))">
+            <button
+              type="button"
+              class="btn-icon"
+              :disabled="i === 0"
+              @click="settings.menu.splice(i - 1, 0, ...settings.menu.splice(i, 1))"
+            >
               <i class="mdi mdi-arrow-up" />
             </button>
-            <button type="button" class="btn-icon hover:!text-red-600" @click="settings.menu.splice(i, 1)"><i class="mdi mdi-close" /></button>
+            <button type="button" class="btn-icon hover:!text-red-600" @click="settings.menu.splice(i, 1)">
+              <i class="mdi mdi-close" />
+            </button>
           </div>
         </div>
       </section>
@@ -133,7 +145,9 @@ onMounted(load);
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
         <h2 class="font-black">{{ $t('Fonts') }}</h2>
-        <p class="mt-1 text-xs text-slate-400">{{ $t('Your own fonts, e.g. a logo typeface. After uploading, pick them in a theme\'s font lists.') }}</p>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ $t("Your own fonts, e.g. a logo typeface. After uploading, pick them in a theme's font lists.") }}
+        </p>
         <div class="mt-4">
           <FontManager v-model="settings.fonts" />
         </div>
@@ -141,7 +155,9 @@ onMounted(load);
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
         <h2 class="font-black">{{ $t('Page loader') }}</h2>
-        <p class="mt-1 text-xs text-slate-400">{{ $t('A screen shown while the site opens, counting up to 100% and then revealing the site name.') }}</p>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ $t('A screen shown while the site opens, counting up to 100% and then revealing the site name.') }}
+        </p>
         <label class="mt-4 flex items-center gap-2 text-sm">
           <input v-model="settings.loader.enabled" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Show a loading screen') }}
         </label>
@@ -155,18 +171,28 @@ onMounted(load);
             </select>
           </div>
           <label class="flex items-center gap-2 self-end pb-2 text-sm">
-            <input v-model="settings.loader.oncePerSession" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Only on the first page of a visit') }}
+            <input v-model="settings.loader.oncePerSession" type="checkbox" class="h-4 w-4 rounded" />
+            {{ $t('Only on the first page of a visit') }}
           </label>
           <div v-for="l in locales" :key="l.code">
             <label class="field-label">{{ $t('Line under the counter ({lang})', { lang: l.label }) }}</label>
             <input v-model="settings.loader.text[l.code]" class="input" :dir="l.dir" maxlength="120" />
           </div>
-          <FieldInput v-model="settings.loader.background" :field="imageField('loaderBg', $t('Background picture (blurred, sharpening as it loads)'))" />
+          <FieldInput
+            v-model="settings.loader.background"
+            :field="imageField('loaderBg', $t('Background picture (blurred, sharpening as it loads)'))"
+          />
         </div>
         <div v-if="settings.loader.enabled" class="mt-4">
           <button type="button" class="btn-light" @click="loaderPreview++"><i class="mdi mdi-play" /> {{ $t('Preview') }}</button>
           <div v-if="loaderPreview" class="relative mt-3 h-64 overflow-hidden rounded-2xl bg-slate-100">
-            <SiteLoader :key="loaderPreview" :loader="settings.loader" :site-name="settings.siteName.en || 'Your site'" locale="en" preview />
+            <SiteLoader
+              :key="loaderPreview"
+              :loader="settings.loader"
+              :site-name="settings.siteName.en || 'Your site'"
+              locale="en"
+              preview
+            />
             <p class="flex h-full items-center justify-center text-xs text-slate-400">{{ $t('The site appears here.') }}</p>
           </div>
         </div>
@@ -190,10 +216,12 @@ onMounted(load);
     <aside class="space-y-6">
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
         <h2 class="font-black">{{ $t('Site theme') }}</h2>
-        <p class="mt-1 text-xs text-slate-400">{{ $t('Used by every page, unless a page has its own theme (set in the page editor\'s Design panel).') }}</p>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ $t("Used by every page, unless a page has its own theme (set in the page editor's Design panel).") }}
+        </p>
         <div class="mt-5">
           <ThemeEditor
-            v-model="(settings.theme as ThemeTokens)"
+            v-model="settings.theme as ThemeTokens"
             compact
             :custom-fonts="customFonts"
             :saved-themes="settings.savedThemes"
@@ -205,15 +233,29 @@ onMounted(load);
 
       <!-- Live preview of the theme -->
       <section class="overflow-hidden rounded-[2rem] p-4" :style="{ background: settings.theme.background }">
-        <div class="p-6 text-center" :style="{ background: settings.theme.surface, borderRadius: settings.theme.radius, color: settings.theme.text }">
+        <div
+          class="p-6 text-center"
+          :style="{ background: settings.theme.surface, borderRadius: settings.theme.radius, color: settings.theme.text }"
+        >
           <p class="text-xl font-black">{{ settings.siteName.en || $t('Your site') }}</p>
           <p class="mt-1 text-xs font-light" :style="{ color: settings.theme.muted }">{{ $t('Panel preview') }}</p>
           <div class="mt-4 flex justify-center gap-2">
-            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.primary, borderRadius: settings.theme.buttonRadius }">{{ $t('Primary') }}</span>
-            <span class="px-4 py-1.5 text-xs text-white" :style="{ background: settings.theme.secondary, borderRadius: settings.theme.buttonRadius }">{{ $t('Secondary') }}</span>
+            <span
+              class="px-4 py-1.5 text-xs text-white"
+              :style="{ background: settings.theme.primary, borderRadius: settings.theme.buttonRadius }"
+              >{{ $t('Primary') }}</span
+            >
+            <span
+              class="px-4 py-1.5 text-xs text-white"
+              :style="{ background: settings.theme.secondary, borderRadius: settings.theme.buttonRadius }"
+              >{{ $t('Secondary') }}</span
+            >
           </div>
         </div>
-        <div class="mt-3 p-4 text-center text-xs text-white" :style="{ background: settings.theme.dark, borderRadius: settings.theme.radius }">
+        <div
+          class="mt-3 p-4 text-center text-xs text-white"
+          :style="{ background: settings.theme.dark, borderRadius: settings.theme.radius }"
+        >
           {{ $t('Dark section') }}
         </div>
       </section>

@@ -47,7 +47,9 @@ const tools: { icon: string; title: string; action: () => void }[] = [
 </script>
 
 <template>
-  <div class="overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-900/5">
+  <div
+    class="overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-slate-400 focus-within:ring-4 focus-within:ring-slate-900/5"
+  >
     <div class="flex flex-wrap gap-0.5 border-b border-slate-100 bg-slate-50 p-1" role="toolbar" :aria-label="$t('Formatting')">
       <button
         v-for="t in tools"

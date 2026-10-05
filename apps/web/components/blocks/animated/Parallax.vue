@@ -88,7 +88,13 @@ onBeforeUnmount(() => {
     ref="root"
     class="relative isolate w-full overflow-hidden text-white"
     :class="p.height === 'tall' ? 'h-[80dvh] min-h-[480px]' : 'h-[100dvh] min-h-[560px]'"
-    style="background: linear-gradient(to bottom, color-mix(in srgb, var(--c-dark) 85%, var(--c-primary)), color-mix(in srgb, var(--c-primary) 70%, white))"
+    style="
+      background: linear-gradient(
+        to bottom,
+        color-mix(in srgb, var(--c-dark) 85%, var(--c-primary)),
+        color-mix(in srgb, var(--c-primary) 70%, white)
+      );
+    "
     @pointermove="onPointer"
   >
     <template v-for="(group, g) in [backLayers, frontLayers]" :key="g">
@@ -111,7 +117,10 @@ onBeforeUnmount(() => {
             <path :d="HILLS[(g === 0 ? 0 : j + 1) % HILLS.length]" :fill="HILL_COLORS[(g === 0 ? 0 : j + 1) % HILL_COLORS.length]" />
           </svg>
           <!-- The hill's color continues below it, so moving layers never show a gap at the bottom -->
-          <div class="absolute inset-x-0 bottom-0 h-[20%]" :style="{ background: HILL_COLORS[(g === 0 ? 0 : j + 1) % HILL_COLORS.length] }" />
+          <div
+            class="absolute inset-x-0 bottom-0 h-[20%]"
+            :style="{ background: HILL_COLORS[(g === 0 ? 0 : j + 1) % HILL_COLORS.length] }"
+          />
         </template>
       </div>
 

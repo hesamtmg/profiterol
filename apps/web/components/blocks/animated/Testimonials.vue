@@ -42,8 +42,15 @@ watch(count, (n) => {
 </script>
 
 <template>
-  <section class="relative overflow-hidden bg-dark px-6 py-20 text-white @3xl:px-16 @3xl:py-32" @mouseenter="paused = true" @mouseleave="paused = false">
-    <div class="pointer-events-none absolute -left-32 top-1/3 h-96 w-96 rounded-full bg-primary opacity-20 blur-[120px]" aria-hidden="true" />
+  <section
+    class="relative overflow-hidden bg-dark px-6 py-20 text-white @3xl:px-16 @3xl:py-32"
+    @mouseenter="paused = true"
+    @mouseleave="paused = false"
+  >
+    <div
+      class="pointer-events-none absolute -left-32 top-1/3 h-96 w-96 rounded-full bg-primary opacity-20 blur-[120px]"
+      aria-hidden="true"
+    />
     <div class="relative mx-auto max-w-4xl text-center">
       <h2 v-if="p.title || editing" class="mb-10 text-sm font-semibold uppercase tracking-[0.3em] text-primary">
         <EditableText :value="p.title" path="title" placeholder="Title" />
@@ -63,8 +70,15 @@ watch(count, (n) => {
               <EditableText :value="current.quote" :path="`items.${active}.quote`" multiline />
             </blockquote>
             <figcaption class="mt-10 flex items-center justify-center gap-4">
-              <img v-if="current.photo" :src="current.photo" alt="" class="h-14 w-14 rounded-full object-cover ring-2 ring-primary ring-offset-4 ring-offset-dark" />
-              <span v-else class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold">{{ initials(current.name) }}</span>
+              <img
+                v-if="current.photo"
+                :src="current.photo"
+                alt=""
+                class="h-14 w-14 rounded-full object-cover ring-2 ring-primary ring-offset-4 ring-offset-dark"
+              />
+              <span v-else class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-lg font-bold">{{
+                initials(current.name)
+              }}</span>
               <span class="text-start">
                 <span class="block font-semibold"><EditableText :value="current.name" :path="`items.${active}.name`" /></span>
                 <span class="block text-sm opacity-60"><EditableText :value="current.role" :path="`items.${active}.role`" /></span>

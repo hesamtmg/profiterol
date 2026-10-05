@@ -25,10 +25,13 @@ const props = defineProps<{
 
 const fa = computed(() => props.locale === 'fa');
 const { editing, values, website, sending, sent, errors, submit } = useBlockForm(props);
-const words = computed(() => String(props.p.title ?? '').split(/\s+/).filter(Boolean));
+const words = computed(() =>
+  String(props.p.title ?? '')
+    .split(/\s+/)
+    .filter(Boolean),
+);
 
-const inputClass =
-  'w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all duration-300 focus:ring-2 @3xl:px-4 @3xl:py-2.5';
+const inputClass = 'w-full rounded-lg border px-3 py-2 text-sm outline-none transition-all duration-300 focus:ring-2 @3xl:px-4 @3xl:py-2.5';
 const inputStyle = {
   background: 'rgb(255 255 255 / 0.2)',
   borderColor: 'color-mix(in srgb, var(--c-primary) 70%, transparent)',
@@ -60,13 +63,23 @@ const inputStyle = {
 
       <ul v-if="p.address || p.email || p.phone || editing" class="w-full max-w-2xl space-y-1 text-xs @3xl:text-base">
         <li v-if="p.address || editing" class="flex items-start gap-2">
-          <i class="mdi mdi-map-marker-outline text-primary" /><EditableText :value="p.address" path="address" placeholder="Address" multiline />
+          <i class="mdi mdi-map-marker-outline text-primary" /><EditableText
+            :value="p.address"
+            path="address"
+            placeholder="Address"
+            multiline
+          />
         </li>
         <li v-if="p.email" class="flex items-center gap-2">
           <i class="mdi mdi-email-outline text-primary" /><a :href="`mailto:${p.email}`" dir="ltr" class="hover:underline">{{ p.email }}</a>
         </li>
         <li v-if="p.phone" class="flex items-center gap-2">
-          <i class="mdi mdi-phone-outline text-primary" /><a :href="`tel:${p.phone.replace(/\s/g, '')}`" dir="ltr" class="hover:underline">{{ p.phone }}</a>
+          <i class="mdi mdi-phone-outline text-primary" /><a
+            :href="`tel:${p.phone.replace(/\s/g, '')}`"
+            dir="ltr"
+            class="hover:underline"
+            >{{ p.phone }}</a
+          >
         </li>
       </ul>
 
@@ -77,7 +90,9 @@ const inputStyle = {
           class="glass flex w-full max-w-2xl flex-col items-center gap-3 rounded-xl px-6 py-10 text-center"
           role="status"
         >
-          <span class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-2xl text-white"><i class="mdi mdi-check" /></span>
+          <span class="flex h-14 w-14 items-center justify-center rounded-full bg-primary text-2xl text-white"
+            ><i class="mdi mdi-check"
+          /></span>
           <p class="font-semibold">{{ sent }}</p>
         </div>
 
@@ -138,7 +153,11 @@ const inputStyle = {
             <label>Website <input v-model="website" type="text" tabindex="-1" autocomplete="off" /></label>
           </div>
 
-          <ul v-if="errors.length" class="mx-1 mt-3 space-y-1 rounded-lg border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
+          <ul
+            v-if="errors.length"
+            class="mx-1 mt-3 space-y-1 rounded-lg border-2 border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700"
+            role="alert"
+          >
             <li v-for="e in errors" :key="e">{{ e }}</li>
           </ul>
 

@@ -25,7 +25,11 @@ const editing = Boolean(useBlockEditing());
 const reduced = useReducedMotion();
 const root = ref<HTMLElement | null>(null);
 const dark = computed(() => props.p.look !== 'light');
-const titleWords = computed(() => String(props.p.title ?? '').split(/\s+/).filter(Boolean));
+const titleWords = computed(() =>
+  String(props.p.title ?? '')
+    .split(/\s+/)
+    .filter(Boolean),
+);
 const changing = computed(() =>
   String(props.p.words ?? '')
     .split(/[,،]/)
@@ -81,7 +85,10 @@ onBeforeUnmount(() => {
       <div
         class="motion-safe-only absolute -right-[15%] top-[10%] h-[55vmax] w-[55vmax] rounded-full opacity-50 blur-[100px]"
         :class="{ 'mix-blend-screen': dark }"
-        :style="{ background: `radial-gradient(circle, ${p.color || '#7c5cff'}, transparent 65%)`, animation: 'aurora-b 26s ease-in-out infinite' }"
+        :style="{
+          background: `radial-gradient(circle, ${p.color || '#7c5cff'}, transparent 65%)`,
+          animation: 'aurora-b 26s ease-in-out infinite',
+        }"
       />
       <div
         class="motion-safe-only absolute -bottom-[30%] left-[25%] h-[50vmax] w-[50vmax] rounded-full opacity-50 blur-[90px]"
@@ -124,7 +131,10 @@ onBeforeUnmount(() => {
         <EditableText v-if="editing" :value="p.title" path="title" />
         <template v-else>
           <template v-for="(w, i) in titleWords" :key="i">
-            <span class="inline-block" :style="{ animation: `word-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) ${150 + i * 110}ms both` }">{{ w }}</span>{{ ' ' }}
+            <span class="inline-block" :style="{ animation: `word-rise 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) ${150 + i * 110}ms both` }">{{
+              w
+            }}</span
+            >{{ ' ' }}
           </template>
         </template>
         <span v-if="changing.length" class="relative inline-block">
@@ -141,7 +151,8 @@ onBeforeUnmount(() => {
               :key="word"
               class="text-shimmer inline-block pb-[0.1em]"
               :style="{ animationDelay: `${150 + titleWords.length * 110}ms` }"
-            >{{ word }}</span>
+              >{{ word }}</span
+            >
           </Transition>
         </span>
       </h1>
@@ -157,14 +168,20 @@ onBeforeUnmount(() => {
         <EditableText :value="p.text" path="text" multiline />
       </p>
 
-      <div class="mt-10 flex flex-wrap items-center justify-center gap-3" :style="{ animation: `word-rise 0.9s ease-out ${450 + titleWords.length * 110}ms both` }">
+      <div
+        class="mt-10 flex flex-wrap items-center justify-center gap-3"
+        :style="{ animation: `word-rise 0.9s ease-out ${450 + titleWords.length * 110}ms both` }"
+      >
         <a
           v-if="p.buttonLabel"
           :href="editing ? undefined : resolveHref(p.buttonLink, locale)"
           class="group relative inline-flex items-center gap-2 overflow-hidden rounded-[var(--radius-button)] bg-primary px-7 py-3.5 text-sm font-semibold text-white shadow-[0_10px_40px_-10px_var(--c-primary)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_50px_-10px_var(--c-primary)]"
         >
           <!-- A shine sweeping across on hover -->
-          <span class="absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-white/30 transition-all duration-700 group-hover:left-[120%]" aria-hidden="true" />
+          <span
+            class="absolute inset-y-0 -left-1/2 w-1/3 -skew-x-12 bg-white/30 transition-all duration-700 group-hover:left-[120%]"
+            aria-hidden="true"
+          />
           <EditableText :value="p.buttonLabel" path="buttonLabel" />
           <i class="mdi mdi-arrow-right transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
         </a>
@@ -180,7 +197,10 @@ onBeforeUnmount(() => {
     </div>
 
     <!-- Scroll cue -->
-    <div class="pointer-events-none absolute bottom-6 left-1/2 flex h-10 w-6 -translate-x-1/2 justify-center rounded-full border-2 border-current opacity-40" aria-hidden="true">
+    <div
+      class="pointer-events-none absolute bottom-6 left-1/2 flex h-10 w-6 -translate-x-1/2 justify-center rounded-full border-2 border-current opacity-40"
+      aria-hidden="true"
+    >
       <span class="motion-safe-only mt-1.5 h-2 w-1 animate-bounce rounded-full bg-current" />
     </div>
   </section>

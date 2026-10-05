@@ -55,7 +55,9 @@ watch(() => [props.p.collection, props.p.limit, props.p.tag, props.locale], load
       <div v-if="!embedded" class="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h2 class="text-2xl font-black @3xl:text-4xl"><EditableText :value="p.title" path="title" /></h2>
-          <p v-if="p.subtitle || editing" class="mt-2 max-w-2xl text-sm font-extralight text-muted @3xl:text-lg"><EditableText :value="p.subtitle" path="subtitle" multiline placeholder="Subtitle" /></p>
+          <p v-if="p.subtitle || editing" class="mt-2 max-w-2xl text-sm font-extralight text-muted @3xl:text-lg">
+            <EditableText :value="p.subtitle" path="subtitle" multiline placeholder="Subtitle" />
+          </p>
         </div>
         <a
           v-if="p.buttonLabel && list?.collection"
@@ -116,8 +118,12 @@ watch(() => [props.p.collection, props.p.limit, props.p.tag, props.locale], load
       <p v-if="list && !items.length" class="mt-8 rounded-[2rem] bg-slate-50 p-10 text-center text-sm font-extralight text-muted">
         {{
           list.collection
-            ? locale === 'fa' ? 'هنوز موردی منتشر نشده است.' : 'Nothing published here yet.'
-            : locale === 'fa' ? 'این مجموعه پیدا نشد.' : 'Choose a collection for this block.'
+            ? locale === 'fa'
+              ? 'هنوز موردی منتشر نشده است.'
+              : 'Nothing published here yet.'
+            : locale === 'fa'
+              ? 'این مجموعه پیدا نشد.'
+              : 'Choose a collection for this block.'
         }}
       </p>
     </div>

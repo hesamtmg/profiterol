@@ -31,7 +31,12 @@ useHead({ style: [{ innerHTML: () => fontFaceCss(fonts.value) }] });
 /** Suggest a name from the file, e.g. "Logotype-Bold.woff2" → "Logotype". */
 function onPick(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0];
-  if (file && !name.value) name.value = file.name.replace(/\.[^.]+$/, '').split(/[-_ ]/)[0].replace(/[^\p{L}\p{N} ]/gu, '').slice(0, 40);
+  if (file && !name.value)
+    name.value = file.name
+      .replace(/\.[^.]+$/, '')
+      .split(/[-_ ]/)[0]
+      .replace(/[^\p{L}\p{N} ]/gu, '')
+      .slice(0, 40);
 }
 
 async function add() {
@@ -66,7 +71,12 @@ const weightLabel = (w: number) => translate(WEIGHTS.find(([v]) => v === w)?.[1]
       <div v-for="font in fonts" :key="font.name" class="rounded-2xl bg-slate-50 p-4">
         <div class="flex items-baseline justify-between gap-3">
           <p class="truncate text-2xl" :style="{ fontFamily: `'${font.name}', system-ui` }">{{ font.name }} · Aa Bb · سلام ۱۲۳</p>
-          <button type="button" class="btn-icon shrink-0 hover:!text-red-600" :aria-label="`Remove ${font.name}`" @click="fonts = fonts.filter((f) => f !== font)">
+          <button
+            type="button"
+            class="btn-icon shrink-0 hover:!text-red-600"
+            :aria-label="`Remove ${font.name}`"
+            @click="fonts = fonts.filter((f) => f !== font)"
+          >
             <i class="mdi mdi-delete-outline" />
           </button>
         </div>
@@ -78,15 +88,31 @@ const weightLabel = (w: number) => translate(WEIGHTS.find(([v]) => v === w)?.[1]
             :style="{ fontFamily: `'${font.name}', system-ui`, fontWeight: file.weight, fontStyle: file.style }"
           >
             {{ weightLabel(file.weight) }}{{ file.style === 'italic' ? ' italic' : '' }}
-            <button type="button" class="text-slate-400 hover:text-red-600" :aria-label="$t('Remove this file')" @click="removeFile(font, file.url)"><i class="mdi mdi-close" /></button>
+            <button
+              type="button"
+              class="text-slate-400 hover:text-red-600"
+              :aria-label="$t('Remove this file')"
+              @click="removeFile(font, file.url)"
+            >
+              <i class="mdi mdi-close" />
+            </button>
           </span>
         </div>
       </div>
     </div>
-    <p v-else class="text-xs text-slate-400">{{ $t('No fonts yet. Upload one file per weight; the same name groups them into one font.') }}</p>
+    <p v-else class="text-xs text-slate-400">
+      {{ $t('No fonts yet. Upload one file per weight; the same name groups them into one font.') }}
+    </p>
 
     <div class="mt-4 grid gap-2 sm:grid-cols-[1fr_9rem_7rem]">
-      <input ref="input" type="file" accept=".woff2,.woff,.ttf,.otf" class="input sm:col-span-3" :aria-label="$t('Font file')" @change="onPick" />
+      <input
+        ref="input"
+        type="file"
+        accept=".woff2,.woff,.ttf,.otf"
+        class="input sm:col-span-3"
+        :aria-label="$t('Font file')"
+        @change="onPick"
+      />
       <input v-model="name" class="input" :placeholder="$t('Font name, e.g. Logotype')" :aria-label="$t('Font name')" />
       <select v-model.number="weight" class="input" :aria-label="$t('Weight')">
         <option v-for="[v, label] in WEIGHTS" :key="v" :value="v">{{ v }} {{ $t(label) }}</option>

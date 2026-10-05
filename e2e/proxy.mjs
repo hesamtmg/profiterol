@@ -6,7 +6,13 @@ http
   .createServer((req, res) => {
     const target = /^\/(api|uploads)\//.test(req.url) ? 3001 : 3000;
     const up = http.request(
-      { host: '127.0.0.1', port: target, path: req.url, method: req.method, headers: { ...req.headers, 'x-forwarded-host': req.headers.host } },
+      {
+        host: '127.0.0.1',
+        port: target,
+        path: req.url,
+        method: req.method,
+        headers: { ...req.headers, 'x-forwarded-host': req.headers.host },
+      },
       (r) => {
         res.writeHead(r.statusCode, r.headers);
         r.pipe(res);

@@ -65,7 +65,9 @@ useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, di
           <a href="/" target="_blank" class="hidden whitespace-nowrap text-slate-500 hover:text-slate-900 sm:inline">
             <i class="mdi mdi-open-in-new" /> {{ $t('View site') }}
           </a>
-          <NuxtLink to="/admin/account" class="hidden text-slate-400 hover:text-slate-900 md:inline" :title="$t('Your account')">{{ user?.email }}</NuxtLink>
+          <NuxtLink to="/admin/account" class="hidden text-slate-400 hover:text-slate-900 md:inline" :title="$t('Your account')">{{
+            user?.email
+          }}</NuxtLink>
           <button type="button" class="whitespace-nowrap rounded-full px-3 py-1.5 text-slate-500 hover:bg-slate-100" @click="logout">
             <i class="mdi mdi-logout" /> {{ $t('Log out') }}
           </button>

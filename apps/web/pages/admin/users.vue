@@ -88,7 +88,9 @@ onMounted(refresh);
           {{ $t('Admins can change everything, including settings and users. Editors can edit pages, collections, media and the inbox.') }}
         </p>
       </div>
-      <button type="button" class="btn-dark" @click="showInvite = !showInvite"><i class="mdi mdi-account-plus-outline" /> {{ $t('Invite someone') }}</button>
+      <button type="button" class="btn-dark" @click="showInvite = !showInvite">
+        <i class="mdi mdi-account-plus-outline" /> {{ $t('Invite someone') }}
+      </button>
     </div>
 
     <form v-if="showInvite" class="mt-6 rounded-[2rem] bg-white p-7 shadow-sm" @submit.prevent="sendInvite">
@@ -118,14 +120,29 @@ onMounted(refresh);
 
     <div v-if="shared" class="mt-6 rounded-[2rem] bg-emerald-50 p-6 text-sm text-emerald-900 ring-1 ring-emerald-200" role="status">
       <p class="font-semibold">
-        {{ shared.kind === 'invite' ? $t('Account created for {email}.', { email: shared.email }) : $t('New password link for {email}.', { email: shared.email }) }}
+        {{
+          shared.kind === 'invite'
+            ? $t('Account created for {email}.', { email: shared.email })
+            : $t('New password link for {email}.', { email: shared.email })
+        }}
         <template v-if="shared.emailed">{{ $t('We emailed them this link.') }}</template>
         <template v-else>{{ $t('Send them this link; it works once.') }}</template>
       </p>
       <div class="mt-3 flex gap-2">
-        <input :value="shared.link" readonly class="input min-w-0 flex-1 text-xs" dir="ltr" aria-label="Link" @focus="($event.target as HTMLInputElement).select()" />
-        <button type="button" class="btn-light shrink-0" @click="copy"><i class="mdi" :class="copied ? 'mdi-check' : 'mdi-content-copy'" /> {{ $t(copied ? 'Copied' : 'Copy') }}</button>
-        <button type="button" class="btn-light shrink-0 !px-3" :title="$t('Close')" @click="shared = null"><i class="mdi mdi-close" /></button>
+        <input
+          :value="shared.link"
+          readonly
+          class="input min-w-0 flex-1 text-xs"
+          dir="ltr"
+          aria-label="Link"
+          @focus="($event.target as HTMLInputElement).select()"
+        />
+        <button type="button" class="btn-light shrink-0" @click="copy">
+          <i class="mdi" :class="copied ? 'mdi-check' : 'mdi-content-copy'" /> {{ $t(copied ? 'Copied' : 'Copy') }}
+        </button>
+        <button type="button" class="btn-light shrink-0 !px-3" :title="$t('Close')" @click="shared = null">
+          <i class="mdi mdi-close" />
+        </button>
       </div>
     </div>
 
@@ -146,7 +163,9 @@ onMounted(refresh);
         <tbody>
           <tr v-for="u in users" :key="u.id" class="border-t border-slate-100" :class="{ 'opacity-50': !u.active }" :data-email="u.email">
             <td class="px-6 py-4">
-              <p class="font-semibold">{{ u.name || '—' }} <span v-if="u.id === me?.id" class="text-xs font-normal text-slate-400">({{ $t('you') }})</span></p>
+              <p class="font-semibold">
+                {{ u.name || '—' }} <span v-if="u.id === me?.id" class="text-xs font-normal text-slate-400">({{ $t('you') }})</span>
+              </p>
               <p class="text-xs text-slate-500" dir="ltr">{{ u.email }}</p>
             </td>
             <td class="px-3 py-4">
@@ -164,23 +183,42 @@ onMounted(refresh);
             <td class="hidden px-3 py-4 text-xs text-slate-500 md:table-cell">{{ date(u.lastLoginAt) }}</td>
             <td class="px-3 py-4 text-xs">
               <span v-if="!u.active" class="rounded-full bg-slate-100 px-2 py-0.5 text-slate-500">{{ $t('Deactivated') }}</span>
-              <span v-else-if="u.locked" class="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800" :title="$t('Too many wrong passwords. Unlocks by itself after 15 minutes, or when reactivated.')">{{ $t('Locked') }}</span>
+              <span
+                v-else-if="u.locked"
+                class="rounded-full bg-amber-100 px-2 py-0.5 text-amber-800"
+                :title="$t('Too many wrong passwords. Unlocks by itself after 15 minutes, or when reactivated.')"
+                >{{ $t('Locked') }}</span
+              >
               <span v-else-if="!u.lastLoginAt" class="rounded-full bg-sky-100 px-2 py-0.5 text-sky-800">{{ $t('Invited') }}</span>
               <span v-else class="rounded-full bg-emerald-100 px-2 py-0.5 text-emerald-800">{{ $t('Active') }}</span>
             </td>
             <td class="px-6 py-4 text-end">
               <div v-if="u.id !== me?.id" class="flex justify-end gap-1">
-                <button type="button" class="btn-light !px-3 !py-1.5 text-xs" :disabled="busy || !u.active" :title="$t('Make a new password link')" @click="resetLink(u)">
+                <button
+                  type="button"
+                  class="btn-light !px-3 !py-1.5 text-xs"
+                  :disabled="busy || !u.active"
+                  :title="$t('Make a new password link')"
+                  @click="resetLink(u)"
+                >
                   <i class="mdi mdi-key-outline" /><span class="hidden lg:inline"> {{ $t('Password link') }}</span>
                 </button>
-                <button v-if="u.active" type="button" class="btn-light !px-3 !py-1.5 text-xs" :disabled="busy" @click="update(u, { active: false })">
+                <button
+                  v-if="u.active"
+                  type="button"
+                  class="btn-light !px-3 !py-1.5 text-xs"
+                  :disabled="busy"
+                  @click="update(u, { active: false })"
+                >
                   {{ $t('Deactivate') }}
                 </button>
                 <button v-else type="button" class="btn-light !px-3 !py-1.5 text-xs" :disabled="busy" @click="update(u, { active: true })">
                   {{ $t('Reactivate') }}
                 </button>
               </div>
-              <NuxtLink v-else to="/admin/account" class="text-xs text-[#00a998] hover:underline">{{ $t('Change your password') }}</NuxtLink>
+              <NuxtLink v-else to="/admin/account" class="text-xs text-[#00a998] hover:underline">{{
+                $t('Change your password')
+              }}</NuxtLink>
             </td>
           </tr>
         </tbody>

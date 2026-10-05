@@ -66,9 +66,17 @@ const num = (n: number) => (fa.value ? new Intl.NumberFormat('fa-IR', { minimumI
       class="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex items-center justify-between gap-2 px-4 @3xl:bottom-6 @3xl:px-10"
       :aria-label="fa ? 'بخش‌های صفحه' : 'Page sections'"
     >
-      <p class="section-pill pointer-events-auto flex h-[46px] min-w-0 items-center gap-3 rounded-full px-5 text-sm @3xl:px-8 @3xl:text-base">
+      <p
+        class="section-pill pointer-events-auto flex h-[46px] min-w-0 items-center gap-3 rounded-full px-5 text-sm @3xl:px-8 @3xl:text-base"
+      >
         <span class="font-mono text-xs opacity-70">{{ num(current + 1) }} / {{ num(sections.length) }}</span>
-        <Transition mode="out-in" enter-active-class="transition duration-300" enter-from-class="opacity-0 translate-y-2" leave-active-class="transition duration-150" leave-to-class="opacity-0">
+        <Transition
+          mode="out-in"
+          enter-active-class="transition duration-300"
+          enter-from-class="opacity-0 translate-y-2"
+          leave-active-class="transition duration-150"
+          leave-to-class="opacity-0"
+        >
           <span :key="current" class="truncate font-light">{{ sections[current]?.title }}</span>
         </Transition>
       </p>
@@ -95,7 +103,10 @@ const num = (n: number) => (fa.value ? new Intl.NumberFormat('fa-IR', { minimumI
     </nav>
 
     <!-- Dots at the side -->
-    <ol class="fixed end-4 top-1/2 z-50 hidden -translate-y-1/2 flex-col gap-2.5 @3xl:flex" :aria-label="fa ? 'رفتن به بخش' : 'Go to section'">
+    <ol
+      class="fixed end-4 top-1/2 z-50 hidden -translate-y-1/2 flex-col gap-2.5 @3xl:flex"
+      :aria-label="fa ? 'رفتن به بخش' : 'Go to section'"
+    >
       <li v-for="(s, i) in sections" :key="i">
         <button
           type="button"

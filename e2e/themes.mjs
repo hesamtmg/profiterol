@@ -62,7 +62,11 @@ check('glass header everywhere with AMSR Night', (await contact.locator('header 
 
 // Contact page gets its own theme
 await ed.goto(`${BASE}/admin`, { waitUntil: 'networkidle' });
-await ed.locator('article').filter({ has: ed.getByText('Contact', { exact: true }) }).getByText('Edit').click();
+await ed
+  .locator('article')
+  .filter({ has: ed.getByText('Contact', { exact: true }) })
+  .getByText('Edit')
+  .click();
 await ed.waitForSelector('main [id^=blk-]');
 await ed.click('aside >> text=Design');
 await ed.click('button:has-text("Its own theme")');
@@ -84,7 +88,10 @@ check('page theme is a draft until published', (await cssVar(contact, '--c-backg
 await ed.click('header button:has-text("Publish")');
 await ed.waitForSelector('header >> text=Live', { timeout: 15000 });
 await contact.reload({ waitUntil: 'networkidle' });
-check('published page theme is live', (await cssVar(contact, '--c-background')) === '#c49a6c' && (await cssVar(contact, '--font-en')).includes('Playfair'));
+check(
+  'published page theme is live',
+  (await cssVar(contact, '--c-background')) === '#c49a6c' && (await cssVar(contact, '--font-en')).includes('Playfair'),
+);
 check('its fonts are loaded', (await contact.locator('link[href*="Playfair+Display"]').count()) === 1);
 await contact.screenshot({ path: out + 'contact-sand.png' });
 await desk.reload({ waitUntil: 'networkidle' });
@@ -92,7 +99,10 @@ check('other pages keep the site theme', (await cssVar(desk, '--c-background')) 
 
 // ---------- Site settings uses the same theme editor ----------
 await ed.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle' });
-check('settings shows AMSR Night as the current site theme', (await ed.locator('button[title="Use the AMSR Night theme"].ring-sky-500').count()) === 1);
+check(
+  'settings shows AMSR Night as the current site theme',
+  (await ed.locator('button[title="Use the AMSR Night theme"].ring-sky-500').count()) === 1,
+);
 await ed.screenshot({ path: out + 'settings-theme.png', fullPage: true });
 
 await browser.close();

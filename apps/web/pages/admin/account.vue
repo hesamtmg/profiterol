@@ -46,7 +46,9 @@ async function save() {
       <label class="field-label mt-4" for="pw-repeat">{{ $t('New password again') }}</label>
       <input id="pw-repeat" v-model="form.repeat" type="password" class="input" autocomplete="new-password" required />
       <p v-if="error" class="mt-4 whitespace-pre-line rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
-      <p v-if="done" class="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">{{ $t('Password changed.') }}</p>
+      <p v-if="done" class="mt-4 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
+        {{ $t('Password changed.') }}
+      </p>
       <button type="submit" class="btn-dark mt-6" :disabled="busy">{{ $t('Change password') }}</button>
     </form>
   </div>

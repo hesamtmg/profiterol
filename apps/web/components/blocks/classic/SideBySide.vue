@@ -23,19 +23,34 @@ const props = defineProps<{
 
 const editing = Boolean(useBlockEditing());
 const dir = computed(() => getLocale(props.locale)?.dir ?? 'ltr');
-const labelWords = computed(() => String(props.p.smallTitle ?? '').split(/\s+/).filter(Boolean));
+const labelWords = computed(() =>
+  String(props.p.smallTitle ?? '')
+    .split(/\s+/)
+    .filter(Boolean),
+);
 </script>
 
 <template>
   <section class="flex w-full flex-col overflow-x-clip bg-surface text-ink @3xl:min-h-[80dvh] @3xl:flex-row" dir="ltr">
-    <div v-reveal="{ from: p.imageSide === 'left' ? 'left' : 'right' }" class="relative h-80 @3xl:h-auto @3xl:w-1/2" :class="{ '@3xl:order-2': p.imageSide !== 'left' }">
-      <ResponsiveImg v-if="p.image || p.mobileImage" :src="p.image" :mobile="p.mobileImage" img-class="absolute inset-0 h-full w-full object-cover" />
+    <div
+      v-reveal="{ from: p.imageSide === 'left' ? 'left' : 'right' }"
+      class="relative h-80 @3xl:h-auto @3xl:w-1/2"
+      :class="{ '@3xl:order-2': p.imageSide !== 'left' }"
+    >
+      <ResponsiveImg
+        v-if="p.image || p.mobileImage"
+        :src="p.image"
+        :mobile="p.mobileImage"
+        img-class="absolute inset-0 h-full w-full object-cover"
+      />
       <div v-else class="photo-placeholder absolute inset-0" />
     </div>
 
     <div class="flex flex-col items-center justify-center gap-2 px-2 py-10 @3xl:w-1/2 @3xl:p-4" :dir="dir">
       <div v-reveal class="flex w-full items-center justify-center gap-2 text-center @3xl:pt-10">
-        <h3 class="text-5xl font-medium @3xl:text-6xl @5xl:text-7xl"><EditableText :value="p.bigTitle" path="bigTitle" placeholder="12" /></h3>
+        <h3 class="text-5xl font-medium @3xl:text-6xl @5xl:text-7xl">
+          <EditableText :value="p.bigTitle" path="bigTitle" placeholder="12" />
+        </h3>
         <div v-if="editing" class="text-start text-base @3xl:text-xl">
           <EditableText :value="p.smallTitle" path="smallTitle" placeholder="Two words" />
         </div>

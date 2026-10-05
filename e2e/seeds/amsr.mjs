@@ -25,18 +25,32 @@ const spotlight = (lang) => ({
       person({
         name: lang === 'en' ? 'Ali Mazaheri' : 'علی مظاهری',
         headline: lang === 'en' ? 'Customs and Clearance' : 'امور گمرکی و ترخیص کالا',
-        text: lang === 'en' ? 'A professional group in the field of goods clearance and import, relying on experience and technical knowledge' : 'گروه‌ای حرفه‌ای در حوزه ترخیص کالا و واردات با تکیه بر تجربه و دانش فنی متخصصان و مدیران با تجربه گمرک',
-        photo: img.ali, mobilePhoto: img.aliMob, cardPhoto: img.aliCard,
+        text:
+          lang === 'en'
+            ? 'A professional group in the field of goods clearance and import, relying on experience and technical knowledge'
+            : 'گروه‌ای حرفه‌ای در حوزه ترخیص کالا و واردات با تکیه بر تجربه و دانش فنی متخصصان و مدیران با تجربه گمرک',
+        photo: img.ali,
+        mobilePhoto: img.aliMob,
+        cardPhoto: img.aliCard,
         cardLogo: lang === 'en' ? img.aliLogoEn : img.aliLogoFa,
-        color: '#00a998', buttonLabel: lang === 'en' ? 'Contact Us' : 'تماس بگیرید', buttonLink: 'tel:+989128158328',
+        color: '#00a998',
+        buttonLabel: lang === 'en' ? 'Contact Us' : 'تماس بگیرید',
+        buttonLink: 'tel:+989128158328',
       }),
       person({
         name: lang === 'en' ? 'Sanaz Riazi' : 'ساناز ریاضی',
         headline: lang === 'en' ? 'Customs and Clearance' : 'امور گمرکی و ترخیص کالا',
-        text: lang === 'en' ? 'A professional group in the field of goods clearance and import, relying on experience and technical knowledge' : 'گروه‌ای حرفه‌ای در حوزه ترخیص کالا و واردات با تکیه بر تجربه و دانش فنی متخصصان و مدیران با تجربه گمرک',
-        photo: img.sanaz, mobilePhoto: img.sanazMob, cardPhoto: img.sanazCard,
+        text:
+          lang === 'en'
+            ? 'A professional group in the field of goods clearance and import, relying on experience and technical knowledge'
+            : 'گروه‌ای حرفه‌ای در حوزه ترخیص کالا و واردات با تکیه بر تجربه و دانش فنی متخصصان و مدیران با تجربه گمرک',
+        photo: img.sanaz,
+        mobilePhoto: img.sanazMob,
+        cardPhoto: img.sanazCard,
         cardLogo: lang === 'en' ? img.sanazLogoEn : img.sanazLogoFa,
-        color: '#c49a6c', buttonLabel: lang === 'en' ? 'Contact Us' : 'تماس بگیرید', buttonLink: 'tel:+989126164436',
+        color: '#c49a6c',
+        buttonLabel: lang === 'en' ? 'Contact Us' : 'تماس بگیرید',
+        buttonLink: 'tel:+989126164436',
       }),
     ],
     marquee: 'SUPER FAST CLEARANCE IS OUR KEY POWER',
@@ -44,7 +58,13 @@ const spotlight = (lang) => ({
     scrollHint: true,
   },
 });
-const page = await (await fetch(`${API}/admin/pages`, { method: 'POST', headers: { ...auth, 'content-type': 'application/json' }, body: JSON.stringify({ name: 'AMSR' }) })).json();
+const page = await (
+  await fetch(`${API}/admin/pages`, {
+    method: 'POST',
+    headers: { ...auth, 'content-type': 'application/json' },
+    body: JSON.stringify({ name: 'AMSR' }),
+  })
+).json();
 const upd = await fetch(`${API}/admin/pages/${page.id}`, {
   method: 'PATCH',
   headers: { ...auth, 'content-type': 'application/json' },

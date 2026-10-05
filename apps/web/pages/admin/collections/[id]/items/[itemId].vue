@@ -33,7 +33,10 @@ const coverField: FieldDef = { key: 'cover', label: 'Cover image', type: 'image'
 const tagsText = computed({
   get: () => current.value?.tags.join(', ') ?? '',
   set: (v: string) => {
-    current.value.tags = v.split(/[,،]/).map((t) => t.trim()).filter(Boolean);
+    current.value.tags = v
+      .split(/[,،]/)
+      .map((t) => t.trim())
+      .filter(Boolean);
   },
 });
 
@@ -43,7 +46,8 @@ function fromItem(i: AdminItem) {
   for (const l of locales) {
     const t = i.translations.find((x) => x.locale === l.code);
     const data: Record<string, unknown> = {};
-    for (const f of collection.value?.fields ?? []) data[f.key] = t?.data?.[f.key] ?? (f.type === 'list' ? [] : f.type === 'number' ? 0 : f.type === 'boolean' ? false : '');
+    for (const f of collection.value?.fields ?? [])
+      data[f.key] = t?.data?.[f.key] ?? (f.type === 'list' ? [] : f.type === 'number' ? 0 : f.type === 'boolean' ? false : '');
     drafts[l.code] = {
       locale: l.code,
       title: t?.title ?? '',
@@ -172,7 +176,9 @@ onBeforeUnmount(() => {
         <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> {{ $t('Autosave') }}
       </label>
       <span class="text-xs text-slate-400">{{ $t(busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved') }}</span>
-      <a v-if="item.status === 'published'" :href="liveUrl" target="_blank" class="btn-light"><i class="mdi mdi-open-in-new" /> {{ $t('View') }}</a>
+      <a v-if="item.status === 'published'" :href="liveUrl" target="_blank" class="btn-light"
+        ><i class="mdi mdi-open-in-new" /> {{ $t('View') }}</a
+      >
       <button type="button" class="btn-light" :disabled="busy || !dirty" @click="save">{{ $t('Save') }}</button>
       <button
         v-if="item.status !== 'published'"
@@ -185,7 +191,9 @@ onBeforeUnmount(() => {
       </button>
       <button v-else type="button" class="btn-light" :disabled="busy" @click="setPublished(false)">{{ $t('Unpublish') }}</button>
     </div>
-    <p v-if="item.status === 'published'" class="mt-2 text-xs text-slate-400">{{ $t('Saved changes to a published item go live straight away.') }}</p>
+    <p v-if="item.status === 'published'" class="mt-2 text-xs text-slate-400">
+      {{ $t('Saved changes to a published item go live straight away.') }}
+    </p>
 
     <p
       v-if="message"
@@ -219,7 +227,8 @@ onBeforeUnmount(() => {
           <div>
             <label class="field-label" for="slug">{{ $t('Address') }}</label>
             <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-              <span class="shrink-0 whitespace-nowrap">/{{ locale }}/{{ collection.slugs[locale] }}/</span><input id="slug" v-model="current.slug" class="input text-xs" />
+              <span class="shrink-0 whitespace-nowrap">/{{ locale }}/{{ collection.slugs[locale] }}/</span
+              ><input id="slug" v-model="current.slug" class="input text-xs" />
             </div>
           </div>
           <div>
@@ -248,13 +257,7 @@ onBeforeUnmount(() => {
                 <i class="mdi mdi-content-duplicate" /> {{ $t('Copy from {lang}', { lang: l.label }) }}
               </button>
             </div>
-            <FieldInput
-              v-for="f in collection.fields"
-              :key="`${locale}-${f.key}`"
-              v-model="current.data[f.key]"
-              :field="f"
-              :dir="dir"
-            />
+            <FieldInput v-for="f in collection.fields" :key="`${locale}-${f.key}`" v-model="current.data[f.key]" :field="f" :dir="dir" />
           </div>
 
           <div>
@@ -289,7 +292,9 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <button type="button" class="btn-light w-full !text-red-600" @click="remove"><i class="mdi mdi-trash-can-outline" /> {{ $t('Delete item') }}</button>
+        <button type="button" class="btn-light w-full !text-red-600" @click="remove">
+          <i class="mdi mdi-trash-can-outline" /> {{ $t('Delete item') }}
+        </button>
       </aside>
     </div>
   </div>

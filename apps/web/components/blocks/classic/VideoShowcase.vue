@@ -123,7 +123,11 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section ref="root" class="relative flex w-full items-center justify-center overflow-hidden bg-surface px-5 py-20 @3xl:px-[12%] @3xl:py-32" dir="ltr">
+  <section
+    ref="root"
+    class="relative flex w-full items-center justify-center overflow-hidden bg-surface px-5 py-20 @3xl:px-[12%] @3xl:py-32"
+    dir="ltr"
+  >
     <!-- The glow: the same video, heavily blurred -->
     <video
       v-if="src"
@@ -162,7 +166,7 @@ onBeforeUnmount(() => {
         @timeupdate="current = video?.currentTime ?? 0"
         @loadedmetadata="readDuration"
         @durationchange="readDuration"
-        @volumechange="(volume = video?.volume ?? 1), (muted = video?.muted ?? false)"
+        @volumechange="((volume = video?.volume ?? 1), (muted = video?.muted ?? false))"
       />
       <div v-else class="photo-placeholder flex h-full w-full items-center justify-center text-white/80">
         <i class="mdi mdi-play-circle-outline text-7xl" />
@@ -227,7 +231,11 @@ onBeforeUnmount(() => {
               <button type="button" class="ctl" aria-label="Playback speed" :aria-expanded="speedMenu" @click="speedMenu = !speedMenu">
                 <i class="mdi mdi-play-speed" />
               </button>
-              <ul v-if="speedMenu" class="absolute bottom-11 left-1/2 w-24 -translate-x-1/2 overflow-hidden rounded bg-white py-1 text-sm text-black shadow-lg" role="menu">
+              <ul
+                v-if="speedMenu"
+                class="absolute bottom-11 left-1/2 w-24 -translate-x-1/2 overflow-hidden rounded bg-white py-1 text-sm text-black shadow-lg"
+                role="menu"
+              >
                 <li v-for="s in speeds" :key="s" role="none">
                   <button
                     type="button"

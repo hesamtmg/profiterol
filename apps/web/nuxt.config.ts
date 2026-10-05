@@ -8,13 +8,13 @@ import type { NodeTransform } from '@vue/compiler-core';
 const imgSrcset: NodeTransform = (node) => {
   if (node.type !== 1 || node.tag !== 'img') return;
   if (node.props.some((p) => p.name === 'srcset' || (p.type === 7 && p.arg?.type === 4 && p.arg.content === 'srcset'))) return;
-  const src = node.props.find((p) => (p.type === 6 && p.name === 'src') || (p.type === 7 && p.name === 'bind' && p.arg?.type === 4 && p.arg.content === 'src'));
+  const src = node.props.find(
+    (p) => (p.type === 6 && p.name === 'src') || (p.type === 7 && p.name === 'bind' && p.arg?.type === 4 && p.arg.content === 'src'),
+  );
   if (!src) return;
   // A bound src's expression has already been processed by Vue's own transforms, so it can be reused as is.
   const exp =
-    src.type === 7
-      ? src.exp
-      : { type: 4, content: JSON.stringify(src.value?.content ?? ''), isStatic: false, constType: 0, loc: src.loc };
+    src.type === 7 ? src.exp : { type: 4, content: JSON.stringify(src.value?.content ?? ''), isStatic: false, constType: 0, loc: src.loc };
   const lazy = node.props.some((p) => p.type === 6 && p.name === 'loading' && p.value?.content === 'lazy');
   const modifiers = lazy ? [{ type: 4, content: 'lazy', isStatic: true, constType: 3, loc: node.loc }] : [];
   node.props.push({ type: 7, name: 'srcset', exp, arg: undefined, modifiers, rawName: 'v-srcset', loc: node.loc } as never);

@@ -100,18 +100,26 @@ check('five new blocks added', (await blocks.count()) === 5);
 await blocks.nth(1).click({ position: { x: 300, y: 60 } });
 const slideImage = panel().locator('input[placeholder="Drop an image"]').first();
 await slideImage.dispatchEvent('drop', { dataTransfer: await fileTransfer(fixtures.cover, 'slide.png', 'image/png') });
-await page.waitForFunction(() => [...document.querySelectorAll('aside input')].some((i) => i.value.startsWith('/uploads/')), null, { timeout: 10000 });
+await page.waitForFunction(() => [...document.querySelectorAll('aside input')].some((i) => i.value.startsWith('/uploads/')), null, {
+  timeout: 10000,
+});
 
 // Gallery: three photos
 await blocks.nth(2).click({ position: { x: 300, y: 40 } });
 for (const file of ['cover-harbor.png', 'gallery-1.png', 'cover-harbor.png']) {
   await panel().locator('button:has-text("Add photo")').click();
   const field = panel().locator('input[placeholder="Drop an image"]').last();
-  await field.dispatchEvent('drop', { dataTransfer: await fileTransfer((file === 'gallery-1.png' ? fixtures.gallery : fixtures.cover), file, 'image/png') });
-  await page.waitForFunction(() => {
-    const inputs = [...document.querySelectorAll('aside input[placeholder="Drop an image"]')];
-    return inputs.length && inputs[inputs.length - 1].value.startsWith('/uploads/');
-  }, null, { timeout: 10000 });
+  await field.dispatchEvent('drop', {
+    dataTransfer: await fileTransfer(file === 'gallery-1.png' ? fixtures.gallery : fixtures.cover, file, 'image/png'),
+  });
+  await page.waitForFunction(
+    () => {
+      const inputs = [...document.querySelectorAll('aside input[placeholder="Drop an image"]')];
+      return inputs.length && inputs[inputs.length - 1].value.startsWith('/uploads/');
+    },
+    null,
+    { timeout: 10000 },
+  );
 }
 check('gallery shows 3 photos in the canvas', (await blocks.nth(2).locator('img').count()) === 3);
 
@@ -119,7 +127,10 @@ check('gallery shows 3 photos in the canvas', (await blocks.nth(2).locator('img'
 await blocks.nth(3).click({ position: { x: 300, y: 40 } });
 await panel().locator('label:has-text("YouTube") + input').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 await page.waitForTimeout(300);
-check('YouTube link becomes a privacy-friendly embed', (await blocks.nth(3).locator('iframe').getAttribute('src')) === 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ');
+check(
+  'YouTube link becomes a privacy-friendly embed',
+  (await blocks.nth(3).locator('iframe').getAttribute('src')) === 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+);
 await page.locator('main').click({ position: { x: 5, y: 5 } });
 await page.screenshot({ path: out + 'editor-new-blocks.png', fullPage: false });
 

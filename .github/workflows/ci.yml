@@ -20,7 +20,7 @@ jobs:
           POSTGRES_USER: profiterol
           POSTGRES_PASSWORD: profiterol
           POSTGRES_DB: profiterol
-        ports: ["5432:5432"]
+        ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U profiterol"
           --health-interval 5s

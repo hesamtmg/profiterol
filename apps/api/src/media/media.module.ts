@@ -179,7 +179,10 @@ export class MediaController {
       fileFilter: (_req, file, cb) =>
         extensionFor(file)
           ? cb(null, true)
-          : cb(new BadRequestException('Only JPG, PNG, WebP, GIF, AVIF, MP4, WebM and font (WOFF2, WOFF, TTF, OTF) files are allowed'), false),
+          : cb(
+              new BadRequestException('Only JPG, PNG, WebP, GIF, AVIF, MP4, WebM and font (WOFF2, WOFF, TTF, OTF) files are allowed'),
+              false,
+            ),
       // Files get a random name; the original name is only kept in the database.
       storage: diskStorage({
         destination: config.uploadDir,

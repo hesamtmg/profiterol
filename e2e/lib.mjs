@@ -55,7 +55,6 @@ export function finish() {
   if (failed || errors.length) process.exitCode = 1;
 }
 
-
 export async function launch() {
   const executablePath = process.env.CHROMIUM_PATH ?? (existsSync('/opt/pw-browsers/chromium') ? '/opt/pw-browsers/chromium' : undefined);
   const browser = await chromium.launch(executablePath ? { executablePath } : {});
@@ -145,7 +144,27 @@ export function testVideo() {
   const path = `${FIXTURES}clip.webm`;
   if (existsSync(path)) return path;
   try {
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'lavfi', '-i', 'testsrc2=size=1280x720:rate=24', '-t', '15', '-an', '-c:v', 'libvpx-vp9', '-b:v', '300k', '-deadline', 'realtime', '-cpu-used', '8', path]);
+    execFileSync('ffmpeg', [
+      '-y',
+      '-loglevel',
+      'error',
+      '-f',
+      'lavfi',
+      '-i',
+      'testsrc2=size=1280x720:rate=24',
+      '-t',
+      '15',
+      '-an',
+      '-c:v',
+      'libvpx-vp9',
+      '-b:v',
+      '300k',
+      '-deadline',
+      'realtime',
+      '-cpu-used',
+      '8',
+      path,
+    ]);
     return path;
   } catch {
     return null;
@@ -159,6 +178,11 @@ export const fixtures = {
   fakeFont: `${FIXTURES}fake.woff2`,
   font: new URL('../node_modules/@mdi/font/fonts/materialdesignicons-webfont.woff2', import.meta.url).pathname,
 };
-if (!existsSync(fixtures.cover)) writeFileSync(fixtures.cover, await photo({ width: 1400, height: 900, from: '#0f4c5c', to: '#00a998', label: 'Harbor', format: 'png' }));
-if (!existsSync(fixtures.gallery)) writeFileSync(fixtures.gallery, await photo({ width: 1200, height: 900, from: '#c49a6c', to: '#231f20', label: 'Studio', format: 'png' }));
+if (!existsSync(fixtures.cover))
+  writeFileSync(fixtures.cover, await photo({ width: 1400, height: 900, from: '#0f4c5c', to: '#00a998', label: 'Harbor', format: 'png' }));
+if (!existsSync(fixtures.gallery))
+  writeFileSync(
+    fixtures.gallery,
+    await photo({ width: 1200, height: 900, from: '#c49a6c', to: '#231f20', label: 'Studio', format: 'png' }),
+  );
 writeFileSync(fixtures.fakeFont, 'this is not a font');

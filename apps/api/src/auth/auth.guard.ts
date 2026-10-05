@@ -1,11 +1,4 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  SetMetadata,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetadata, UnauthorizedException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
@@ -52,10 +45,7 @@ export class AuthGuard implements CanActivate {
     // The role comes from the database, not the token, so a role change also applies at once.
     req.user = { sub: user.id, email: user.email, role: user.role, ver: user.tokenVersion };
 
-    const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
+    const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES_KEY, [context.getHandler(), context.getClass()]);
     if (roles && !roles.includes(req.user.role)) throw new ForbiddenException();
     return true;
   }

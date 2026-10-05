@@ -3,7 +3,18 @@
  * Every public URL under a locale. The path is tried, in order, as:
  * a page (`/en/about-us`), a collection item (`/en/projects/my-project`) and a collection index (`/en/projects`).
  */
-import { cleanLoader, defaultTheme, fontFaceCss, fontNames, getLocale, resolveTheme, themeFontsHref, themeToCss, type BlockNode, type ThemeTokens } from '@profiterol/blocks';
+import {
+  cleanLoader,
+  defaultTheme,
+  fontFaceCss,
+  fontNames,
+  getLocale,
+  resolveTheme,
+  themeFontsHref,
+  themeToCss,
+  type BlockNode,
+  type ThemeTokens,
+} from '@profiterol/blocks';
 import CollectionList from '~/components/blocks/CollectionList.vue';
 import ItemDetail from '~/components/site/ItemDetail.vue';
 import PageTransition from '~/components/site/PageTransition.vue';

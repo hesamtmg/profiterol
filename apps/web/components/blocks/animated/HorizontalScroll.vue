@@ -47,20 +47,15 @@ onMounted(() => {
   measure();
 });
 onBeforeUnmount(() => resize?.disconnect());
-watch(() => props.p.cards?.length, () => nextTick(measure));
+watch(
+  () => props.p.cards?.length,
+  () => nextTick(measure),
+);
 </script>
 
 <template>
-  <section
-    ref="section"
-    class="relative bg-dark text-white"
-    :style="pinned ? { height: `calc(100dvh + ${overflow}px)` } : undefined"
-  >
-    <div
-      ref="panel"
-      class="flex flex-col justify-center overflow-hidden py-16"
-      :class="pinned ? 'sticky top-0 h-[100dvh]' : ''"
-    >
+  <section ref="section" class="relative bg-dark text-white" :style="pinned ? { height: `calc(100dvh + ${overflow}px)` } : undefined">
+    <div ref="panel" class="flex flex-col justify-center overflow-hidden py-16" :class="pinned ? 'sticky top-0 h-[100dvh]' : ''">
       <div
         ref="track"
         class="flex items-stretch gap-6 px-6 @3xl:gap-8 @3xl:px-16"
@@ -69,8 +64,12 @@ watch(() => props.p.cards?.length, () => nextTick(measure));
       >
         <!-- Intro -->
         <div class="flex w-[78vw] max-w-sm shrink-0 snap-start flex-col justify-center @3xl:w-[30vw]">
-          <h2 class="text-4xl font-black leading-tight @3xl:text-6xl"><EditableText :value="p.title" path="title" placeholder="Title" /></h2>
-          <p v-if="p.text || editing" class="mt-4 text-lg font-extralight opacity-70"><EditableText :value="p.text" path="text" multiline /></p>
+          <h2 class="text-4xl font-black leading-tight @3xl:text-6xl">
+            <EditableText :value="p.title" path="title" placeholder="Title" />
+          </h2>
+          <p v-if="p.text || editing" class="mt-4 text-lg font-extralight opacity-70">
+            <EditableText :value="p.text" path="text" multiline />
+          </p>
           <p class="mt-8 flex items-center gap-2 text-sm opacity-60" aria-hidden="true">
             <i class="mdi mdi-arrow-down motion-safe-only animate-bounce" /> <i class="mdi mdi-arrow-right rtl:rotate-180" />
           </p>
@@ -92,13 +91,17 @@ watch(() => props.p.cards?.length, () => nextTick(measure));
           />
           <div v-else class="photo-placeholder absolute inset-0 transition duration-700 group-hover:scale-110" />
           <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-          <span class="absolute left-5 top-5 font-mono text-sm opacity-70 rtl:left-auto rtl:right-5" aria-hidden="true">{{ String(i + 1).padStart(2, '0') }}</span>
+          <span class="absolute left-5 top-5 font-mono text-sm opacity-70 rtl:left-auto rtl:right-5" aria-hidden="true">{{
+            String(i + 1).padStart(2, '0')
+          }}</span>
           <div class="absolute inset-x-0 bottom-0 p-6 transition duration-500 group-hover:-translate-y-2">
             <span v-if="card.tag || editing" class="glass mb-3 inline-block rounded-full px-3 py-1 text-xs font-medium">
               <EditableText :value="card.tag" :path="`cards.${i}.tag`" placeholder="Tag" />
             </span>
             <h3 class="text-2xl font-bold @3xl:text-3xl"><EditableText :value="card.title" :path="`cards.${i}.title`" /></h3>
-            <p v-if="card.text || editing" class="mt-2 text-sm font-light opacity-80"><EditableText :value="card.text" :path="`cards.${i}.text`" multiline /></p>
+            <p v-if="card.text || editing" class="mt-2 text-sm font-light opacity-80">
+              <EditableText :value="card.text" :path="`cards.${i}.text`" multiline />
+            </p>
           </div>
         </component>
       </div>

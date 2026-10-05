@@ -21,7 +21,8 @@ defineProps<{
           </li>
           <li v-if="p.phone">
             <a :href="`tel:${p.phone.replace(/[^\d+]/g, '')}`" class="flex items-center gap-3 hover:text-secondary">
-              <i class="mdi mdi-phone-outline text-2xl text-secondary" /> <span dir="ltr"><EditableText :value="p.phone" path="phone" /></span>
+              <i class="mdi mdi-phone-outline text-2xl text-secondary" />
+              <span dir="ltr"><EditableText :value="p.phone" path="phone" /></span>
             </a>
           </li>
           <li v-if="p.address" class="flex items-start gap-3">
@@ -30,7 +31,9 @@ defineProps<{
           </li>
         </ul>
       </div>
-      <div class="mt-12 border-t border-white/15 pt-6 text-xs font-extralight opacity-60"><EditableText :value="p.copyright" path="copyright" /></div>
+      <div class="mt-12 border-t border-white/15 pt-6 text-xs font-extralight opacity-60">
+        <EditableText :value="p.copyright" path="copyright" />
+      </div>
     </div>
   </section>
 </template>

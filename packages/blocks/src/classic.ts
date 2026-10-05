@@ -318,7 +318,12 @@ export const classicDefinitions: BlockDef[] = [
     category: 'classic',
     description: 'Photos in a fixed grid of rows and columns, with its own size for phones. Each opens a link or a larger view.',
     fields: [
-      { key: 'size', label: 'Grid on large screens', type: 'select', options: gridSizes(['1*3', '1*4', '2*2', '2*3', '2*4', '3*3', '3*4', '4*4']) },
+      {
+        key: 'size',
+        label: 'Grid on large screens',
+        type: 'select',
+        options: gridSizes(['1*3', '1*4', '2*2', '2*3', '2*4', '3*3', '3*4', '4*4']),
+      },
       { key: 'mobileSize', label: 'Grid on phones', type: 'select', options: gridSizes(['2*1', '3*1', '2*2', '3*2', '4*2', '6*2']) },
       {
         key: 'items',

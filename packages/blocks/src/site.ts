@@ -98,7 +98,8 @@ export function cleanLoader(input: unknown): LoaderSettings {
   if (typeof src.text === 'object' && src.text !== null) {
     for (const [k, v] of Object.entries(src.text)) if (/^[a-z]{2}$/.test(k) && typeof v === 'string') text[k] = v.slice(0, 120);
   }
-  const bg = typeof src.background === 'string' && /^\/uploads\/[\w-]+\.(jpg|png|webp|avif|gif)$/.test(src.background) ? src.background : '';
+  const bg =
+    typeof src.background === 'string' && /^\/uploads\/[\w-]+\.(jpg|png|webp|avif|gif)$/.test(src.background) ? src.background : '';
   return {
     enabled: src.enabled === true,
     style: src.style === 'name' || src.style === 'bar' ? src.style : 'percent',

@@ -13,7 +13,10 @@ onMounted(() => {
 </script>
 
 <template>
-  <section ref="root" class="relative isolate flex h-[85dvh] min-h-[420px] w-full items-end justify-center overflow-hidden bg-black text-white">
+  <section
+    ref="root"
+    class="relative isolate flex h-[85dvh] min-h-[420px] w-full items-end justify-center overflow-hidden bg-black text-white"
+  >
     <template v-if="p.video || p.mobileVideo">
       <video
         :src="p.video || p.mobileVideo"

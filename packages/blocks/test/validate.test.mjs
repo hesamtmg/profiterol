@@ -28,10 +28,11 @@ test('rejects javascript: links and bad select values', () => {
 });
 
 test('validates list items recursively', () => {
-  const errors = validateBlocks([
-    { id: 'a', type: 'faq', props: { items: [{ q: 'ok', a: 5 }] } },
-  ]);
-  assert.deepEqual(errors.map((e) => e.path), ['blocks[0].props.items[0].a']);
+  const errors = validateBlocks([{ id: 'a', type: 'faq', props: { items: [{ q: 'ok', a: 5 }] } }]);
+  assert.deepEqual(
+    errors.map((e) => e.path),
+    ['blocks[0].props.items[0].a'],
+  );
 });
 
 test('theme tokens cannot break out of the style declaration', () => {
@@ -42,10 +43,7 @@ test('theme tokens cannot break out of the style declaration', () => {
 
 test('collection field definitions: keys, reserved names and galleries', async () => {
   const { validateFieldDefs, cleanFieldDef, galleryItemFields } = await import('../dist/esm/index.js');
-  const ok = [
-    { key: 'client', label: 'Client', type: 'text' },
-    cleanFieldDef({ key: 'gallery', label: 'Gallery', type: 'list' }),
-  ];
+  const ok = [{ key: 'client', label: 'Client', type: 'text' }, cleanFieldDef({ key: 'gallery', label: 'Gallery', type: 'list' })];
   assert.deepEqual(validateFieldDefs(ok), []);
   assert.deepEqual(ok[1].fields, galleryItemFields);
 
@@ -55,7 +53,10 @@ test('collection field definitions: keys, reserved names and galleries', async (
     { key: 'a', label: 'A', type: 'collection' },
     { key: 'b', label: 'B', type: 'list', fields: [{ key: 'x', label: 'X', type: 'text' }] },
   ]);
-  assert.deepEqual(bad.map((e) => e.path), ['fields[0].key', 'fields[1].key', 'fields[2].type', 'fields[3].fields']);
+  assert.deepEqual(
+    bad.map((e) => e.path),
+    ['fields[0].key', 'fields[1].key', 'fields[2].type', 'fields[3].fields'],
+  );
 });
 
 test('validateFields checks item data against a collection schema', async () => {
@@ -90,7 +91,18 @@ test('link safety: relative links and page addresses pass, hidden schemes do not
 test('themes: presets are clean, unknown values are dropped, page overrides win', async () => {
   const { themePresets, cleanTheme, resolveTheme, themeFontsHref, defaultTheme } = await import('../dist/esm/index.js');
   for (const p of themePresets) assert.deepEqual(cleanTheme(p.theme), p.theme, p.key);
-  assert.deepEqual(cleanTheme({ primary: 'red;}', radius: '99rem', fontEn: 'Comic Sans', headerStyle: 'neon', cursor: 'url(x)', pageTransition: 'spin', evil: '#fff' }), {});
+  assert.deepEqual(
+    cleanTheme({
+      primary: 'red;}',
+      radius: '99rem',
+      fontEn: 'Comic Sans',
+      headerStyle: 'neon',
+      cursor: 'url(x)',
+      pageTransition: 'spin',
+      evil: '#fff',
+    }),
+    {},
+  );
   assert.deepEqual(cleanTheme({ cursor: 'ring', pageTransition: 'curtain' }), { cursor: 'ring', pageTransition: 'curtain' });
   const t = resolveTheme({ primary: '#111111', fontEn: 'Manrope' }, { primary: '#222222' });
   assert.equal(t.primary, '#222222');
@@ -130,12 +142,21 @@ test('animated blocks are registered, and every block can have an entrance anima
 test('site fonts, saved themes and loader settings are cleaned', async () => {
   const { cleanFonts, fontFaceCss, cleanSavedThemes, cleanLoader, cleanTheme, resolveTheme } = await import('../dist/esm/index.js');
   const fonts = cleanFonts([
-    { name: 'Logotype', files: [{ url: '/uploads/abc-1.woff2', weight: 730, style: 'italic' }, { url: 'https://evil.example/x.woff2', weight: 400 }] },
+    {
+      name: 'Logotype',
+      files: [
+        { url: '/uploads/abc-1.woff2', weight: 730, style: 'italic' },
+        { url: 'https://evil.example/x.woff2', weight: 400 },
+      ],
+    },
     { name: "Bad'}name", files: [{ url: '/uploads/a.woff2', weight: 400 }] },
     { name: 'NoFiles', files: [{ url: '/uploads/a.exe' }] },
     { name: 'لوگو تایپ', files: [{ url: '/uploads/b.ttf' }] },
   ]);
-  assert.deepEqual(fonts.map((f) => f.name), ['Logotype', 'لوگو تایپ']);
+  assert.deepEqual(
+    fonts.map((f) => f.name),
+    ['Logotype', 'لوگو تایپ'],
+  );
   assert.deepEqual(fonts[0].files, [{ url: '/uploads/abc-1.woff2', weight: 700, style: 'italic' }]);
   const css = fontFaceCss(fonts);
   assert.match(css, /font-family:'Logotype';src:url\('\/uploads\/abc-1.woff2'\) format\('woff2'\);font-weight:700;font-style:italic/);
@@ -144,15 +165,25 @@ test('site fonts, saved themes and loader settings are cleaned', async () => {
   assert.equal(cleanTheme({ fontEn: 'Logotype' }).fontEn, undefined);
   assert.equal(cleanTheme({ fontEn: 'Logotype' }, ['Logotype']).fontEn, 'Logotype');
   assert.equal(resolveTheme({ fontFa: 'لوگو تایپ' }, null, ['لوگو تایپ']).fontFa, 'لوگو تایپ');
-  const saved = cleanSavedThemes([
-    { key: 'mine-1', name: ' Mine ', theme: { primary: '#123456', fontEn: 'Logotype', evil: 'x' } },
-    { key: 'mine-1', name: 'Duplicate', theme: {} },
-    { key: 'BAD KEY', name: 'x', theme: {} },
-  ], ['Logotype']);
+  const saved = cleanSavedThemes(
+    [
+      { key: 'mine-1', name: ' Mine ', theme: { primary: '#123456', fontEn: 'Logotype', evil: 'x' } },
+      { key: 'mine-1', name: 'Duplicate', theme: {} },
+      { key: 'BAD KEY', name: 'x', theme: {} },
+    ],
+    ['Logotype'],
+  );
   assert.deepEqual(saved, [{ key: 'mine-1', name: 'Mine', theme: { primary: '#123456', fontEn: 'Logotype' } }]);
-  assert.deepEqual(cleanLoader({ enabled: true, style: 'spin', text: { en: 'Hi', '<x>': 'no' }, background: 'javascript:x', oncePerSession: false }), {
-    enabled: true, style: 'percent', text: { en: 'Hi' }, background: '', oncePerSession: false,
-  });
+  assert.deepEqual(
+    cleanLoader({ enabled: true, style: 'spin', text: { en: 'Hi', '<x>': 'no' }, background: 'javascript:x', oncePerSession: false }),
+    {
+      enabled: true,
+      style: 'percent',
+      text: { en: 'Hi' },
+      background: '',
+      oncePerSession: false,
+    },
+  );
 });
 
 test('pricing, map and spacer blocks are registered with valid defaults', () => {

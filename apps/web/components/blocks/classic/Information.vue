@@ -26,7 +26,9 @@ const paragraphs = computed(() =>
       <div class="grid gap-10 @3xl:grid-cols-[7fr_5fr] @3xl:gap-14">
         <div v-reveal="{ delay: 100 }" class="max-h-[1200px] overflow-y-auto">
           <h3 class="text-3xl font-bold"><EditableText :value="p.title2" path="title2" placeholder="Second title" /></h3>
-          <small v-if="p.subtitle2 || editing" class="block text-base font-light text-muted"><EditableText :value="p.subtitle2" path="subtitle2" /></small>
+          <small v-if="p.subtitle2 || editing" class="block text-base font-light text-muted"
+            ><EditableText :value="p.subtitle2" path="subtitle2"
+          /></small>
           <div class="mt-8 space-y-4 leading-relaxed">
             <p v-if="editing" class="whitespace-pre-line"><EditableText :value="p.body" path="body" multiline /></p>
             <p v-for="(t, i) in paragraphs" v-else :key="i">{{ t }}</p>

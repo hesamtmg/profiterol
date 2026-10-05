@@ -29,7 +29,9 @@ function localeHref(code: string) {
   <header class="top-0 z-40 px-3 pt-3 @3xl:px-6" :class="overlay ? 'absolute inset-x-0 @5xl:px-28 @5xl:pt-6' : 'sticky'">
     <div
       class="flex items-center justify-between gap-4 rounded-full px-5 py-3 @3xl:px-8"
-      :class="isGlass ? 'glass text-white @3xl:py-4' : 'bg-[color-mix(in_srgb,var(--c-surface)_92%,transparent)] text-ink shadow-sm backdrop-blur'"
+      :class="
+        isGlass ? 'glass text-white @3xl:py-4' : 'bg-[color-mix(in_srgb,var(--c-surface)_92%,transparent)] text-ink shadow-sm backdrop-blur'
+      "
     >
       <a :href="`/${locale}`" class="flex items-center gap-3">
         <img v-if="logo" :src="logo" :alt="siteName" class="h-9 w-auto" :style="isGlass ? 'filter: brightness(0) invert(1)' : ''" />
@@ -78,13 +80,7 @@ function localeHref(code: string) {
           <i class="mdi mdi-close" />
         </button>
         <nav class="mt-10 flex flex-col gap-6">
-          <a
-            v-for="(item, i) in menu"
-            :key="i"
-            :href="resolveHref(item.href, locale)"
-            class="text-3xl font-black"
-            @click="open = false"
-          >
+          <a v-for="(item, i) in menu" :key="i" :href="resolveHref(item.href, locale)" class="text-3xl font-black" @click="open = false">
             {{ item.label[locale] ?? item.label.en }}
           </a>
         </nav>

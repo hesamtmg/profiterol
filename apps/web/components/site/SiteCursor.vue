@@ -22,7 +22,8 @@ const trail = { x: -100, y: -100 };
 let frame = 0;
 
 const INTERACTIVE = 'a, button, [role="button"], [role="tab"], label, select, summary, input[type="range"], .flip';
-const TEXT_INPUT = 'input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"], [contenteditable="plaintext-only"]';
+const TEXT_INPUT =
+  'input:not([type="range"]):not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"], [contenteditable="plaintext-only"]';
 
 const scope = () => props.target ?? document.documentElement;
 
@@ -95,12 +96,21 @@ onBeforeUnmount(detach);
           :style="hovering ? { background: 'color-mix(in srgb, var(--c-primary) 18%, transparent)' } : undefined"
         />
       </div>
-      <div ref="dot" class="absolute left-0 top-0 transition-opacity duration-200" :class="visible && !hovering ? 'opacity-100' : 'opacity-0'">
+      <div
+        ref="dot"
+        class="absolute left-0 top-0 transition-opacity duration-200"
+        :class="visible && !hovering ? 'opacity-100' : 'opacity-0'"
+      >
         <div class="-ml-1 -mt-1 h-2 w-2 rounded-full bg-primary" />
       </div>
     </template>
 
-    <div v-else-if="mode === 'glow'" ref="follower" class="absolute left-0 top-0 transition-opacity duration-500" :class="visible ? 'opacity-100' : 'opacity-0'">
+    <div
+      v-else-if="mode === 'glow'"
+      ref="follower"
+      class="absolute left-0 top-0 transition-opacity duration-500"
+      :class="visible ? 'opacity-100' : 'opacity-0'"
+    >
       <div
         class="-ml-[220px] -mt-[220px] h-[440px] w-[440px] rounded-full transition-transform duration-500"
         :class="hovering ? 'scale-125' : 'scale-100'"
@@ -108,7 +118,12 @@ onBeforeUnmount(detach);
       />
     </div>
 
-    <div v-else-if="mode === 'blend'" ref="follower" class="absolute left-0 top-0 mix-blend-difference transition-opacity duration-300" :class="visible ? 'opacity-100' : 'opacity-0'">
+    <div
+      v-else-if="mode === 'blend'"
+      ref="follower"
+      class="absolute left-0 top-0 mix-blend-difference transition-opacity duration-300"
+      :class="visible ? 'opacity-100' : 'opacity-0'"
+    >
       <div
         class="-ml-4 -mt-4 h-8 w-8 rounded-full bg-white transition-transform duration-300 ease-out"
         :class="[hovering ? 'scale-[2.6]' : 'scale-100', pressed ? '!scale-75' : '']"

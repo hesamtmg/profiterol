@@ -37,7 +37,13 @@ onMounted(load);
         </div>
         <label class="btn-dark ms-auto cursor-pointer">
           <i class="mdi mdi-upload" /> {{ $t(uploading ? 'Uploading…' : 'Upload') }}
-          <input type="file" class="hidden" accept="image/*,video/mp4,video/webm" :disabled="uploading" @change="uploadFile(($event.target as HTMLInputElement).files?.[0])" />
+          <input
+            type="file"
+            class="hidden"
+            accept="image/*,video/mp4,video/webm"
+            :disabled="uploading"
+            @change="uploadFile(($event.target as HTMLInputElement).files?.[0])"
+          />
         </label>
         <button type="button" class="btn-icon" @click="emit('close')"><i class="mdi mdi-close text-lg" /></button>
       </div>
@@ -54,7 +60,9 @@ onMounted(load);
           <img v-if="item.mime.startsWith('image/')" :src="item.url" :alt="item.originalName" class="h-full w-full object-cover" />
           <span v-else class="flex h-full items-center justify-center text-3xl text-slate-400"><i class="mdi mdi-video-outline" /></span>
         </button>
-        <p v-if="!items.length" class="col-span-full py-10 text-center text-sm text-slate-400">{{ $t('No files yet. Upload one, or drop it here.') }}</p>
+        <p v-if="!items.length" class="col-span-full py-10 text-center text-sm text-slate-400">
+          {{ $t('No files yet. Upload one, or drop it here.') }}
+        </p>
       </div>
     </div>
   </div>

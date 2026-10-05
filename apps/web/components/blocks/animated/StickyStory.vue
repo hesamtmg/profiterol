@@ -41,7 +41,9 @@ watch(
 <template>
   <section class="bg-surface px-6 py-20 text-ink @3xl:px-16 @3xl:py-28">
     <div class="mx-auto max-w-6xl">
-      <h2 v-if="p.title || editing" class="mb-12 text-3xl font-black @3xl:mb-4 @3xl:text-5xl"><EditableText :value="p.title" path="title" placeholder="Title" /></h2>
+      <h2 v-if="p.title || editing" class="mb-12 text-3xl font-black @3xl:mb-4 @3xl:text-5xl">
+        <EditableText :value="p.title" path="title" placeholder="Title" />
+      </h2>
 
       <div class="grid gap-12 @3xl:grid-cols-2 @3xl:gap-16">
         <!-- Sticky picture (wide screens) -->
@@ -61,7 +63,9 @@ watch(
             </div>
             <!-- Where you are -->
             <div class="absolute bottom-6 start-6 flex items-center gap-3 text-white">
-              <span class="rounded-full bg-black/45 px-3 py-1 font-mono text-xs backdrop-blur" dir="ltr">{{ String(active + 1).padStart(2, '0') }} / {{ String(p.steps?.length ?? 0).padStart(2, '0') }}</span>
+              <span class="rounded-full bg-black/45 px-3 py-1 font-mono text-xs backdrop-blur" dir="ltr"
+                >{{ String(active + 1).padStart(2, '0') }} / {{ String(p.steps?.length ?? 0).padStart(2, '0') }}</span
+              >
             </div>
             <div class="absolute end-6 top-1/2 flex -translate-y-1/2 flex-col gap-2" aria-hidden="true">
               <span

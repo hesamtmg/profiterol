@@ -26,12 +26,21 @@ const inputClass =
     <div class="panel grid gap-10 px-6 py-10 @3xl:grid-cols-[2fr_3fr] @3xl:gap-16 @3xl:px-20 @3xl:py-16">
       <div>
         <h2 class="text-2xl font-black @3xl:text-4xl"><EditableText :value="p.title" path="title" /></h2>
-        <p v-if="p.text || editing" class="mt-3 font-extralight text-muted @3xl:text-lg"><EditableText :value="p.text" path="text" multiline /></p>
+        <p v-if="p.text || editing" class="mt-3 font-extralight text-muted @3xl:text-lg">
+          <EditableText :value="p.text" path="text" multiline />
+        </p>
       </div>
 
       <Transition mode="out-in" enter-active-class="transition-all duration-700" enter-from-class="opacity-0 translate-y-3">
-        <div v-if="sent" key="sent" class="flex flex-col items-center justify-center gap-4 rounded-[2rem] bg-slate-50 p-10 text-center" role="status">
-          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-3xl text-white"><i class="mdi mdi-check" /></span>
+        <div
+          v-if="sent"
+          key="sent"
+          class="flex flex-col items-center justify-center gap-4 rounded-[2rem] bg-slate-50 p-10 text-center"
+          role="status"
+        >
+          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-3xl text-white"
+            ><i class="mdi mdi-check"
+          /></span>
           <p class="text-lg font-medium">{{ sent }}</p>
         </div>
 
@@ -50,7 +59,13 @@ const inputClass =
               rows="5"
               :class="inputClass"
             />
-            <select v-else-if="f.type === 'select'" :id="`f-${data?.blockId ?? 'x'}-${i}`" v-model="values[i]" :required="f.required" :class="inputClass">
+            <select
+              v-else-if="f.type === 'select'"
+              :id="`f-${data?.blockId ?? 'x'}-${i}`"
+              v-model="values[i]"
+              :required="f.required"
+              :class="inputClass"
+            >
               <option value="" disabled>{{ f.placeholder || (fa ? 'انتخاب کنید' : 'Choose…') }}</option>
               <option v-for="o in choices(f.options)" :key="o" :value="o">{{ o }}</option>
             </select>
@@ -77,7 +92,11 @@ const inputClass =
           </ul>
 
           <div class="flex flex-wrap items-center gap-4">
-            <button type="submit" class="btn-pill bg-primary text-white hover:shadow-lg hover:brightness-110 disabled:opacity-60" :disabled="sending || editing || !data">
+            <button
+              type="submit"
+              class="btn-pill bg-primary text-white hover:shadow-lg hover:brightness-110 disabled:opacity-60"
+              :disabled="sending || editing || !data"
+            >
               <EditableText :value="p.submitLabel" path="submitLabel" />
               <i class="mdi" :class="sending ? 'mdi-loading mdi-spin' : 'mdi-send rtl:-scale-x-100'" />
             </button>

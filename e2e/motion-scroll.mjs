@@ -26,14 +26,20 @@ await page.mouse.move(400, 400);
 await page.mouse.move(600, 450, { steps: 8 });
 await page.waitForTimeout(400);
 check('cursor: system pointer replaced', await page.evaluate(() => document.documentElement.classList.contains('cursor-replaced')));
-const ringPos = await page.locator('.cursor-replaced ~ * [class*="border-primary"], [aria-hidden="true"] .border-primary').first().evaluate((e) => e.parentElement.style.transform);
+const ringPos = await page
+  .locator('.cursor-replaced ~ * [class*="border-primary"], [aria-hidden="true"] .border-primary')
+  .first()
+  .evaluate((e) => e.parentElement.style.transform);
 // It trails behind on purpose, so it is near the pointer rather than exactly on it.
 check('cursor: ring follows the mouse', Math.abs(tx(ringPos) - 600) < 20 && Math.abs(ty(ringPos) - 450) < 20, ringPos);
 const link = page.locator('#m1 a').first();
 const lb = await link.boundingBox();
 await page.mouse.move(lb.x + lb.width / 2, lb.y + lb.height / 2, { steps: 6 });
 await page.waitForTimeout(400);
-check('cursor: ring grows over links', await page.locator('.fixed.z-\\[90\\] .border-primary').evaluate((e) => e.className.includes('scale-[1.8]')));
+check(
+  'cursor: ring grows over links',
+  await page.locator('.fixed.z-\\[90\\] .border-primary').evaluate((e) => e.className.includes('scale-[1.8]')),
+);
 await page.screenshot({ path: out + 'cursor-ring-link.png' });
 
 // Parallax
@@ -45,7 +51,11 @@ await page.evaluate(() => window.scrollBy(0, 500));
 await page.waitForTimeout(400);
 const after = await layers.evaluateAll((ls) => ls.map((l) => l.style.transform));
 const moved = after.map((a, i) => Math.abs(ty(a) - ty(before[i])));
-check('parallax: layers move as you scroll', moved.every((m) => m > 5), JSON.stringify(moved));
+check(
+  'parallax: layers move as you scroll',
+  moved.every((m) => m > 5),
+  JSON.stringify(moved),
+);
 check('parallax: front layers move faster than the back one', moved[moved.length - 1] > moved[0] * 2, JSON.stringify(moved));
 await page.screenshot({ path: out + 'parallax.png' });
 const sb = await page.locator('#m12 section').boundingBox();
@@ -59,11 +69,18 @@ check('parallax: layers follow the mouse', Math.abs(tx(await layers.last().evalu
 await page.evaluate(() => window.scrollTo(0, document.getElementById('m13').getBoundingClientRect().top + scrollY));
 await page.waitForTimeout(600);
 const stickyTop = () => page.locator('#m13 .sticky').evaluate((e) => Math.round(e.getBoundingClientRect().top));
-const activeImg = () => page.locator('#m13 .sticky > div.absolute').evaluateAll((ds) => ds.findIndex((d) => d.className.includes('opacity-100')));
+const activeImg = () =>
+  page.locator('#m13 .sticky > div.absolute').evaluateAll((ds) => ds.findIndex((d) => d.className.includes('opacity-100')));
 const firstTop = await stickyTop();
-await page.locator('#m13 li[data-step="2"]').evaluate((e) => window.scrollBy(0, e.getBoundingClientRect().top + e.offsetHeight / 2 - innerHeight / 2));
+await page
+  .locator('#m13 li[data-step="2"]')
+  .evaluate((e) => window.scrollBy(0, e.getBoundingClientRect().top + e.offsetHeight / 2 - innerHeight / 2));
 await page.waitForTimeout(900);
-check('sticky story: picture stays pinned at 12% of the screen', Math.abs((await stickyTop()) - 108) <= 2, `${firstTop} -> ${await stickyTop()}`);
+check(
+  'sticky story: picture stays pinned at 12% of the screen',
+  Math.abs((await stickyTop()) - 108) <= 2,
+  `${firstTop} -> ${await stickyTop()}`,
+);
 check('sticky story: picture changes to the current step', (await activeImg()) === 2, String(await activeImg()));
 await page.screenshot({ path: out + 'sticky-story.png' });
 
@@ -123,7 +140,10 @@ await ed.mouse.move(cb.x + 300, cb.y + 60, { steps: 5 });
 await ed.waitForTimeout(400);
 check('editor: cursor preview over the canvas', (await ed.locator('main .mix-blend-difference').count()) === 1);
 await ed.locator('aside button[title="Use the Sand theme"]').click();
-check('editor: a ready-made theme keeps the motion settings', (await ed.locator('#theme-transition').inputValue()) === 'circle' && (await ed.locator('#theme-cursor').inputValue()) === 'blend');
+check(
+  'editor: a ready-made theme keeps the motion settings',
+  (await ed.locator('#theme-transition').inputValue()) === 'circle' && (await ed.locator('#theme-cursor').inputValue()) === 'blend',
+);
 await ed.screenshot({ path: out + 'editor-motion-settings.png' });
 
 await browser.close();

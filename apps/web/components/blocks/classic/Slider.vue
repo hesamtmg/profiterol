@@ -113,10 +113,20 @@ onBeforeUnmount(() => clearInterval(timer));
             <EditableText :value="slide.buttonLabel" :path="`slides.${i}.buttonLabel`" />
           </a>
           <template v-if="count > 1">
-            <button type="button" class="glass flex h-[50px] w-[50px] items-center justify-center rounded-full transition hover:scale-105" aria-label="Previous slide" @click="step(-1)">
+            <button
+              type="button"
+              class="glass flex h-[50px] w-[50px] items-center justify-center rounded-full transition hover:scale-105"
+              aria-label="Previous slide"
+              @click="step(-1)"
+            >
               <i class="mdi mdi-chevron-left text-2xl" />
             </button>
-            <button type="button" class="glass flex h-[50px] w-[50px] items-center justify-center rounded-full transition hover:scale-105" aria-label="Next slide" @click="step(1)">
+            <button
+              type="button"
+              class="glass flex h-[50px] w-[50px] items-center justify-center rounded-full transition hover:scale-105"
+              aria-label="Next slide"
+              @click="step(1)"
+            >
               <i class="mdi mdi-chevron-right text-2xl" />
             </button>
           </template>

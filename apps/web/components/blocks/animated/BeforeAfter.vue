@@ -53,12 +53,28 @@ function onInput(e: Event) {
 <template>
   <section class="bg-surface px-6 py-20 text-ink @3xl:px-16 @3xl:py-28">
     <div class="mx-auto max-w-5xl">
-      <h2 v-if="p.title || editing" class="mb-10 text-center text-3xl font-black @3xl:text-5xl"><EditableText :value="p.title" path="title" placeholder="Title" /></h2>
+      <h2 v-if="p.title || editing" class="mb-10 text-center text-3xl font-black @3xl:text-5xl">
+        <EditableText :value="p.title" path="title" placeholder="Title" />
+      </h2>
       <div ref="box" class="relative aspect-[16/10] select-none overflow-hidden rounded-[2rem] shadow-2xl" dir="ltr">
-        <img v-if="p.after" :src="p.after" :alt="p.afterLabel" class="absolute inset-0 h-full w-full object-cover" loading="lazy" draggable="false" />
+        <img
+          v-if="p.after"
+          :src="p.after"
+          :alt="p.afterLabel"
+          class="absolute inset-0 h-full w-full object-cover"
+          loading="lazy"
+          draggable="false"
+        />
         <div v-else class="absolute inset-0" style="background: linear-gradient(135deg, var(--c-primary), var(--c-dark))" />
         <div class="absolute inset-0" :style="{ clipPath: `inset(0 ${100 - position}% 0 0)` }">
-          <img v-if="p.before" :src="p.before" :alt="p.beforeLabel" class="absolute inset-0 h-full w-full object-cover" loading="lazy" draggable="false" />
+          <img
+            v-if="p.before"
+            :src="p.before"
+            :alt="p.beforeLabel"
+            class="absolute inset-0 h-full w-full object-cover"
+            loading="lazy"
+            draggable="false"
+          />
           <div v-else class="absolute inset-0 grayscale" style="background: linear-gradient(135deg, var(--c-secondary), #555)" />
         </div>
 
@@ -70,8 +86,14 @@ function onInput(e: Event) {
         </span>
 
         <!-- Handle -->
-        <div class="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_12px_rgb(0_0_0/0.4)]" :style="{ left: `${position}%` }" aria-hidden="true">
-          <span class="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-xl text-dark shadow-xl">
+        <div
+          class="pointer-events-none absolute inset-y-0 w-0.5 -translate-x-1/2 bg-white shadow-[0_0_12px_rgb(0_0_0/0.4)]"
+          :style="{ left: `${position}%` }"
+          aria-hidden="true"
+        >
+          <span
+            class="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-xl text-dark shadow-xl"
+          >
             <i class="mdi mdi-arrow-left-right" />
           </span>
         </div>

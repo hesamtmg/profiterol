@@ -31,7 +31,11 @@ async function submit() {
 
 // The secret is in the address; keep it out of the Referer header sent by anything this page loads.
 const { lang, dir, t } = useAdminI18n();
-useHead(() => ({ title: t('Choose a password'), htmlAttrs: { lang: lang.value, dir: dir.value }, meta: [{ name: 'referrer', content: 'no-referrer' }] }));
+useHead(() => ({
+  title: t('Choose a password'),
+  htmlAttrs: { lang: lang.value, dir: dir.value },
+  meta: [{ name: 'referrer', content: 'no-referrer' }],
+}));
 </script>
 
 <template>
@@ -41,10 +45,16 @@ useHead(() => ({ title: t('Choose a password'), htmlAttrs: { lang: lang.value, d
       <h1 class="text-2xl font-black">{{ $t('Choose a password') }}</h1>
       <template v-if="done">
         <p class="mt-3 text-sm text-slate-600" role="status">{{ $t('Your password is set. You can log in with it now.') }}</p>
-        <NuxtLink to="/admin/login" class="mt-6 block w-full rounded-full bg-slate-900 py-3 text-center text-sm font-medium text-white hover:bg-black">{{ $t('Log in') }}</NuxtLink>
+        <NuxtLink
+          to="/admin/login"
+          class="mt-6 block w-full rounded-full bg-slate-900 py-3 text-center text-sm font-medium text-white hover:bg-black"
+          >{{ $t('Log in') }}</NuxtLink
+        >
       </template>
       <template v-else-if="!token">
-        <p class="mt-3 text-sm text-slate-600">{{ $t('This link is incomplete. Open the link from your email again, or ask an admin for a new one.') }}</p>
+        <p class="mt-3 text-sm text-slate-600">
+          {{ $t('This link is incomplete. Open the link from your email again, or ask an admin for a new one.') }}
+        </p>
       </template>
       <template v-else>
         <p class="mt-1 text-sm font-light text-slate-500">{{ $t('At least 8 characters.') }}</p>
@@ -53,7 +63,11 @@ useHead(() => ({ title: t('Choose a password'), htmlAttrs: { lang: lang.value, d
         <label class="mt-4 block text-xs font-medium text-slate-500" for="pw2">{{ $t('New password again') }}</label>
         <input id="pw2" v-model="repeat" type="password" required autocomplete="new-password" class="input mt-1" />
         <p v-if="error" class="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-600">{{ error }}</p>
-        <button type="submit" :disabled="busy" class="mt-6 w-full rounded-full bg-slate-900 py-3 text-sm font-medium text-white hover:bg-black disabled:opacity-50">
+        <button
+          type="submit"
+          :disabled="busy"
+          class="mt-6 w-full rounded-full bg-slate-900 py-3 text-sm font-medium text-white hover:bg-black disabled:opacity-50"
+        >
           {{ $t('Save password') }}
         </button>
       </template>

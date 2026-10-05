@@ -73,7 +73,11 @@ watch(
         <span v-if="label" class="text-3xl font-black text-white @3xl:text-5xl">{{ label }}</span>
       </div>
     </template>
-    <div v-else class="pt-panel absolute inset-0 flex items-center justify-center" :class="mode === 'fade' ? 'bg-[var(--c-background)]' : 'bg-primary'">
+    <div
+      v-else
+      class="pt-panel absolute inset-0 flex items-center justify-center"
+      :class="mode === 'fade' ? 'bg-[var(--c-background)]' : 'bg-primary'"
+    >
       <span v-if="label && mode === 'slide'" class="text-3xl font-black text-white @3xl:text-5xl">{{ label }}</span>
     </div>
   </div>
