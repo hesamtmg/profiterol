@@ -29,6 +29,9 @@ jobs:
     env:
       DATABASE_URL: postgres://profiterol:profiterol@localhost:5432/profiterol
       JWT_SECRET: ci-secret
+      # The browser tests run with the page cache on, so every change must clear it.
+      CACHE_PURGE_TOKEN: ci-purge-token
+      NUXT_CACHE_PURGE_TOKEN: ci-purge-token
       UPLOAD_DIR: /tmp/uploads
     steps:
       - uses: actions/checkout@v4

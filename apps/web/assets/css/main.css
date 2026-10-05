@@ -13,8 +13,8 @@
     --c-muted: #6b7280;
     --radius-card: 4rem;
     --radius-button: 9999px;
-    --font-fa: 'Vazirmatn';
-    --font-en: 'Inter';
+    --font-fa: 'Vazirmatn', 'Vazirmatn Variable';
+    --font-en: 'Inter', 'Inter Variable';
   }
 
   .site {
@@ -32,7 +32,7 @@
   }
 
   .admin-ui {
-    font-family: 'Inter', 'Vazirmatn', system-ui, sans-serif;
+    font-family: 'Inter Variable', 'Vazirmatn Variable', system-ui, sans-serif;
   }
 }
 

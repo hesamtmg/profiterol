@@ -247,6 +247,15 @@ function clean(value: unknown): string {
 }
 
 /** Turns theme tokens into CSS custom properties. */
+/**
+ * The theme's fonts are served by the site itself (Fontsource packages), under "<name> Variable"; uploaded fonts
+ * keep their own name.
+ */
+function fontStack(name: string) {
+  const builtIn = [...themeFonts.fa, ...themeFonts.en].some((f) => f.name === name);
+  return builtIn ? `'${name}','${name} Variable'` : `'${name}'`;
+}
+
 export function themeToCss(theme: Partial<ThemeTokens>): string {
   const merged = { ...defaultTheme, ...theme };
   const t = Object.fromEntries(Object.entries(merged).map(([k, v]) => [k, clean(v)])) as unknown as ThemeTokens;
@@ -260,7 +269,7 @@ export function themeToCss(theme: Partial<ThemeTokens>): string {
     `--c-muted:${t.muted}`,
     `--radius-card:${t.radius}`,
     `--radius-button:${t.buttonRadius}`,
-    `--font-fa:'${t.fontFa}'`,
-    `--font-en:'${t.fontEn}'`,
+    `--font-fa:${fontStack(t.fontFa)}`,
+    `--font-en:${fontStack(t.fontEn)}`,
   ].join(';');
 }

@@ -63,9 +63,10 @@ This combines:
 - [x] Page loader (minicms): percentage, top bar or site-name fill; real loading progress, a blurred background picture that sharpens, once per visit; removed by CSS after 8 s without JavaScript
 - [x] Section-by-section scroll mode (minicms “magic scroll”), a theme setting per site or page
 - [ ] Canonical URL setting (minicms hardcoded its domain)
-- [ ] Self-host fonts (no Google Fonts call) and preload them
+- [x] Self-host fonts (no Google Fonts call): every theme font from Fontsource, downloaded only when a page uses it
+- [ ] Preload the default fonts; trim the icon font's CSS to the icons in use
 - [ ] Google Tag Manager / analytics setting
-- [ ] Cache published pages (nginx micro-cache or Nitro route cache) and purge on publish
+- [x] Cache published pages in the web app's memory; the API clears the cache after every admin change and scheduled publish (shared `CACHE_PURGE_TOKEN`)
 - [x] Custom cursor option (both projects had one): a theme setting, off on touch screens and with reduced motion
 
 ## Phase 4: Visual editor (the Wix part)

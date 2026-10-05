@@ -101,7 +101,7 @@ const blocks = (l) => [
       lines: [
         {
           text: t(
-            'We started with small houses and grew into a studio that designs offices, hotels and public spaces across the country.',
+            'We started with small houses and grew into a studio that designs offices, hotels and public spaces across the country. Every project still begins with a long walk around the site and a conversation with the people who will use it.',
             'با خانه‌های کوچک شروع کردیم و به استودیویی رسیدیم که دفتر، هتل و فضای عمومی در سراسر کشور طراحی می‌کند.',
           )(l),
         },

@@ -12,8 +12,8 @@ export function contentSecurityPolicy(nonce: string) {
   return [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}'`,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-    "font-src 'self' data: https://fonts.gstatic.com",
+    "style-src 'self' 'unsafe-inline'",
+    "font-src 'self' data:",
     // Editors may use pictures and videos hosted elsewhere, so any HTTPS address is allowed for media.
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",

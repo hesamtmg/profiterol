@@ -8,6 +8,7 @@ import helmet from 'helmet';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
+import { PurgeOnChangeInterceptor } from './common/page-cache';
 import { config } from './config';
 
 async function bootstrap() {
@@ -34,6 +35,7 @@ async function bootstrap() {
   // Same-origin by default (the admin and site are served from the API's own domain). Set CORS_ORIGINS
   // (comma-separated) only for a separate front end; credentials are then allowed for those origins alone.
   if (config.corsOrigins.length) app.enableCors({ origin: config.corsOrigins, credentials: true });
+  app.useGlobalInterceptors(new PurgeOnChangeInterceptor());
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
   // nginx serves /uploads in Docker; this keeps local development working without it. Like nginx, it answers a
   // request for a WebP copy with the AVIF one when the browser accepts AVIF and that copy exists.

@@ -94,6 +94,11 @@ server {
     add_header Cache-Control "no-store" always;
   }
 
+  # The API clears the web app's page cache directly, not through here.
+  location /_cache/ {
+    return 404;
+  }
+
   location /api/ {
     proxy_pass $api_upstream;
     include /etc/nginx/snippets/proxy.conf;

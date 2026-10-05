@@ -5,12 +5,10 @@
  */
 import {
   cleanLoader,
-  defaultTheme,
   fontFaceCss,
   fontNames,
   getLocale,
   resolveTheme,
-  themeFontsHref,
   themeToCss,
   type BlockNode,
   type ThemeTokens,
@@ -139,15 +137,12 @@ const theme = computed(() =>
 );
 /** Full-screen heroes get the header floating over them. */
 const overlayHeader = computed(() => resolved.value?.kind === 'page' && resolved.value.page.blocks[0]?.type === 'spotlight');
-const usesDefaultFonts = computed(() => theme.value.fontFa === defaultTheme.fontFa && theme.value.fontEn === defaultTheme.fontEn);
-
 useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
   // html:root outranks the stylesheet's :root defaults, which load after this tag.
   style: [{ innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` }],
   link: [
     // The default fonts are always loaded (nuxt.config); others only when the theme picks them.
-    ...(usesDefaultFonts.value || !themeFontsHref(theme.value) ? [] : [{ rel: 'stylesheet', href: themeFontsHref(theme.value) }]),
     ...(settings.value?.favicon ? [{ rel: 'icon', href: settings.value.favicon }] : []),
     ...alternates.value.map((a) => ({
       rel: 'alternate',

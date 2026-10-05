@@ -35,11 +35,30 @@ export default defineNuxtConfig({
   vue: {
     compilerOptions: { nodeTransforms: [imgSrcset] },
   },
-  css: ['@mdi/font/css/materialdesignicons.min.css', '~/assets/css/main.css'],
+  // Every theme font is served from the site (no Google Fonts request). @font-face only downloads a font a page uses.
+  css: [
+    '@mdi/font/css/materialdesignicons.min.css',
+    '@fontsource-variable/inter/index.css',
+    '@fontsource-variable/vazirmatn/index.css',
+    '@fontsource-variable/noto-sans-arabic/index.css',
+    '@fontsource-variable/noto-naskh-arabic/index.css',
+    '@fontsource-variable/cairo/index.css',
+    '@fontsource-variable/rubik/index.css',
+    '@fontsource-variable/manrope/index.css',
+    '@fontsource-variable/montserrat/index.css',
+    '@fontsource-variable/syne/index.css',
+    '@fontsource-variable/playfair-display/index.css',
+    '@fontsource-variable/space-grotesk/index.css',
+    '~/assets/css/main.css',
+  ],
 
   runtimeConfig: {
     // Server-side requests go straight to the API container.
     apiInternal: apiTarget,
+    // Rendered public pages are kept in memory and cleared by the API after every change made in the admin
+    // (server/utils/page-cache.ts). Off unless NUXT_CACHE_PURGE_TOKEN is set (the same value as the API's).
+    cachePurgeToken: '',
+    pageCacheSeconds: 600,
     public: {
       // Browser requests go through nginx (or the dev proxy below).
       apiBase: '/api',
@@ -63,18 +82,17 @@ export default defineNuxtConfig({
   app: {
     head: {
       meta: [{ name: 'viewport', content: 'width=device-width, initial-scale=1' }],
-      link: [
-        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
-        {
-          rel: 'stylesheet',
-          href: 'https://fonts.googleapis.com/css2?family=Inter:wght@200;400;500;900&family=Vazirmatn:wght@200;400;500;900&display=swap',
-        },
-      ],
     },
   },
 
   build: {
     transpile: ['@profiterol/blocks'],
+  },
+
+  // The stylesheet (with every font's @font-face) is one file the browser caches, not repeated in each page,
+  // and fonts stay separate files so only the ones a page uses are downloaded.
+  features: { inlineStyles: false },
+  vite: {
+    build: { assetsInlineLimit: (file: string) => (/\.(woff2?|ttf|otf)$/.test(file) ? false : undefined) },
   },
 });

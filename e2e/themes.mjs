@@ -92,7 +92,10 @@ check(
   'published page theme is live',
   (await cssVar(contact, '--c-background')) === '#c49a6c' && (await cssVar(contact, '--font-en')).includes('Playfair'),
 );
-check('its fonts are loaded', (await contact.locator('link[href*="Playfair+Display"]').count()) === 1);
+check(
+  'its fonts are loaded (from the site itself)',
+  await contact.evaluate(async () => (await document.fonts.ready, document.fonts.check('16px "Playfair Display Variable"'))),
+);
 await contact.screenshot({ path: out + 'contact-sand.png' });
 await desk.reload({ waitUntil: 'networkidle' });
 check('other pages keep the site theme', (await cssVar(desk, '--c-background')) === '#0d0d0f');

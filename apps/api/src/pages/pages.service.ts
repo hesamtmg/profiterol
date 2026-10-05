@@ -24,6 +24,7 @@ import { DataSource, EntityManager, LessThanOrEqual, Not, QueryFailedError, Repo
 import { CollectionsService } from '../collections/collections.service';
 import { SettingsService } from '../settings/settings.controller';
 import { cleanHtml } from '../common/rich-text';
+import { purgePageCache } from '../common/page-cache';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
 import { CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
 import { Page, PageRevision, PageSnapshot, PageTranslation, RevisionKind } from './page.entity';
@@ -56,6 +57,9 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
   }
 
   async runSchedule(now = new Date()) {
+    const changes = await this.pages.count({
+      where: [{ publishAt: LessThanOrEqual(now) }, { unpublishAt: LessThanOrEqual(now), status: 'published' }],
+    });
     for (const page of await this.pages.find({ where: { publishAt: LessThanOrEqual(now) } })) {
       await this.publish(page.id, '');
       this.log.log(`Published "${page.name}" as scheduled`);
@@ -67,6 +71,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     }
     // A passed end time on a page that is already offline has nothing left to do.
     await this.pages.update({ unpublishAt: LessThanOrEqual(now), status: Not('published') }, { unpublishAt: null });
+    // The site's cached pages show the old state until cleared.
+    if (changes) await purgePageCache();
   }
 
   /** A time due before the next regular check gets its own timer, so "in a minute" means a minute. */

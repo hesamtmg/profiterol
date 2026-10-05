@@ -19,7 +19,6 @@ import {
   fontFaceCss,
   fontNames,
   resolveTheme,
-  themeFontsHref,
   themeToCss,
   type SavedTheme,
   type ThemeTokens,
@@ -569,7 +568,6 @@ useHead(() => ({
   title: `${name.value || 'Page'} · Editor`,
   htmlAttrs: { lang: adminLang.value, dir: adminDir.value },
   // Load the theme's fonts so the canvas shows them while editing.
-  link: themeFontsHref(canvasTheme.value) ? [{ rel: 'stylesheet', href: themeFontsHref(canvasTheme.value) }] : [],
   style: [{ innerHTML: fontFaceCss(settings.value?.fonts) }],
 }));
 
