@@ -75,31 +75,53 @@ function checkProps(fields: FieldDef[], props: unknown, path: string, errors: Va
   }
 }
 
-/** Validates a page's block list against the registry. Missing props fall back to defaults when rendered. */
+/**
+ * Validates a page's block list against the registry. Layout blocks may hold one level of other blocks, one list
+ * per column; full-screen and layout blocks cannot be nested. Missing props fall back to defaults when rendered.
+ */
 export function validateBlocks(input: unknown): ValidationError[] {
   const errors: ValidationError[] = [];
   if (!Array.isArray(input)) return [{ path: 'blocks', message: 'must be a list' }];
-  if (input.length > MAX_BLOCKS) errors.push({ path: 'blocks', message: `can have at most ${MAX_BLOCKS} blocks` });
-
   const ids = new Set<string>();
-  input.forEach((node, i) => {
-    const path = `blocks[${i}]`;
-    if (!isPlainObject(node)) {
-      errors.push({ path, message: 'must be an object' });
-      return;
-    }
-    const { id, type, props } = node as Partial<BlockNode>;
-    if (typeof id !== 'string' || id === '') errors.push({ path: `${path}.id`, message: 'is required' });
-    else if (ids.has(id)) errors.push({ path: `${path}.id`, message: 'is duplicated' });
-    else ids.add(id);
+  let count = 0;
 
-    const def = typeof type === 'string' ? getBlock(type) : undefined;
-    if (!def) {
-      errors.push({ path: `${path}.type`, message: `unknown block type "${String(type)}"` });
-      return;
-    }
-    checkProps(def.fields, props, `${path}.props`, errors);
-  });
+  const checkList = (list: unknown[], base: string, nested: boolean) => {
+    list.forEach((node, i) => {
+      count++;
+      const path = `${base}[${i}]`;
+      if (!isPlainObject(node)) {
+        errors.push({ path, message: 'must be an object' });
+        return;
+      }
+      const { id, type, props, children } = node as Partial<BlockNode>;
+      if (typeof id !== 'string' || id === '') errors.push({ path: `${path}.id`, message: 'is required' });
+      else if (ids.has(id)) errors.push({ path: `${path}.id`, message: 'is duplicated' });
+      else ids.add(id);
+
+      const def = typeof type === 'string' ? getBlock(type) : undefined;
+      if (!def) {
+        errors.push({ path: `${path}.type`, message: `unknown block type "${String(type)}"` });
+        return;
+      }
+      if (nested && def.topLevelOnly) errors.push({ path: `${path}.type`, message: 'cannot be placed inside columns or a group' });
+      checkProps(def.fields, props, `${path}.props`, errors);
+
+      if (children === undefined) return;
+      if (!def.slots) {
+        errors.push({ path: `${path}.children`, message: 'only columns and groups can hold other blocks' });
+        return;
+      }
+      const slots = def.slots(isPlainObject(props) ? { ...def.defaults, ...props } : def.defaults);
+      if (!Array.isArray(children) || children.length !== slots || !children.every(Array.isArray)) {
+        errors.push({ path: `${path}.children`, message: `must be ${slots} list(s) of blocks` });
+        return;
+      }
+      children.forEach((column, c) => checkList(column, `${path}.children[${c}]`, true));
+    });
+  };
+
+  checkList(input, 'blocks', false);
+  if (count > MAX_BLOCKS) errors.push({ path: 'blocks', message: `can have at most ${MAX_BLOCKS} blocks` });
   return errors;
 }
 
@@ -128,10 +150,11 @@ function cleanRichText(fields: FieldDef[], props: Record<string, unknown>, clean
   return out;
 }
 
-/** Runs `clean` over every formatted-text value, e.g. to strip unsafe HTML before saving. */
+/** Runs `clean` over every formatted-text value (nested blocks included), e.g. to strip unsafe HTML before saving. */
 export function mapRichText(blocks: BlockNode[], clean: (html: string) => string): BlockNode[] {
   return blocks.map((b) => {
     const def = getBlock(b.type);
-    return def && isPlainObject(b.props) ? { ...b, props: cleanRichText(def.fields, b.props, clean) } : b;
+    const out = def && isPlainObject(b.props) ? { ...b, props: cleanRichText(def.fields, b.props, clean) } : b;
+    return Array.isArray(b.children) ? { ...out, children: b.children.map((column) => mapRichText(column, clean)) } : out;
   });
 }

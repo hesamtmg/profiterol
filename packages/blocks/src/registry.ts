@@ -2,6 +2,7 @@ import type { BlockDef, BlockNode, FieldDef } from './types.js';
 import { animatedDefinitions, entranceAnimations } from './animated.js';
 import { classicDefinitions, formFieldsField } from './classic.js';
 import { extraDefinitions } from './extras.js';
+import { layoutDefinitions, styleDefaults, styleFields, topLevelOnlyTypes } from './layout.js';
 
 const button: FieldDef[] = [
   { key: 'buttonLabel', label: 'Button label', type: 'text' },
@@ -540,6 +541,7 @@ const definitions: BlockDef[] = [
   ...extraDefinitions,
   ...animatedDefinitions,
   ...classicDefinitions,
+  ...layoutDefinitions,
 ];
 
 /** Every block can play an entrance animation when it scrolls into view. */
@@ -572,8 +574,15 @@ const showOnField: FieldDef = {
 
 export const blocks: BlockDef[] = definitions.map((b) => ({
   ...b,
-  fields: [...b.fields, animationField, anchorField, showOnField],
-  defaults: { animation: '', anchor: '', showOn: '', ...b.defaults },
+  topLevelOnly: b.topLevelOnly ?? topLevelOnlyTypes.includes(b.type),
+  fields: [
+    ...b.fields,
+    ...styleFields,
+    { ...animationField, group: 'advanced' },
+    { ...anchorField, group: 'advanced' },
+    { ...showOnField, group: 'advanced' },
+  ],
+  defaults: { animation: '', anchor: '', showOn: '', ...styleDefaults, ...b.defaults },
 }));
 
 export function getBlock(type: string): BlockDef | undefined {
@@ -584,11 +593,16 @@ function randomId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Creates a new block instance with a deep copy of its defaults. */
+export const newBlockId = randomId;
+
+/** Creates a new block instance with a deep copy of its defaults (and empty columns for layout blocks). */
 export function createBlock(type: string): BlockNode {
   const def = getBlock(type);
   if (!def) throw new Error(`Unknown block type "${type}"`);
-  return { id: randomId(), type, props: JSON.parse(JSON.stringify(def.defaults)) };
+  const props = JSON.parse(JSON.stringify(def.defaults));
+  const node: BlockNode = { id: randomId(), type, props };
+  if (def.slots) node.children = Array.from({ length: def.slots(props) }, () => []);
+  return node;
 }
 
 /** Builds an empty item for a list field, using each sub-field's empty value. */

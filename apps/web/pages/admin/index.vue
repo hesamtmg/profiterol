@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { getBlock } from '@profiterol/blocks';
+import TemplatePicker from '~/components/admin/TemplatePicker.vue';
 import type { AdminPage } from '~/composables/useAdminTypes';
 
 definePageMeta({ layout: 'admin', middleware: 'admin' });
@@ -10,6 +11,7 @@ const loading = ref(true);
 const error = ref('');
 const newName = ref('');
 const creating = ref(false);
+const picking = ref(false);
 
 async function load() {
   loading.value = true;
@@ -82,7 +84,16 @@ onMounted(load);
         <button type="submit" class="btn-dark" :disabled="creating || !newName.trim()">
           <i class="mdi mdi-plus" /> {{ $t('New page') }}
         </button>
+        <button type="button" class="btn-light" @click="picking = true">
+          <i class="mdi mdi-view-dashboard-edit-outline" /> {{ $t('From a template') }}
+        </button>
       </form>
+      <TemplatePicker
+        v-if="picking"
+        :initial-name="newName.trim()"
+        @close="picking = false"
+        @created="(p) => navigateTo(`/admin/pages/${p.id}`)"
+      />
     </div>
 
     <p v-if="error" class="mt-6 whitespace-pre-line rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-600">{{ error }}</p>

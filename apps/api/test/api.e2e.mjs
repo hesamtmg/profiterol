@@ -547,3 +547,101 @@ describe('page history, copies and scheduling', () => {
     await call('DELETE', `/admin/pages/${page.id}`);
   });
 });
+
+describe('columns', () => {
+  test('a contact form inside columns works on the site', async () => {
+    const page = (await call('POST', '/admin/pages', { name: 'Columns test' })).body;
+    const fields = [{ label: 'Email', type: 'email', required: true, options: '', placeholder: '' }];
+    const blocks = [
+      {
+        id: 'cols',
+        type: 'columns',
+        props: { count: '2', bgColor: '#123456' },
+        children: [
+          [{ id: 'txt', type: 'text', props: { title: 'Left' } }],
+          [{ id: 'form', type: 'contact-form', props: { title: 'Nested form', fields } }],
+        ],
+      },
+    ];
+    const saved = await call('PATCH', `/admin/pages/${page.id}`, {
+      translations: [{ locale: 'en', title: 'Columns', slug: 'columns-test', blocks }],
+    });
+    assert.equal(saved.status, 200);
+    const bad = await call('PATCH', `/admin/pages/${page.id}`, {
+      translations: [
+        {
+          locale: 'en',
+          title: 'Columns',
+          slug: 'columns-test',
+          blocks: [{ ...blocks[0], children: [[{ id: 'h', type: 'spotlight', props: {} }], []] }],
+        },
+      ],
+    });
+    assert.equal(bad.status, 400, 'a full-screen block inside columns is refused');
+
+    await call('POST', `/admin/pages/${page.id}/publish`);
+    const pub = (await call('GET', '/public/en/page?slug=columns-test', undefined, false)).body;
+    assert.deepEqual(pub.blocks[0].children[1][0].data, { pageId: page.id, blockId: 'form' });
+
+    const sent = await fetch(`${API}/public/forms/${page.id}/form`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-forwarded-for': '203.0.113.99' },
+      body: JSON.stringify({ locale: 'en', values: ['nested@example.com'], startedAt: Date.now() - 5000 }),
+    });
+    assert.equal(sent.status, 200);
+    const msg = (await call('GET', '/admin/submissions')).body.find((m) => m.formTitle === 'Nested form');
+    assert.ok(msg, 'the message reached the inbox');
+    await call('DELETE', `/admin/submissions/${msg.id}`);
+    await call('DELETE', `/admin/pages/${page.id}`);
+  });
+});
+
+describe('templates and saved sections', () => {
+  test('a page can start from a template, in every language', async () => {
+    const list = (await call('GET', '/admin/pages/templates')).body;
+    assert.ok(list.some((t) => t.key === 'contact'));
+    const page = await call('POST', '/admin/pages', { name: 'From template', template: 'contact' });
+    assert.equal(page.status, 201);
+    const fa = page.body.translations.find((t) => t.locale === 'fa');
+    assert.equal(fa.blocks[0].type, 'columns');
+    assert.equal(fa.blocks[0].children[0][0].props.title, 'برای ما بنویسید');
+    assert.equal((await call('POST', '/admin/pages', { name: 'x', template: 'nope' })).status, 400);
+    await call('DELETE', `/admin/pages/${page.body.id}`);
+  });
+
+  test('a site template sets the theme and adds draft pages and menu links', async () => {
+    const before = (await call('GET', '/admin/settings')).body;
+    const pagesBefore = (await call('GET', '/admin/pages')).body.length;
+    const applied = await call('POST', '/admin/site-templates/studio/apply');
+    assert.equal(applied.status, 200);
+    assert.equal(applied.body.pages.length, 3);
+    const after = (await call('GET', '/admin/settings')).body;
+    assert.notDeepEqual(after.theme, before.theme);
+    assert.ok(after.menu.some((m) => m.label.fa === 'تماس'));
+    const pages = (await call('GET', '/admin/pages')).body;
+    assert.equal(pages.length, pagesBefore + 3);
+    assert.ok(pages.filter((p) => applied.body.pages.some((c) => c.id === p.id)).every((p) => p.status === 'draft' && !p.isHome));
+    // Put things back for the other tests.
+    for (const p of applied.body.pages) await call('DELETE', `/admin/pages/${p.id}`);
+    await call('PUT', '/admin/settings', { theme: before.theme, menu: before.menu });
+  });
+
+  test('sections are saved, listed and deleted, and are not public', async () => {
+    const block = {
+      id: 'sec',
+      type: 'columns',
+      props: { count: '2' },
+      children: [[{ id: 's1', type: 'text', props: { title: 'Saved' } }], []],
+    };
+    const saved = await call('POST', '/admin/sections', { name: 'Two columns', block });
+    assert.equal(saved.status, 201);
+    assert.equal((await call('POST', '/admin/sections', { name: 'Bad', block: { id: 'b', type: 'nope', props: {} } })).status, 400);
+    const list = (await call('GET', '/admin/sections')).body;
+    assert.equal(list[0].name, 'Two columns');
+    assert.equal(list[0].block.children[0][0].props.title, 'Saved');
+    const pub = (await call('GET', '/public/settings', undefined, false)).body;
+    assert.equal(pub.sections, undefined, 'not sent to visitors');
+    assert.equal((await call('DELETE', `/admin/sections/${saved.body.key}`)).status, 204);
+    assert.equal((await call('GET', '/admin/sections')).body.length, 0);
+  });
+});

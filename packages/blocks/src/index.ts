@@ -9,3 +9,6 @@ export * from './collections.js';
 export * from './video.js';
 export * from './site.js';
 export * from './extras.js';
+export * from './layout.js';
+export * from './tree.js';
+export * from './templates.js';

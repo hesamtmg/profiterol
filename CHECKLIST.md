@@ -45,9 +45,9 @@ This combines:
 - [x] Unit tests for the registry and validation (`npm test -w @profiterol/blocks`)
 - [x] Page revisions: every publish plus edits every 10 minutes, last 50 kept; restore from the editor's Version history (the replaced draft is kept, so a restore can be undone)
 - [x] Scheduled publishing (minicms `expire_time` / publish at): go live and take offline at set times
-- [ ] Nested blocks (columns/containers holding other blocks)
+- [x] Nested blocks: Columns (2–4, widths, gap, stack below phone or tablet width) and Group; one level deep, full-screen blocks stay on the page; each column is its own container so blocks fit its width; drag in, out and between columns
 - [x] Per-block visibility: show on all devices, phones only, or tablets and desktops only (badge and dimming in the editor's previews)
-- [ ] Per-block style options: background color/image, spacing, full-bleed vs panel
+- [x] Per-block style options on every block: backdrop color and picture, panel, text and accent colors (a small theme for the block), extra space above/below, content width
 - [x] Duplicate a page (a draft copy with its own addresses)
 - [ ] Move pages into folders; parent/child URLs
 
@@ -83,7 +83,7 @@ This combines:
 - [x] Autosave a few seconds after each change (pages, and collection items while they are drafts), with an on/off switch
 - [x] Drop a photo onto a block to use it as that block's image; drop or paste images into any image field, the media library window and the Media page
 - [x] Rich text field (bold, italic, links, lists) with sanitized HTML output
-- [ ] Block presets / "sections": save a configured block and reuse it
+- [x] Saved sections: save any configured block (columns included) and insert it on other pages from the top of the library
 - [ ] Shareable draft preview link (signed token)
 - [x] Editor UI in Persian as well as English: a فارسی / English switch in the header, login and editor; right-to-left layout; remembered per browser; block names, fields and help text translated
 - [ ] Real-time multi-user awareness (someone else is editing this page)
@@ -186,8 +186,8 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [ ] Custom CSS / head code (admin only)
 
 ## Phase 10: Templates and multi-site
-- [ ] Page templates ("About", "Services", "Contact") to start from
-- [ ] Whole-site templates (an AMSR-style template, a minicms "studio" template)
+- [x] Page templates ("About", "Services", "Contact", two home pages) to start from, in English and Persian
+- [x] Whole-site templates (an AMSR-style portfolio, a minicms "studio"): theme, draft pages and menu links, from Site settings
 - [ ] Import minicms data (pages/page_details/posts → pages/blocks/collections)
 - [ ] Multi-site: `sites` table, all content scoped by `site_id`, custom domains, per-site theme
 - [ ] Sign-up and plans if this becomes a hosted product

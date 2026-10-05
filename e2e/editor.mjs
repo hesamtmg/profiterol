@@ -81,7 +81,8 @@ check(
 // ---------- Show on: phones only ----------
 const statement = blocks().filter({ hasText: 'Speed is our key power' }).first();
 await statement.click({ position: { x: 40, y: 150 } });
-await panel().locator('label:has-text("Show on") + select').selectOption('mobile');
+await panel().locator('summary:has-text("Animation, anchor and visibility")').click();
+await panel().getByLabel('Show on', { exact: true }).selectOption('mobile');
 await page.waitForTimeout(300);
 check('badge shows "Phones only"', (await statement.locator('text=Phones only').count()) === 1);
 check('dimmed in desktop preview', (await statement.locator('.opacity-30').count()) === 1);
@@ -125,7 +126,7 @@ const dt2 = await page.evaluateHandle((data) => {
   transfer.items.add(new File([bytes], 'field.png', { type: 'image/png' }));
   return transfer;
 }, b64b);
-const imageInput = panel().locator('input[placeholder="Drop an image"]');
+const imageInput = panel().getByLabel('Background image', { exact: true });
 const before = await imageInput.inputValue();
 await imageInput.dispatchEvent('drop', { dataTransfer: dt2 });
 await page.waitForFunction(

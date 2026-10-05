@@ -15,6 +15,8 @@ const SUITES = [
   'persian-admin-and-images',
   'security',
   'history',
+  'layout',
+  'templates',
 ];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;

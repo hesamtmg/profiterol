@@ -8,7 +8,18 @@ import {
   OnApplicationShutdown,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BlockNode, cleanTheme, fontNames, formBlockTypes, isLocale, locales, mapRichText, validateBlocks } from '@profiterol/blocks';
+import {
+  BlockNode,
+  cleanTheme,
+  findBlock,
+  fontNames,
+  formBlockTypes,
+  isLocale,
+  locales,
+  mapRichText,
+  templateBlocks,
+  validateBlocks,
+} from '@profiterol/blocks';
 import { DataSource, EntityManager, LessThanOrEqual, Not, QueryFailedError, Repository } from 'typeorm';
 import { CollectionsService } from '../collections/collections.service';
 import { SettingsService } from '../settings/settings.controller';
@@ -76,13 +87,21 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     return page;
   }
 
-  async create(dto: CreatePageDto) {
+  async create(dto: CreatePageDto & { slug?: string; titles?: Record<string, string> }) {
     const given = dto.translations ?? [];
     // Every page gets one translation per locale so the editor can switch languages straight away.
     const translations = await Promise.all(
       locales.map(async (l) => {
         const t = given.find((g) => g.locale === l.code);
-        return t ?? { locale: l.code, title: dto.name, slug: await this.freeSlug(l.code, slugify(dto.name)), blocks: [] };
+        const blocks = dto.template ? templateBlocks(dto.template, l.code) : [];
+        return (
+          t ?? {
+            locale: l.code,
+            title: dto.titles?.[l.code] ?? dto.name,
+            slug: await this.freeSlug(l.code, dto.slug ?? slugify(dto.name)),
+            blocks,
+          }
+        );
       }),
     );
     translations.forEach((t) => this.assertBlocks(t.blocks, t.locale));
@@ -303,7 +322,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       where: { page: { id: pageId, status: 'published' }, locale },
       relations: { page: true },
     });
-    return t?.publishedBlocks?.find((b) => b.id === blockId) ?? null;
+    return t?.publishedBlocks ? (findBlock(t.publishedBlocks, blockId)?.block ?? null) : null;
   }
 
   /** Published pages for the sitemap. */
@@ -319,10 +338,13 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     return [...pages, ...(await this.collections.sitemapEntries())];
   }
 
-  /** Attaches data that blocks need at render time, such as a collection list's items. */
+  /** Attaches data that blocks need at render time, such as a collection list's items (inside columns too). */
   private async expandBlocks(blocks: BlockNode[], locale: string, pageId: string): Promise<BlockNode[]> {
     return Promise.all(
       blocks.map(async (b) => {
+        if (b.children) {
+          return { ...b, children: await Promise.all(b.children.map((column) => this.expandBlocks(column, locale, pageId))) };
+        }
         // Forms post back to /public/forms/<page>/<block>, so they need to know their page.
         if (formBlockTypes.includes(b.type)) return { ...b, data: { pageId, blockId: b.id } };
         if (b.type !== 'collection-list') return b;

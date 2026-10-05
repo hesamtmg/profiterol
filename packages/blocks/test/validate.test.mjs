@@ -1,6 +1,21 @@
-import { test } from 'node:test';
+import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { blocks, createBlock, validateBlocks, themeToCss } from '../dist/esm/index.js';
+import {
+  allBlocks,
+  blocks,
+  cloneBlock,
+  createBlock,
+  findBlock,
+  getPageTemplate,
+  mapRichText,
+  pageTemplates,
+  resizeColumns,
+  siteTemplates,
+  siteTemplateTheme,
+  templateBlocks,
+  themeToCss,
+  validateBlocks,
+} from '../dist/esm/index.js';
 
 test('every block default passes validation', () => {
   const page = blocks.map((b) => createBlock(b.type));
@@ -188,4 +203,91 @@ test('site fonts, saved themes and loader settings are cleaned', async () => {
 
 test('pricing, map and spacer blocks are registered with valid defaults', () => {
   for (const type of ['pricing', 'map', 'spacer']) assert.deepEqual(validateBlocks([createBlock(type)]), [], type);
+});
+
+describe('columns and groups', () => {
+  const text = (id, title = 'Hi') => ({ id, type: 'text', props: { title } });
+  const columns = (children, props = { count: '2' }) => ({ id: 'cols', type: 'columns', props, children });
+
+  test('blocks inside columns are validated like page blocks', () => {
+    assert.deepEqual(validateBlocks([columns([[text('a')], [text('b')]])]), []);
+    const errors = validateBlocks([columns([[text('a', 5)], []])]);
+    assert.equal(errors[0].path, 'blocks[0].children[0][0].props.title');
+  });
+
+  test('the number of columns must match', () => {
+    assert.match(validateBlocks([columns([[text('a')]])])[0].message, /2 list/);
+    assert.deepEqual(validateBlocks([columns([[], [], []], { count: '3' })]), []);
+  });
+
+  test('full-screen blocks and layout blocks cannot be nested', () => {
+    const hero = { id: 'h', type: 'spotlight', props: {} };
+    assert.match(validateBlocks([columns([[hero], []])])[0].message, /cannot be placed inside/);
+    const inner = { id: 'g', type: 'group', props: {}, children: [[]] };
+    assert.match(validateBlocks([columns([[inner], []])])[0].message, /cannot be placed inside/);
+  });
+
+  test('only layout blocks hold children, and ids are unique across levels', () => {
+    assert.match(validateBlocks([{ ...text('t'), children: [[]] }])[0].message, /only columns and groups/);
+    assert.match(validateBlocks([text('a'), columns([[text('a')], []])])[0].message, /duplicated/);
+  });
+
+  test('createBlock gives layout blocks their empty columns', () => {
+    assert.deepEqual(createBlock('columns').children, [[], []]);
+    assert.deepEqual(createBlock('group').children, [[]]);
+    assert.equal(createBlock('text').children, undefined);
+  });
+
+  test('tree helpers find, clone and resize', () => {
+    const tree = [text('a'), columns([[text('b')], [text('c')]])];
+    const place = findBlock(tree, 'c');
+    assert.equal(place.parent.id, 'cols');
+    assert.equal(place.index, 0);
+    assert.deepEqual(
+      allBlocks(tree).map((b) => b.id),
+      ['a', 'cols', 'b', 'c'],
+    );
+    let n = 0;
+    const copy = cloneBlock(tree[1], () => `x${n++}`);
+    assert.deepEqual(
+      allBlocks([copy]).map((b) => b.id),
+      ['x0', 'x1', 'x2'],
+    );
+    assert.deepEqual(
+      resizeColumns(tree[1], 1).map((c) => c.map((b) => b.id)),
+      [['b', 'c']],
+    );
+    assert.deepEqual(
+      resizeColumns(tree[1], 3).map((c) => c.length),
+      [1, 1, 0],
+    );
+  });
+
+  test('every block has the style fields, and colors are checked', () => {
+    assert.deepEqual(validateBlocks([{ id: 's', type: 'text', props: { bgColor: '#123456', spaceTop: 'lg', maxWidth: 'narrow' } }]), []);
+    assert.match(validateBlocks([{ id: 's', type: 'faq', props: { textColor: 'red' } }])[0].message, /hex color/);
+  });
+
+  test('rich text inside columns is cleaned too', () => {
+    const tree = [columns([[{ id: 'r', type: 'rich-text', props: { html: '<p>x<script></script></p>' } }], []])];
+    const cleaned = mapRichText(tree, (html) => html.replace(/<script><\/script>/g, ''));
+    assert.equal(cleaned[0].children[0][0].props.html, '<p>x</p>');
+  });
+});
+
+describe('templates', () => {
+  test('every page template is valid in both languages', () => {
+    for (const template of pageTemplates) {
+      for (const locale of ['en', 'fa']) {
+        assert.deepEqual(validateBlocks(templateBlocks(template.key, locale)), [], `${template.key} (${locale})`);
+      }
+    }
+  });
+
+  test('site templates use existing page templates and themes', () => {
+    for (const site of siteTemplates) {
+      assert.ok(siteTemplateTheme(site.key), `${site.key} theme`);
+      for (const p of site.pages) assert.ok(getPageTemplate(p.template), `${site.key}: ${p.template}`);
+    }
+  });
 });

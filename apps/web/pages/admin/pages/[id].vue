@@ -5,7 +5,13 @@
  */
 import {
   blocks as blockDefs,
+  cloneBlock,
   createBlock,
+  findBlock,
+  isTopLevelOnly,
+  newBlockId,
+  resizeColumns,
+  styleFields,
   getBlock,
   getLocale,
   locales,
@@ -23,6 +29,8 @@ import {
   type BlockNode,
 } from '@profiterol/blocks';
 import draggable from 'vuedraggable';
+import EditorBlockFrame from '~/components/admin/EditorBlockFrame.vue';
+import EditorColumn from '~/components/admin/EditorColumn.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
 import PageHistory from '~/components/admin/PageHistory.vue';
 import PageSchedule from '~/components/admin/PageSchedule.vue';
@@ -80,13 +88,16 @@ const message = ref<{ kind: 'error' | 'ok'; text: string } | null>(null);
 
 const current = computed(() => drafts[locale.value]);
 const localeDir = computed(() => getLocale(locale.value)?.dir ?? 'ltr');
-const selected = computed(() => current.value?.blocks.find((b) => b.id === selectedId.value) ?? null);
+const selected = computed(() =>
+  current.value && selectedId.value ? (findBlock(current.value.blocks, selectedId.value)?.block ?? null) : null,
+);
 const selectedDef = computed(() => (selected.value ? getBlock(selected.value.type) : undefined));
 const themeCss = computed(() => themeToCss(canvasTheme.value));
 const overlayHeader = computed(() => current.value?.blocks[0]?.type === 'spotlight');
 
 const deviceWidths = { desktop: '100%', tablet: '820px', mobile: '390px' } as const;
 const categories: { key: BlockCategory; label: string }[] = [
+  { key: 'layout', label: 'Layout' },
   { key: 'animated', label: 'Animated' },
   { key: 'hero', label: 'Hero' },
   { key: 'cards', label: 'Cards' },
@@ -339,19 +350,78 @@ function redo() {
 
 // ---------- Block operations ----------
 
-function indexOf(id: string) {
-  return current.value.blocks.findIndex((b) => b.id === id);
+/** Where a block sits in the current language's tree (on the page or inside a column). */
+function placeOf(id: string) {
+  return findBlock(current.value.blocks, id);
 }
 
+/** Set by a column's "Add a block" button: the next block picked in the library goes there. */
+const insertTarget = ref<{ parentId: string; column: number } | null>(null);
+
 function insertBlock(def: BlockDef) {
-  const node = createBlock(def.type);
-  const at = selectedId.value ? indexOf(selectedId.value) + 1 : current.value.blocks.length;
-  current.value.blocks.splice(at, 0, node);
+  insertNode(createBlock(def.type));
+}
+
+/** Puts a new block in place: into the column waiting for one, after the selected block, or at the end. */
+function insertNode(node: BlockNode) {
+  const target = insertTarget.value && placeOf(insertTarget.value.parentId);
+  if (target && insertTarget.value && !isTopLevelOnly(node.type)) {
+    target.block.children?.[insertTarget.value.column]?.push(node);
+  } else {
+    const here = selectedId.value ? placeOf(selectedId.value) : null;
+    if (here && (!here.parent || !isTopLevelOnly(node.type))) {
+      here.list.splice(here.index + 1, 0, node);
+    } else if (here?.parent) {
+      // A full-screen or layout block cannot go into a column: it goes on the page, after the columns.
+      const outer = placeOf(here.parent.id)!;
+      outer.list.splice(outer.index + 1, 0, node);
+    } else {
+      current.value.blocks.push(node);
+    }
+  }
+  insertTarget.value = null;
   select(node.id, true);
 }
 
 function cloneFromLibrary(def: BlockDef): BlockNode {
   return createBlock(def.type);
+}
+
+// ---------- Saved sections ----------
+
+interface SavedSection {
+  key: string;
+  name: string;
+  block: BlockNode;
+}
+const sections = ref<SavedSection[]>([]);
+api<SavedSection[]>('/admin/sections')
+  .then((list) => (sections.value = list))
+  .catch(() => undefined);
+
+/** A saved section, as a new block with fresh ids (so it can be used many times on one page). */
+const fromSection = (s: SavedSection) => cloneBlock(s.block, newBlockId);
+
+async function saveSection(block: BlockNode) {
+  const name = prompt(translate('Name this section, e.g. “Team with photos”'), translate(getBlock(block.type)?.label ?? ''));
+  if (!name?.trim()) return;
+  try {
+    const saved = await api<SavedSection>('/admin/sections', { method: 'POST', body: { name: name.trim(), block } });
+    sections.value.unshift(saved);
+    notify(translate('Saved “{name}”. Find it at the top of Add blocks.', { name: saved.name }));
+  } catch (err) {
+    message.value = { kind: 'error', text: apiErrorMessage(err) };
+  }
+}
+
+async function deleteSection(s: SavedSection) {
+  if (!confirm(translate('Delete the saved section “{name}”? Pages that use it keep their copy.', { name: s.name }))) return;
+  try {
+    await api(`/admin/sections/${s.key}`, { method: 'DELETE' });
+    sections.value = sections.value.filter((x) => x.key !== s.key);
+  } catch (err) {
+    message.value = { kind: 'error', text: apiErrorMessage(err) };
+  }
 }
 
 function onCanvasAdd(evt: { newIndex: number }) {
@@ -360,25 +430,27 @@ function onCanvasAdd(evt: { newIndex: number }) {
 }
 
 function move(id: string, delta: number) {
-  const i = indexOf(id);
-  const j = i + delta;
-  if (i < 0 || j < 0 || j >= current.value.blocks.length) return;
-  const [node] = current.value.blocks.splice(i, 1);
-  current.value.blocks.splice(j, 0, node);
+  const here = placeOf(id);
+  if (!here) return;
+  const j = here.index + delta;
+  if (j < 0 || j >= here.list.length) return;
+  const [node] = here.list.splice(here.index, 1);
+  here.list.splice(j, 0, node);
 }
 
 function duplicate(id: string) {
-  const i = indexOf(id);
-  const copy = { ...createBlock(current.value.blocks[i].type), props: JSON.parse(JSON.stringify(current.value.blocks[i].props)) };
-  current.value.blocks.splice(i + 1, 0, copy);
+  const here = placeOf(id);
+  if (!here) return;
+  const copy = cloneBlock(here.block, newBlockId);
+  here.list.splice(here.index + 1, 0, copy);
   select(copy.id, true);
 }
 
 function remove(id: string) {
-  const i = indexOf(id);
-  if (i < 0) return;
-  current.value.blocks.splice(i, 1);
-  if (selectedId.value === id) selectedId.value = null;
+  const here = placeOf(id);
+  if (!here) return;
+  here.list.splice(here.index, 1);
+  if (selectedId.value && !placeOf(selectedId.value)) selectedId.value = null;
 }
 
 function select(id: string, scroll = false) {
@@ -386,10 +458,63 @@ function select(id: string, scroll = false) {
   if (scroll) nextTick(() => document.getElementById(`blk-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 }
 
+// A Columns block keeps one list of blocks per column, whatever its column count is set to.
+watch(
+  () => [selected.value, selected.value?.props.count] as const,
+  ([block]) => {
+    const def = block && getBlock(block.type);
+    if (!block || !def?.slots) return;
+    const slots = def.slots({ ...def.defaults, ...block.props });
+    if (block.children?.length !== slots) block.children = resizeColumns(block, slots);
+  },
+);
+
+provide(columnEditorKey, EditorColumn);
+
+/** The shared field groups shown below a block's own fields, folded by default. */
+const fieldGroups = [
+  { key: 'style', label: 'Style', icon: 'mdi-palette-swatch-outline' },
+  { key: 'advanced', label: 'Animation, anchor and visibility', icon: 'mdi-tune-variant' },
+] as const;
+const hasStyle = (block: BlockNode) => styleFields.some((f) => block.props[f.key]);
+provide(editorKey, {
+  selectedId,
+  dropTarget,
+  dropKind,
+  locale,
+  insertTarget,
+  select,
+  move,
+  duplicate,
+  remove,
+  inlineEdit,
+  hiddenOnDevice,
+  imageLabel: (block) => translate(imageFieldOf(block, dropKind.value)?.label ?? '').toLowerCase(),
+  onBlockDragOver,
+  onBlockDrop,
+  addAfter: (id) => {
+    insertTarget.value = null;
+    select(id);
+    leftTab.value = 'add';
+  },
+  addInto: (parent, column) => {
+    insertTarget.value = { parentId: parent.id, column };
+    select(parent.id);
+    leftTab.value = 'add';
+  },
+  setColumn: (parent, column, blocks) => {
+    if (parent.children) parent.children[column] = blocks;
+  },
+  onAdded: (list, index) => {
+    const node = list[index];
+    if (node) select(node.id);
+  },
+});
+
 /** Copies the block layout (with its text) from another language, as a starting point for translating. */
 function copyFrom(code: string) {
   if (current.value.blocks.length && !confirm(translate('Replace the blocks in this language?'))) return;
-  current.value.blocks = drafts[code].blocks.map((b) => ({ ...createBlock(b.type), props: JSON.parse(JSON.stringify(b.props)) }));
+  current.value.blocks = drafts[code].blocks.map((b) => cloneBlock(b, newBlockId));
   selectedId.value = null;
 }
 
@@ -417,6 +542,7 @@ function onKey(e: KeyboardEvent) {
     remove(selectedId.value);
   } else if (e.key === 'Escape') {
     selectedId.value = null;
+    insertTarget.value = null;
   }
 }
 
@@ -574,6 +700,37 @@ function deleteTheme(key: string) {
 
         <div v-if="leftTab === 'add'" class="flex-1 overflow-y-auto px-3 pb-6">
           <p class="px-1 pb-2 text-[11px] text-slate-400">{{ $t('Click to insert below the selected block, or drag onto the page.') }}</p>
+          <div v-if="sections.length" class="mt-3" data-sections>
+            <h3 class="px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $t('Saved sections') }}</h3>
+            <draggable
+              :list="sections"
+              :group="{ name: 'blocks', pull: 'clone', put: false }"
+              :clone="fromSection"
+              :sort="false"
+              item-key="key"
+              class="mt-2 space-y-1.5"
+            >
+              <template #item="{ element }">
+                <div
+                  class="group/sec flex cursor-grab items-center gap-2 rounded-2xl border border-slate-200 py-2 pe-2 ps-3 text-xs transition hover:border-slate-300 hover:shadow-md"
+                  :data-type="element.block.type"
+                >
+                  <i class="mdi text-lg text-[#00a998]" :class="getBlock(element.block.type)?.icon" />
+                  <button type="button" class="min-w-0 flex-1 truncate text-start font-medium" @click="insertNode(fromSection(element))">
+                    {{ element.name }}
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-icon !h-7 !w-7 opacity-0 transition group-hover/sec:opacity-100 hover:!text-red-600"
+                    :title="$t('Delete')"
+                    @click="deleteSection(element)"
+                  >
+                    <i class="mdi mdi-close" />
+                  </button>
+                </div>
+              </template>
+            </draggable>
+          </div>
           <div v-for="cat in categories" :key="cat.key" class="mt-3">
             <h3 class="px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $t(cat.label) }}</h3>
             <draggable
@@ -589,6 +746,7 @@ function deleteTheme(key: string) {
                   type="button"
                   class="flex cursor-grab flex-col items-center gap-1.5 rounded-2xl border border-slate-200 p-3 text-center text-[11px] leading-tight transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md active:cursor-grabbing"
                   :title="$t(element.description)"
+                  :data-type="element.type"
                   @click="insertBlock(element)"
                 >
                   <i class="mdi text-2xl text-[#00a998]" :class="element.icon" />
@@ -640,14 +798,38 @@ function deleteTheme(key: string) {
         <div v-else class="flex-1 overflow-y-auto px-3 pb-6">
           <draggable v-model="current.blocks" item-key="id" handle=".layer-handle" :animation="200" class="space-y-1.5">
             <template #item="{ element }">
-              <div
-                class="flex items-center gap-2 rounded-xl border px-2 py-2 text-xs transition"
-                :class="selectedId === element.id ? 'border-sky-400 bg-sky-50' : 'border-slate-200 hover:bg-slate-50'"
-                @click="select(element.id, true)"
-              >
-                <i class="layer-handle mdi mdi-drag cursor-grab text-lg text-slate-400" />
-                <i class="mdi text-base text-slate-500" :class="getBlock(element.type)?.icon" />
-                <span class="flex-1 truncate">{{ getBlock(element.type)?.label ?? element.type }}</span>
+              <div>
+                <div
+                  class="flex items-center gap-2 rounded-xl border px-2 py-2 text-xs transition"
+                  :class="selectedId === element.id ? 'border-sky-400 bg-sky-50' : 'border-slate-200 hover:bg-slate-50'"
+                  @click="select(element.id, true)"
+                >
+                  <i class="layer-handle mdi mdi-drag cursor-grab text-lg text-slate-400" />
+                  <i class="mdi text-base text-slate-500" :class="getBlock(element.type)?.icon" />
+                  <span class="flex-1 truncate">{{ $t(getBlock(element.type)?.label ?? element.type) }}</span>
+                </div>
+                <div v-if="element.children" class="ms-5 mt-1 space-y-1 border-s-2 border-violet-200 ps-2">
+                  <template v-for="(column, c) in element.children" :key="c">
+                    <p
+                      v-if="element.children.length > 1"
+                      class="px-1 pt-1 text-[10px] font-semibold uppercase tracking-wider text-violet-400"
+                    >
+                      {{ $t('Column {n}', { n: c + 1 }) }}
+                    </p>
+                    <button
+                      v-for="child in column"
+                      :key="child.id"
+                      type="button"
+                      class="flex w-full items-center gap-2 rounded-lg border px-2 py-1.5 text-start text-xs transition"
+                      :class="selectedId === child.id ? 'border-violet-400 bg-violet-50' : 'border-slate-200 hover:bg-slate-50'"
+                      @click.stop="select(child.id, true)"
+                    >
+                      <i class="mdi text-sm text-slate-500" :class="getBlock(child.type)?.icon" />
+                      <span class="flex-1 truncate">{{ $t(getBlock(child.type)?.label ?? child.type) }}</span>
+                    </button>
+                    <p v-if="!column.length" class="px-2 py-1 text-[11px] italic text-slate-300">{{ $t('Empty') }}</p>
+                  </template>
+                </div>
               </div>
             </template>
           </draggable>
@@ -690,90 +872,7 @@ function deleteTheme(key: string) {
             @add="onCanvasAdd"
           >
             <template #item="{ element }">
-              <div
-                :id="`blk-${element.id}`"
-                class="group/blk relative cursor-pointer outline-offset-[-4px]"
-                :class="
-                  selectedId === element.id
-                    ? 'z-10 outline outline-4 outline-sky-500'
-                    : 'hover:outline hover:outline-2 hover:outline-sky-400/70'
-                "
-                @click="select(element.id)"
-                @dragover="onBlockDragOver(element, $event)"
-                @drop="onBlockDrop(element, $event)"
-              >
-                <div
-                  class="absolute start-6 top-6 z-20 items-center gap-0.5 rounded-full bg-slate-900 p-1 text-white shadow-xl"
-                  :class="selectedId === element.id ? 'flex' : 'hidden group-hover/blk:flex'"
-                  dir="ltr"
-                  @click.stop="select(element.id)"
-                >
-                  <span class="drag-handle flex cursor-grab items-center gap-1 px-2 text-xs font-medium" :title="$t('Drag to move')">
-                    <i class="mdi mdi-drag text-base" /> {{ getBlock(element.type)?.label }}
-                  </span>
-                  <button
-                    type="button"
-                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15"
-                    :title="$t('Move up')"
-                    @click="move(element.id, -1)"
-                  >
-                    <i class="mdi mdi-arrow-up" />
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15"
-                    :title="$t('Move down')"
-                    @click="move(element.id, 1)"
-                  >
-                    <i class="mdi mdi-arrow-down" />
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15"
-                    :title="$t('Duplicate')"
-                    @click="duplicate(element.id)"
-                  >
-                    <i class="mdi mdi-content-copy" />
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-icon !h-7 !w-7 !text-white hover:!bg-red-500"
-                    :title="$t('Delete')"
-                    @click="remove(element.id)"
-                  >
-                    <i class="mdi mdi-trash-can-outline" />
-                  </button>
-                </div>
-                <span
-                  v-if="element.props.showOn"
-                  class="absolute end-6 top-6 z-20 rounded-full bg-amber-300 px-3 py-1 text-[11px] font-medium text-amber-950 shadow"
-                  dir="ltr"
-                >
-                  <i class="mdi" :class="element.props.showOn === 'mobile' ? 'mdi-cellphone' : 'mdi-monitor'" />
-                  {{ element.props.showOn === 'mobile' ? $t('Phones only') : $t('Tablets and desktops only') }}
-                </span>
-                <div :class="{ 'opacity-30 grayscale': hiddenOnDevice(element) }">
-                  <BlockView :block="element" :locale="locale" editable @edit="(path, value) => inlineEdit(element, path, value)" />
-                </div>
-                <div
-                  v-if="dropTarget === element.id"
-                  class="pointer-events-none absolute inset-3 z-30 flex items-center justify-center rounded-card border-4 border-dashed border-sky-400 bg-sky-500/20 text-lg font-bold text-white"
-                  dir="ltr"
-                >
-                  <span class="rounded-full bg-sky-600 px-5 py-2 shadow-lg"
-                    ><i class="mdi" :class="dropKind === 'video' ? 'mdi-movie-plus' : 'mdi-image-plus'" /> Drop to use as
-                    {{ imageFieldOf(element, dropKind)?.label.toLowerCase() }}</span
-                  >
-                </div>
-                <button
-                  type="button"
-                  class="absolute bottom-0 left-1/2 z-20 hidden h-8 w-8 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg group-hover/blk:flex"
-                  :title="$t('Add a block below')"
-                  @click.stop="(select(element.id), (leftTab = 'add'))"
-                >
-                  <i class="mdi mdi-plus" />
-                </button>
-              </div>
+              <EditorBlockFrame :block="element" />
             </template>
             <template #footer>
               <div
@@ -801,17 +900,50 @@ function deleteTheme(key: string) {
             <button type="button" class="btn-icon" :title="$t('Close')" @click="selectedId = null"><i class="mdi mdi-close" /></button>
           </div>
           <div class="space-y-4 px-5 py-5">
+            <p v-if="selected.children" class="rounded-2xl bg-violet-50 px-4 py-3 text-xs leading-relaxed text-violet-800">
+              <i class="mdi mdi-information-outline" />
+              {{ $t('Drag blocks into the columns on the page, or use “Add a block to this column” under each column.') }}
+            </p>
             <FieldInput
-              v-for="field in selectedDef.fields"
+              v-for="field in selectedDef.fields.filter((f) => !f.group)"
               :key="`${selected.id}-${field.key}`"
               v-model="selected.props[field.key]"
               :field="field"
               :dir="localeDir"
             />
+            <details
+              v-for="group in fieldGroups"
+              :key="group.key"
+              class="group/fields rounded-2xl border border-slate-200"
+              :open="group.key === 'style' && hasStyle(selected)"
+            >
+              <summary class="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-xs font-semibold text-slate-600">
+                <i class="mdi" :class="group.icon" /> {{ $t(group.label) }}
+                <span v-if="group.key === 'style' && hasStyle(selected)" class="h-1.5 w-1.5 rounded-full bg-[#00a998]" />
+                <i class="mdi mdi-chevron-down ms-auto transition group-open/fields:rotate-180" />
+              </summary>
+              <div class="space-y-4 border-t border-slate-100 px-4 py-4">
+                <FieldInput
+                  v-for="field in selectedDef.fields.filter((f) => f.group === group.key)"
+                  :key="`${selected.id}-${field.key}`"
+                  v-model="selected.props[field.key]"
+                  :field="field"
+                  :dir="localeDir"
+                />
+              </div>
+            </details>
           </div>
           <div class="flex gap-2 border-t border-slate-100 px-5 py-4">
             <button type="button" class="btn-light flex-1" @click="duplicate(selected.id)">
               <i class="mdi mdi-content-copy" /> {{ $t('Duplicate') }}
+            </button>
+            <button
+              type="button"
+              class="btn-light !px-3"
+              :title="$t('Save as a section to reuse on other pages')"
+              @click="saveSection(selected)"
+            >
+              <i class="mdi mdi-bookmark-plus-outline" />
             </button>
             <button type="button" class="btn-light flex-1 !text-red-600" @click="remove(selected.id)">
               <i class="mdi mdi-trash-can-outline" /> {{ $t('Delete') }}

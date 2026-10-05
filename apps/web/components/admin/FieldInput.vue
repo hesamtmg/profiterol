@@ -6,6 +6,8 @@ import MediaPicker from './MediaPicker.vue';
 import RichTextInput from './RichTextInput.vue';
 
 const props = defineProps<{ field: FieldDef; dir?: string }>();
+/** Links the label to its input, for screen readers and for clicking the label. */
+const uid = useId();
 const model = defineModel<unknown>();
 const picking = ref(false);
 const dragOver = ref(false);
@@ -78,27 +80,28 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
 
 <template>
   <div>
-    <label class="field-label">{{ $t(field.label) }}</label>
+    <label class="field-label" :for="field.type === 'list' || field.type === 'boolean' ? undefined : uid">{{ $t(field.label) }}</label>
 
-    <input v-if="field.type === 'text'" v-model="model" type="text" class="input" :dir="dir" />
+    <input v-if="field.type === 'text'" :id="uid" v-model="model" type="text" class="input" :dir="dir" />
     <input
       v-else-if="field.type === 'url'"
+      :id="uid"
       v-model="model"
       type="text"
       class="input font-mono text-xs"
       dir="ltr"
       placeholder="/page, #anchor or https://…"
     />
-    <textarea v-else-if="field.type === 'textarea'" v-model="model" rows="4" class="input resize-y leading-relaxed" :dir="dir" />
+    <textarea v-else-if="field.type === 'textarea'" :id="uid" v-model="model" rows="4" class="input resize-y leading-relaxed" :dir="dir" />
     <RichTextInput v-else-if="field.type === 'richtext'" :model-value="model as string" :dir="dir" @update:model-value="model = $event" />
-    <input v-else-if="field.type === 'number'" v-model.number="model" type="number" class="input" />
+    <input v-else-if="field.type === 'number'" :id="uid" v-model.number="model" type="number" class="input" />
     <label v-else-if="field.type === 'boolean'" class="flex items-center gap-2 text-sm">
       <input v-model="model" type="checkbox" class="h-4 w-4 rounded" /> {{ $t(field.label) }}
     </label>
-    <select v-else-if="field.type === 'select'" v-model="model" class="input">
+    <select v-else-if="field.type === 'select'" :id="uid" v-model="model" class="input">
       <option v-for="o in field.options" :key="o.value" :value="o.value">{{ $t(o.label) }}</option>
     </select>
-    <select v-else-if="field.type === 'collection'" v-model="model" class="input">
+    <select v-else-if="field.type === 'collection'" :id="uid" v-model="model" class="input">
       <option v-if="!collections?.length" disabled value="">{{ $t('No collections yet') }}</option>
       <option v-for="c in collections ?? []" :key="c.key" :value="c.key">{{ c.name.en || c.key }}</option>
     </select>
@@ -109,7 +112,10 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
         class="h-9 w-12 cursor-pointer rounded-lg border border-slate-200 bg-white p-1"
         @input="model = ($event.target as HTMLInputElement).value"
       />
-      <input v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="#00a998" />
+      <input :id="uid" v-model="model" type="text" class="input font-mono text-xs" dir="ltr" placeholder="#00a998" />
+      <button v-if="model" type="button" class="btn-icon shrink-0" :title="$t('Clear')" @click="model = ''">
+        <i class="mdi mdi-close" />
+      </button>
     </div>
 
     <div
@@ -138,6 +144,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
           </span>
         </div>
         <input
+          :id="uid"
           v-model="model"
           type="text"
           class="input min-w-0 text-xs"

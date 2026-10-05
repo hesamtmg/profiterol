@@ -3,6 +3,7 @@ import { cleanLoader, fontNames, locales, resolveTheme, type FieldDef, type Load
 import FieldInput from '~/components/admin/FieldInput.vue';
 import FontManager from '~/components/admin/FontManager.vue';
 import SiteLoader from '~/components/site/SiteLoader.vue';
+import SiteTemplates from '~/components/admin/SiteTemplates.vue';
 import ThemeEditor from '~/components/admin/ThemeEditor.vue';
 import type { SiteSettings } from '~/composables/useSite';
 
@@ -210,6 +211,8 @@ onMounted(load);
           </div>
         </div>
       </section>
+
+      <SiteTemplates @applied="load" />
     </div>
 
     <!-- Theme -->

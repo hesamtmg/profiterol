@@ -12,7 +12,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { locales } from '@profiterol/blocks';
+import { locales, pageTemplates } from '@profiterol/blocks';
 import { SLUG_PATTERN } from '../common/slug';
 
 const localeCodes = locales.map((l) => l.code);
@@ -50,6 +50,11 @@ export class CreatePageDto {
   @IsString()
   @MaxLength(120)
   name: string;
+
+  /** Start from a page template (its blocks in every language). */
+  @IsOptional()
+  @IsIn(pageTemplates.map((p) => p.key))
+  template?: string;
 
   @IsOptional()
   @IsBoolean()

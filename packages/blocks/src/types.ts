@@ -35,9 +35,11 @@ export interface FieldDef {
   help?: string;
   /** Visitor-facing label per locale (collection fields), e.g. `{ fa: 'کارفرما' }`. Falls back to `label`. */
   labels?: Record<string, string>;
+  /** The editor shows fields of a group together under a heading (e.g. the shared "style" fields). */
+  group?: 'style' | 'advanced';
 }
 
-export type BlockCategory = 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic' | 'animated';
+export type BlockCategory = 'layout' | 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic' | 'animated';
 
 export interface BlockDef {
   type: string;
@@ -48,6 +50,10 @@ export interface BlockDef {
   description: string;
   fields: FieldDef[];
   defaults: Record<string, unknown>;
+  /** Layout blocks hold other blocks: the number of places (columns) for given props. */
+  slots?: (props: Record<string, unknown>) => number;
+  /** Full-screen blocks that cannot be put inside a layout block. */
+  topLevelOnly?: boolean;
 }
 
 /** A block instance as stored in a page translation. */
@@ -55,6 +61,8 @@ export interface BlockNode {
   id: string;
   type: string;
   props: Record<string, unknown>;
+  /** Layout blocks only: the blocks in each column (one list per slot). */
+  children?: BlockNode[][];
   /** Added by the API when it serves a page, e.g. a collection list's items. Never stored. */
   data?: unknown;
 }

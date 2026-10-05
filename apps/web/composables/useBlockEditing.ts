@@ -1,4 +1,4 @@
-import type { InjectionKey } from 'vue';
+import type { Component, InjectionKey } from 'vue';
 
 /** Provided by a block in the editor canvas so its text can be edited in place. */
 export interface BlockEditContext {
@@ -7,6 +7,12 @@ export interface BlockEditContext {
 }
 
 export const blockEditKey: InjectionKey<BlockEditContext> = Symbol('block-edit');
+
+/**
+ * In the editor, layout blocks render each column with this component (a sortable list of editable blocks)
+ * instead of plain blocks. Props: `parent` (the layout block) and `column` (its index).
+ */
+export const columnEditorKey: InjectionKey<Component> = Symbol('column-editor');
 
 /** The edit context when rendered inside the editor canvas, otherwise null (public site). */
 export function useBlockEditing(): BlockEditContext | null {

@@ -108,18 +108,12 @@ await page.waitForFunction(() => [...document.querySelectorAll('aside input')].s
 await blocks.nth(2).click({ position: { x: 300, y: 40 } });
 for (const file of ['cover-harbor.png', 'gallery-1.png', 'cover-harbor.png']) {
   await panel().locator('button:has-text("Add photo")').click();
-  const field = panel().locator('input[placeholder="Drop an image"]').last();
+  // The last visible one: the folded style options have an image field too.
+  const field = panel().locator('input[placeholder="Drop an image"]:visible').last();
   await field.dispatchEvent('drop', {
     dataTransfer: await fileTransfer(file === 'gallery-1.png' ? fixtures.gallery : fixtures.cover, file, 'image/png'),
   });
-  await page.waitForFunction(
-    () => {
-      const inputs = [...document.querySelectorAll('aside input[placeholder="Drop an image"]')];
-      return inputs.length && inputs[inputs.length - 1].value.startsWith('/uploads/');
-    },
-    null,
-    { timeout: 10000 },
-  );
+  await page.waitForFunction((input) => input.value.startsWith('/uploads/'), await field.elementHandle(), { timeout: 10000 });
 }
 check('gallery shows 3 photos in the canvas', (await blocks.nth(2).locator('img').count()) === 3);
 

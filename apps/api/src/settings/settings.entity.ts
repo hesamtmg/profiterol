@@ -1,5 +1,13 @@
-import type { LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
+import type { BlockNode, LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
 import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+
+/** A configured block (with its columns, if any) kept under a name. */
+export interface SavedSection {
+  key: string;
+  name: string;
+  block: BlockNode;
+  createdAt: string;
+}
 
 /** Text keyed by locale code, e.g. `{ fa: 'خانه', en: 'Home' }`. */
 export type Localized = Record<string, string>;
@@ -42,6 +50,10 @@ export class SiteSettings {
   /** The loading screen shown while the site opens. */
   @Column({ type: 'jsonb', default: () => "'{}'" })
   loader: Partial<LoaderSettings>;
+
+  /** Blocks saved to reuse on other pages ("Saved sections" in the editor's library). Not sent to the site. */
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  sections: SavedSection[];
 
   @Column({ default: false })
   maintenance: boolean;

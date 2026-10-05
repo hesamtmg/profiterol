@@ -122,3 +122,9 @@ export function imageSrcset(url: unknown): string {
   const m = typeof url === 'string' ? RESIZABLE.exec(url) : null;
   return m ? imageWidths.map((w) => `/uploads/${m[1]}-${w}.webp ${w}w`).join(', ') : '';
 }
+
+/** One size of an uploaded photo (e.g. for a CSS background), or the URL itself for anything else. */
+export function imageVariant(url: unknown, width: (typeof imageWidths)[number]): string {
+  const m = typeof url === 'string' ? RESIZABLE.exec(url) : null;
+  return m ? `/uploads/${m[1]}-${width}.webp` : typeof url === 'string' ? url : '';
+}

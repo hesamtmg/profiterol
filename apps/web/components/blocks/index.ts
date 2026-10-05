@@ -40,6 +40,8 @@ import Slider from './classic/Slider.vue';
 import Triple from './classic/Triple.vue';
 import VideoCover from './classic/VideoCover.vue';
 import VideoShowcase from './classic/VideoShowcase.vue';
+import Columns from './layout/Columns.vue';
+import Group from './layout/Group.vue';
 
 /** minicms kinds 5 and 6 are one layout with the photo on either side. */
 const HorizonRight: FunctionalComponent = (_, { attrs }) => h(HorizonSide, { ...attrs, side: 'right' });
@@ -47,6 +49,8 @@ const HorizonLeft: FunctionalComponent = (_, { attrs }) => h(HorizonSide, { ...a
 
 /** Block type → the component that renders it. Keep in sync with `@profiterol/blocks`. */
 export const blockComponents: Record<string, Component> = {
+  columns: Columns,
+  group: Group,
   spotlight: Spotlight,
   'hero-cards': HeroCards,
   'card-grid': CardGrid,

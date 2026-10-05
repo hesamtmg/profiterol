@@ -197,6 +197,7 @@ check(
 );
 await ed.screenshot({ path: out + 'editor-animated.png' });
 await ed.locator('main [id^=blk-m2]').click({ position: { x: 30, y: 20 } });
+await ed.locator('aside').last().locator('summary:has-text("Animation, anchor and visibility")').click();
 const select = ed
   .locator('aside')
   .last()
