@@ -1,20 +1,87 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  OnApplicationBootstrap,
+  OnApplicationShutdown,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BlockNode, isLocale, locales, validateBlocks } from '@profiterol/blocks';
-import { DataSource, EntityManager, QueryFailedError, Repository } from 'typeorm';
+import {
+  BlockNode,
+  cleanTheme,
+  findBlock,
+  fontNames,
+  formBlockTypes,
+  isLocale,
+  locales,
+  mapRichText,
+  templateBlocks,
+  validateBlocks,
+} from '@profiterol/blocks';
+import { DataSource, EntityManager, LessThanOrEqual, Not, QueryFailedError, Repository } from 'typeorm';
 import { CollectionsService } from '../collections/collections.service';
+import { SettingsService } from '../settings/settings.controller';
+import { cleanHtml } from '../common/rich-text';
+import { purgePageCache } from '../common/page-cache';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
 import { CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
-import { Page, PageTranslation } from './page.entity';
+import { Page, PageRevision, PageSnapshot, PageTranslation, RevisionKind } from './page.entity';
+
+/** Versions kept per page; while editing, saves within this many minutes update the latest version. */
+export const KEEP_REVISIONS = 50;
+const SAVE_WINDOW_MINUTES = 10;
 
 @Injectable()
-export class PagesService {
+export class PagesService implements OnApplicationBootstrap, OnApplicationShutdown {
+  private readonly log = new Logger(PagesService.name);
+  private timer: NodeJS.Timeout | undefined;
+
   constructor(
     @InjectRepository(Page) private readonly pages: Repository<Page>,
     @InjectRepository(PageTranslation) private readonly translations: Repository<PageTranslation>,
+    @InjectRepository(PageRevision) private readonly revisions: Repository<PageRevision>,
     private readonly dataSource: DataSource,
     private readonly collections: CollectionsService,
+    private readonly settings: SettingsService,
   ) {}
+
+  /** Scheduled publishing: checks every 30 seconds for pages due to go online or offline. */
+  onApplicationBootstrap() {
+    this.timer = setInterval(() => this.runSchedule().catch((err) => this.log.warn(`Schedule check failed: ${err}`)), 30_000);
+  }
+
+  onApplicationShutdown() {
+    clearInterval(this.timer);
+  }
+
+  async runSchedule(now = new Date()) {
+    const changes = await this.pages.count({
+      where: [{ publishAt: LessThanOrEqual(now) }, { unpublishAt: LessThanOrEqual(now), status: 'published' }],
+    });
+    for (const page of await this.pages.find({ where: { publishAt: LessThanOrEqual(now) } })) {
+      await this.publish(page.id, '');
+      this.log.log(`Published "${page.name}" as scheduled`);
+    }
+    const due = await this.pages.find({ where: { unpublishAt: LessThanOrEqual(now), status: 'published' } });
+    for (const page of due) {
+      await this.pages.update(page.id, { status: 'draft', unpublishAt: null });
+      this.log.log(`Took "${page.name}" offline as scheduled`);
+    }
+    // A passed end time on a page that is already offline has nothing left to do.
+    await this.pages.update({ unpublishAt: LessThanOrEqual(now), status: Not('published') }, { unpublishAt: null });
+    // The site's cached pages show the old state until cleared.
+    if (changes) await purgePageCache();
+  }
+
+  /** A time due before the next regular check gets its own timer, so "in a minute" means a minute. */
+  private wakeFor(...times: (Date | null)[]) {
+    for (const t of times) {
+      const delay = t ? t.getTime() - Date.now() : Infinity;
+      if (delay < 30_000) setTimeout(() => this.runSchedule().catch(() => undefined), Math.max(delay, 0) + 100).unref();
+    }
+  }
 
   list() {
     return this.pages.find({ order: { isHome: 'DESC', updatedAt: 'DESC' } });
@@ -26,13 +93,21 @@ export class PagesService {
     return page;
   }
 
-  async create(dto: CreatePageDto) {
+  async create(dto: CreatePageDto & { slug?: string; titles?: Record<string, string> }) {
     const given = dto.translations ?? [];
     // Every page gets one translation per locale so the editor can switch languages straight away.
     const translations = await Promise.all(
       locales.map(async (l) => {
         const t = given.find((g) => g.locale === l.code);
-        return t ?? { locale: l.code, title: dto.name, slug: await this.freeSlug(l.code, slugify(dto.name)), blocks: [] };
+        const blocks = dto.template ? templateBlocks(dto.template, l.code) : [];
+        return (
+          t ?? {
+            locale: l.code,
+            title: dto.titles?.[l.code] ?? dto.name,
+            slug: await this.freeSlug(l.code, dto.slug ?? slugify(dto.name)),
+            blocks,
+          }
+        );
       }),
     );
     translations.forEach((t) => this.assertBlocks(t.blocks, t.locale));
@@ -48,31 +123,156 @@ export class PagesService {
     });
   }
 
-  async update(id: string, dto: UpdatePageDto) {
+  async update(id: string, dto: UpdatePageDto, author = '') {
     const page = await this.get(id);
     dto.translations?.forEach((t) => this.assertBlocks(t.blocks, t.locale));
+    const customFonts = dto.theme ? fontNames((await this.settings.get()).fonts) : [];
 
     return this.save(async (manager) => {
       if (dto.isHome) await manager.update(Page, { isHome: true }, { isHome: false });
       if (dto.name !== undefined) page.name = dto.name;
       if (dto.isHome !== undefined) page.isHome = dto.isHome;
+      if (dto.theme !== undefined) page.theme = dto.theme === null ? null : cleanTheme(dto.theme, customFonts);
+      if (dto.publishAt !== undefined) page.publishAt = dto.publishAt ? new Date(dto.publishAt) : null;
+      if (dto.unpublishAt !== undefined) page.unpublishAt = dto.unpublishAt ? new Date(dto.unpublishAt) : null;
+      if (page.publishAt && page.unpublishAt && page.unpublishAt <= page.publishAt) {
+        throw new BadRequestException('The page must go offline after it goes online');
+      }
 
       for (const t of dto.translations ?? []) {
         const existing = page.translations.find((x) => x.locale === t.locale);
         if (existing) Object.assign(existing, this.toTranslation(t));
         else page.translations.push(manager.create(PageTranslation, this.toTranslation(t)));
       }
-      return manager.save(page);
+      const saved = await manager.save(page);
+      if (dto.translations || dto.theme !== undefined || dto.name !== undefined) await this.record(manager, saved, 'save', author);
+      this.wakeFor(saved.publishAt, saved.unpublishAt);
+      return saved;
     });
   }
 
-  /** Copies each translation's draft blocks to its published blocks. */
-  async publish(id: string) {
+  /** Copies each translation's draft blocks to its published blocks, and keeps this version in the history. */
+  async publish(id: string, author = '') {
     const page = await this.get(id);
     page.translations.forEach((t) => (t.publishedBlocks = t.blocks));
+    page.publishedTheme = page.theme;
     page.status = 'published';
     page.publishedAt = new Date();
-    return this.pages.save(page);
+    page.publishAt = null;
+    return this.dataSource.transaction(async (manager) => {
+      const saved = await manager.save(page);
+      await this.record(manager, saved, 'publish', author);
+      return saved;
+    });
+  }
+
+  // ---------- History ----------
+
+  private snapshot(page: Page): PageSnapshot {
+    return {
+      name: page.name,
+      theme: page.theme,
+      translations: page.translations.map((t) => ({
+        locale: t.locale,
+        title: t.title,
+        slug: t.slug,
+        seoTitle: t.seoTitle,
+        seoDescription: t.seoDescription,
+        blocks: t.blocks,
+      })),
+    };
+  }
+
+  /**
+   * Keeps a version of the page. Saves while editing update the latest version if it is a save by the same
+   * person from the last 10 minutes, so autosave does not flood the history.
+   */
+  private async record(manager: EntityManager, page: Page, kind: RevisionKind, author: string) {
+    const repo = manager.getRepository(PageRevision);
+    const snapshot = this.snapshot(page);
+    if (kind === 'save') {
+      const last = await repo.findOne({ where: { page: { id: page.id } }, order: { createdAt: 'DESC' } });
+      if (last?.kind === 'save' && last.author === author && Date.now() - last.createdAt.getTime() < SAVE_WINDOW_MINUTES * 60_000) {
+        last.snapshot = snapshot;
+        await repo.save(last);
+        return;
+      }
+    }
+    await repo.save(repo.create({ page: { id: page.id }, kind, author, snapshot }));
+    const old = await repo
+      .createQueryBuilder('r')
+      .select('r.id', 'id')
+      .where('r."pageId" = :id', { id: page.id })
+      .orderBy('r."createdAt"', 'DESC')
+      .offset(KEEP_REVISIONS)
+      .getRawMany<{ id: string }>();
+    if (old.length) await repo.delete(old.map((r) => r.id));
+  }
+
+  async listRevisions(pageId: string) {
+    await this.get(pageId);
+    const rows = await this.revisions.find({ where: { page: { id: pageId } }, order: { createdAt: 'DESC' } });
+    return rows.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      author: r.author,
+      createdAt: r.createdAt,
+      updatedAt: r.updatedAt,
+      blocks: Object.fromEntries(r.snapshot.translations.map((t) => [t.locale, t.blocks.length])),
+      titles: Object.fromEntries(r.snapshot.translations.map((t) => [t.locale, t.title])),
+    }));
+  }
+
+  async getRevision(pageId: string, revisionId: string) {
+    const rev = await this.revisions.findOne({ where: { id: revisionId, page: { id: pageId } } });
+    if (!rev) throw new NotFoundException('Version not found');
+    return rev;
+  }
+
+  /** Puts an old version back into the draft. The current draft is kept in the history first, so this can be undone. */
+  async restore(pageId: string, revisionId: string, author: string) {
+    const rev = await this.getRevision(pageId, revisionId);
+    const page = await this.get(pageId);
+    return this.save(async (manager) => {
+      await manager
+        .getRepository(PageRevision)
+        .save({ page: { id: page.id }, kind: 'save' as const, author, snapshot: this.snapshot(page) });
+      const { snapshot } = rev;
+      page.name = snapshot.name;
+      page.theme = snapshot.theme;
+      for (const t of snapshot.translations) {
+        const existing = page.translations.find((x) => x.locale === t.locale);
+        if (existing) Object.assign(existing, t);
+      }
+      const saved = await manager.save(page);
+      await this.record(manager, saved, 'restore', author);
+      return saved;
+    });
+  }
+
+  /** A copy of the page as a new draft, with its own addresses. */
+  async duplicate(id: string, author = '') {
+    const source = await this.get(id);
+    const translations = await Promise.all(
+      source.translations.map(async (t) => ({
+        locale: t.locale,
+        title: t.title,
+        slug: await this.freeSlug(t.locale, `${t.slug || slugify(source.name)}-copy`),
+        seoTitle: t.seoTitle,
+        seoDescription: t.seoDescription,
+        blocks: t.blocks,
+      })),
+    );
+    return this.save(async (manager) => {
+      const page = manager.create(Page, {
+        name: `${source.name} (copy)`,
+        theme: source.theme,
+        translations: translations.map((t) => manager.create(PageTranslation, t)),
+      });
+      const saved = await manager.save(page);
+      await this.record(manager, saved, 'save', author);
+      return saved;
+    });
   }
 
   async unpublish(id: string) {
@@ -113,6 +313,7 @@ export class PagesService {
       title: t.title,
       slug: t.slug,
       isHome: t.page.isHome,
+      theme: t.page.publishedTheme,
       seoTitle: t.seoTitle || t.title,
       seoDescription: t.seoDescription,
       blocks: await this.expandBlocks(t.publishedBlocks ?? [], locale, t.page.id),
@@ -127,7 +328,7 @@ export class PagesService {
       where: { page: { id: pageId, status: 'published' }, locale },
       relations: { page: true },
     });
-    return t?.publishedBlocks?.find((b) => b.id === blockId) ?? null;
+    return t?.publishedBlocks ? (findBlock(t.publishedBlocks, blockId)?.block ?? null) : null;
   }
 
   /** Published pages for the sitemap. */
@@ -143,12 +344,15 @@ export class PagesService {
     return [...pages, ...(await this.collections.sitemapEntries())];
   }
 
-  /** Attaches data that blocks need at render time, such as a collection list's items. */
+  /** Attaches data that blocks need at render time, such as a collection list's items (inside columns too). */
   private async expandBlocks(blocks: BlockNode[], locale: string, pageId: string): Promise<BlockNode[]> {
     return Promise.all(
       blocks.map(async (b) => {
+        if (b.children) {
+          return { ...b, children: await Promise.all(b.children.map((column) => this.expandBlocks(column, locale, pageId))) };
+        }
         // Forms post back to /public/forms/<page>/<block>, so they need to know their page.
-        if (b.type === 'contact-form') return { ...b, data: { pageId, blockId: b.id } };
+        if (formBlockTypes.includes(b.type)) return { ...b, data: { pageId, blockId: b.id } };
         if (b.type !== 'collection-list') return b;
         const p = b.props as { collection?: string; limit?: number; tag?: string };
         const data = await this.collections.listPublished(locale, String(p.collection ?? ''), {
@@ -174,7 +378,7 @@ export class PagesService {
       slug: t.slug ?? '',
       seoTitle: t.seoTitle ?? '',
       seoDescription: t.seoDescription ?? '',
-      blocks: (t.blocks ?? []) as BlockNode[],
+      blocks: mapRichText((t.blocks ?? []) as BlockNode[], cleanHtml),
     };
   }
 

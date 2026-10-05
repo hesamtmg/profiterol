@@ -12,9 +12,37 @@
     "dev:api": "npm run start:dev -w @profiterol/api",
     "dev:web": "npm run dev -w @profiterol/web",
     "seed": "npm run seed -w @profiterol/api",
-    "typecheck": "npm run build -w @profiterol/blocks && npm run typecheck -w @profiterol/api"
+    "typecheck": "npm run build -w @profiterol/blocks && npm run typecheck -w @profiterol/api",
+    "e2e": "node e2e/run.mjs",
+    "test:api": "npm run test:e2e -w @profiterol/api",
+    "prepare": "husky",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write . && eslint --fix .",
+    "import:minicms": "node scripts/import-minicms.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.11.1",
+    "globals": "^17.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "playwright": "^1.63.0",
+    "prettier": "^3.9.9",
+    "typescript-eslint": "^8.71.0",
+    "vue-eslint-parser": "^10.4.1"
+  },
+  "lint-staged": {
+    "*.{ts,vue,mjs,js}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

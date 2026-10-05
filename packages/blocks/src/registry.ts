@@ -1,4 +1,8 @@
 import type { BlockDef, BlockNode, FieldDef } from './types.js';
+import { animatedDefinitions, entranceAnimations } from './animated.js';
+import { classicDefinitions, formFieldsField } from './classic.js';
+import { extraDefinitions } from './extras.js';
+import { layoutDefinitions, styleDefaults, styleFields, topLevelOnlyTypes } from './layout.js';
 
 const button: FieldDef[] = [
   { key: 'buttonLabel', label: 'Button label', type: 'text' },
@@ -11,6 +15,82 @@ const button: FieldDef[] = [
  * `type` with the matching component, so a field is declared exactly once.
  */
 const definitions: BlockDef[] = [
+  {
+    type: 'spotlight',
+    label: 'Spotlight hero',
+    icon: 'mdi-account-switch-outline',
+    category: 'hero',
+    description:
+      'A full-screen photo of one person or brand, with the others as tall cards at the side. Clicking a card switches to it (the amsr-portfolio first screen).',
+    fields: [
+      {
+        key: 'people',
+        label: 'People',
+        type: 'list',
+        itemLabel: 'name',
+        max: 4,
+        fields: [
+          { key: 'name', label: 'Name', type: 'text' },
+          { key: 'headline', label: 'Headline', type: 'text' },
+          { key: 'text', label: 'Text', type: 'textarea' },
+          { key: 'photo', label: 'Background photo', type: 'image' },
+          { key: 'mobilePhoto', label: 'Background photo on phones', type: 'image', help: 'Optional; a portrait crop looks best.' },
+          { key: 'cardPhoto', label: 'Side card photo (cut-out)', type: 'image' },
+          {
+            key: 'cardLogo',
+            label: 'Side card logo (vertical)',
+            type: 'image',
+            help: 'Optional; the name is written vertically if empty.',
+          },
+          { key: 'color', label: 'Color', type: 'color' },
+          ...button,
+        ],
+      },
+      { key: 'marquee', label: 'Moving text at the bottom', type: 'text' },
+      {
+        key: 'textSide',
+        label: 'Text position',
+        type: 'select',
+        options: [
+          { value: 'left', label: 'Text left, cards right' },
+          { value: 'right', label: 'Text right, cards left' },
+        ],
+        help: 'Kept the same in every language, so it matches how the photos are composed.',
+      },
+      { key: 'scrollHint', label: 'Show the scroll hint', type: 'boolean' },
+    ],
+    defaults: {
+      people: [
+        {
+          name: 'Design studio',
+          headline: 'Websites and brands',
+          text: 'A short line about the first person or brand. Click the card at the side to switch.',
+          photo: '',
+          mobilePhoto: '',
+          cardPhoto: '',
+          cardLogo: '',
+          color: '#00a998',
+          buttonLabel: 'Contact us',
+          buttonLink: '#contact',
+        },
+        {
+          name: 'Content team',
+          headline: 'Words and pictures',
+          text: 'A short line about the second person or brand.',
+          photo: '',
+          mobilePhoto: '',
+          cardPhoto: '',
+          cardLogo: '',
+          color: '#c49a6c',
+          buttonLabel: 'Contact us',
+          buttonLink: '#contact',
+        },
+      ],
+      marquee: 'SUPER FAST IS OUR KEY POWER',
+      textSide: 'left',
+      scrollHint: true,
+    },
+  },
   {
     type: 'hero-cards',
     label: 'Expanding cards hero',
@@ -146,7 +226,12 @@ const definitions: BlockDef[] = [
       { key: 'limit', label: 'How many items', type: 'number' },
       { key: 'tag', label: 'Only items with this tag', type: 'text' },
       { key: 'showFilters', label: 'Show tag filters', type: 'boolean' },
-      { key: 'buttonLabel', label: '“See all” button label', type: 'text', help: 'Links to the collection’s own page. Leave empty to hide.' },
+      {
+        key: 'buttonLabel',
+        label: '“See all” button label',
+        type: 'text',
+        help: 'Links to the collection’s own page. Leave empty to hide.',
+      },
     ],
     defaults: {
       title: 'Recent projects',
@@ -372,31 +457,7 @@ const definitions: BlockDef[] = [
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'text', label: 'Text', type: 'textarea' },
-      {
-        key: 'fields',
-        label: 'Form fields',
-        type: 'list',
-        itemLabel: 'label',
-        max: 20,
-        fields: [
-          { key: 'label', label: 'Label', type: 'text' },
-          {
-            key: 'type',
-            label: 'Type',
-            type: 'select',
-            options: [
-              { value: 'text', label: 'Short text' },
-              { value: 'email', label: 'Email' },
-              { value: 'tel', label: 'Phone' },
-              { value: 'textarea', label: 'Long text' },
-              { value: 'select', label: 'Choice' },
-            ],
-          },
-          { key: 'required', label: 'Required', type: 'boolean' },
-          { key: 'options', label: 'Choices (comma-separated)', type: 'text' },
-          { key: 'placeholder', label: 'Placeholder', type: 'text' },
-        ],
-      },
+      formFieldsField,
       { key: 'submitLabel', label: 'Button label', type: 'text' },
       { key: 'successMessage', label: 'Message after sending', type: 'textarea' },
     ],
@@ -477,7 +538,19 @@ const definitions: BlockDef[] = [
       copyright: '© Your company',
     },
   },
+  ...extraDefinitions,
+  ...animatedDefinitions,
+  ...classicDefinitions,
+  ...layoutDefinitions,
 ];
+
+/** Every block can play an entrance animation when it scrolls into view. */
+const animationField: FieldDef = {
+  key: 'animation',
+  label: 'Entrance animation',
+  type: 'select',
+  options: entranceAnimations,
+};
 
 /** Every block can be given an anchor so menu links like `#services` can scroll to it. */
 const anchorField: FieldDef = {
@@ -501,8 +574,15 @@ const showOnField: FieldDef = {
 
 export const blocks: BlockDef[] = definitions.map((b) => ({
   ...b,
-  fields: [...b.fields, anchorField, showOnField],
-  defaults: { anchor: '', showOn: '', ...b.defaults },
+  topLevelOnly: b.topLevelOnly ?? topLevelOnlyTypes.includes(b.type),
+  fields: [
+    ...b.fields,
+    ...styleFields,
+    { ...animationField, group: 'advanced' },
+    { ...anchorField, group: 'advanced' },
+    { ...showOnField, group: 'advanced' },
+  ],
+  defaults: { animation: '', anchor: '', showOn: '', ...styleDefaults, ...b.defaults },
 }));
 
 export function getBlock(type: string): BlockDef | undefined {
@@ -513,11 +593,16 @@ function randomId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-/** Creates a new block instance with a deep copy of its defaults. */
+export const newBlockId = randomId;
+
+/** Creates a new block instance with a deep copy of its defaults (and empty columns for layout blocks). */
 export function createBlock(type: string): BlockNode {
   const def = getBlock(type);
   if (!def) throw new Error(`Unknown block type "${type}"`);
-  return { id: randomId(), type, props: JSON.parse(JSON.stringify(def.defaults)) };
+  const props = JSON.parse(JSON.stringify(def.defaults));
+  const node: BlockNode = { id: randomId(), type, props };
+  if (def.slots) node.children = Array.from({ length: def.slots(props) }, () => []);
+  return node;
 }
 
 /** Builds an empty item for a list field, using each sub-field's empty value. */

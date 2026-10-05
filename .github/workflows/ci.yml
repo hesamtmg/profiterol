@@ -20,7 +20,7 @@ jobs:
           POSTGRES_USER: profiterol
           POSTGRES_PASSWORD: profiterol
           POSTGRES_DB: profiterol
-        ports: ["5432:5432"]
+        ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U profiterol"
           --health-interval 5s
@@ -29,6 +29,9 @@ jobs:
     env:
       DATABASE_URL: postgres://profiterol:profiterol@localhost:5432/profiterol
       JWT_SECRET: ci-secret
+      # The browser tests run with the page cache on, so every change must clear it.
+      CACHE_PURGE_TOKEN: ci-purge-token
+      NUXT_CACHE_PURGE_TOKEN: ci-purge-token
       UPLOAD_DIR: /tmp/uploads
     steps:
       - uses: actions/checkout@v4
@@ -65,6 +68,30 @@ jobs:
 
       - name: Web build
         run: npm run build -w @profiterol/web
+
+      - name: Lint and formatting
+        run: |
+          npx eslint .
+          npx prettier --check .
+
+      - name: Browser tests (site, editor, admin)
+        run: |
+          sudo apt-get update -q > /dev/null && sudo apt-get install -y --no-install-recommends ffmpeg > /dev/null
+          npx playwright install --with-deps chromium > /dev/null
+          (cd apps/web && PORT=3000 NUXT_API_INTERNAL=http://localhost:3001/api node .output/server/index.mjs > /tmp/web.log 2>&1 &)
+          node e2e/proxy.mjs > /tmp/proxy.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:8080/admin/login && break; sleep 1; done
+          npm run e2e
+      - name: Web and API logs
+        if: failure()
+        run: tail -n 200 /tmp/web.log /tmp/api.log
+      - name: Screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-screenshots
+          path: e2e/.output/
+          retention-days: 7
 
   deploy-files:
     name: Production files

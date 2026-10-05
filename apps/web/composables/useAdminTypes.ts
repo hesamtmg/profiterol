@@ -1,4 +1,4 @@
-import type { BlockNode } from '@profiterol/blocks';
+import type { BlockNode, ThemeTokens } from '@profiterol/blocks';
 
 export interface AdminTranslation {
   id?: string;
@@ -17,7 +17,13 @@ export interface AdminPage {
   isHome: boolean;
   status: 'draft' | 'published';
   publishedAt: string | null;
+  /** Scheduled times (ISO) to publish the draft and to take the page offline. */
+  publishAt: string | null;
+  unpublishAt: string | null;
   updatedAt: string;
+  /** Draft of the page's own theme; null means it uses the site theme. */
+  theme: Partial<ThemeTokens> | null;
+  publishedTheme: Partial<ThemeTokens> | null;
   translations: AdminTranslation[];
 }
 
@@ -28,4 +34,11 @@ export interface MediaItem {
   mime: string;
   size: number;
   createdAt: string;
+  width?: number | null;
+  height?: number | null;
+  /** Description per locale code. */
+  alt?: Record<string, string>;
+  folder?: string;
+  /** Where the file is used (pages, collection items, site settings); sent with the library list. */
+  usedIn?: { kind: 'page' | 'item' | 'settings'; id: string; name: string; parent?: string }[];
 }

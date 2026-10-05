@@ -25,7 +25,7 @@ onMounted(sync);
 watch(text, sync);
 
 function read() {
-  const raw = (el.value?.innerText ?? '').replace(/ /g, ' ');
+  const raw = (el.value?.innerText ?? '').replace(/\u00a0/g, ' ');
   return props.multiline ? raw.replace(/\n$/, '') : raw.replace(/\s*\n\s*/g, ' ');
 }
 
@@ -58,7 +58,7 @@ function onPaste(e: ClipboardEvent) {
     contenteditable="plaintext-only"
     role="textbox"
     :aria-multiline="multiline ? 'true' : 'false'"
-    :data-placeholder="placeholder ?? 'Type here…'"
+    :data-placeholder="$t(placeholder ?? 'Type here…')"
     @input="onInput"
     @blur="sync"
     @keydown="onKeydown"

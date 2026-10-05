@@ -6,7 +6,8 @@ const code = computed(() => props.error.statusCode);
 
 const text = computed(() => {
   if (code.value === 404) return { en: 'Page not found', fa: 'صفحه پیدا نشد' };
-  if (code.value === 503) return { en: 'Back in a moment. This page reloads by itself.', fa: 'چند لحظه دیگر برمی‌گردیم. صفحه خودکار دوباره بارگذاری می‌شود.' };
+  if (code.value === 503)
+    return { en: 'Back in a moment. This page reloads by itself.', fa: 'چند لحظه دیگر برمی‌گردیم. صفحه خودکار دوباره بارگذاری می‌شود.' };
   return { en: 'Something went wrong', fa: 'خطایی رخ داد' };
 });
 
@@ -22,9 +23,7 @@ onMounted(() => {
       <p class="text-7xl font-black text-primary">{{ code }}</p>
       <h1 class="mt-4 text-2xl font-black">{{ text.en }}</h1>
       <p class="mt-2 font-extralight text-muted" lang="fa" dir="rtl">{{ text.fa }}</p>
-      <button type="button" class="btn-pill mt-8 bg-primary text-white" @click="clearError({ redirect: '/' })">
-        Home · خانه
-      </button>
+      <button type="button" class="btn-pill mt-8 bg-primary text-white" @click="clearError({ redirect: '/' })">Home · خانه</button>
     </div>
   </div>
 </template>

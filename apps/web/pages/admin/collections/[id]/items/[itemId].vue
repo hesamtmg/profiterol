@@ -33,7 +33,10 @@ const coverField: FieldDef = { key: 'cover', label: 'Cover image', type: 'image'
 const tagsText = computed({
   get: () => current.value?.tags.join(', ') ?? '',
   set: (v: string) => {
-    current.value.tags = v.split(/[,،]/).map((t) => t.trim()).filter(Boolean);
+    current.value.tags = v
+      .split(/[,،]/)
+      .map((t) => t.trim())
+      .filter(Boolean);
   },
 });
 
@@ -43,7 +46,8 @@ function fromItem(i: AdminItem) {
   for (const l of locales) {
     const t = i.translations.find((x) => x.locale === l.code);
     const data: Record<string, unknown> = {};
-    for (const f of collection.value?.fields ?? []) data[f.key] = t?.data?.[f.key] ?? (f.type === 'list' ? [] : f.type === 'number' ? 0 : f.type === 'boolean' ? false : '');
+    for (const f of collection.value?.fields ?? [])
+      data[f.key] = t?.data?.[f.key] ?? (f.type === 'list' ? [] : f.type === 'number' ? 0 : f.type === 'boolean' ? false : '');
     drafts[l.code] = {
       locale: l.code,
       title: t?.title ?? '',
@@ -85,7 +89,7 @@ async function save() {
     });
     item.value = updated;
     saved.value = sent;
-    message.value = { kind: 'ok', text: 'Saved' };
+    message.value = { kind: 'ok', text: translate('Saved') };
     return true;
   } catch (err) {
     message.value = { kind: 'error', text: apiErrorMessage(err) };
@@ -109,14 +113,14 @@ async function setPublished(publish: boolean) {
   try {
     const updated = await api<AdminItem>(`/admin/collections/${cid}/items/${iid}/${publish ? 'publish' : 'unpublish'}`, { method: 'POST' });
     item.value = updated;
-    message.value = { kind: 'ok', text: publish ? 'Published' : 'Moved back to drafts' };
+    message.value = { kind: 'ok', text: publish ? translate('Published') : translate('Moved back to drafts') };
   } catch (err) {
     message.value = { kind: 'error', text: apiErrorMessage(err) };
   }
 }
 
 async function remove() {
-  if (!confirm('Delete this item? This cannot be undone.')) return;
+  if (!confirm(translate('Delete this item? This cannot be undone.'))) return;
   await api(`/admin/collections/${cid}/items/${iid}`, { method: 'DELETE' });
   saved.value = snapshot();
   await navigateTo(`/admin/collections/${cid}`);
@@ -138,7 +142,7 @@ function onKey(e: KeyboardEvent) {
 function beforeUnload(e: BeforeUnloadEvent) {
   if (dirty.value) e.preventDefault();
 }
-onBeforeRouteLeave(() => (dirty.value ? confirm('You have unsaved changes. Leave anyway?') : true));
+onBeforeRouteLeave(() => (dirty.value ? confirm(translate('You have unsaved changes. Leave anyway?')) : true));
 onMounted(() => {
   load();
   window.addEventListener('keydown', onKey);
@@ -157,23 +161,25 @@ onBeforeUnmount(() => {
     </NuxtLink>
 
     <div class="mt-3 flex flex-wrap items-center gap-3">
-      <h1 class="min-w-0 flex-1 truncate text-3xl font-black">{{ drafts.en?.title || current.title || 'Untitled' }}</h1>
+      <h1 class="min-w-0 flex-1 truncate text-3xl font-black">{{ drafts.en?.title || current.title || $t('Untitled') }}</h1>
       <span
         class="rounded-full px-3 py-1 text-xs font-medium"
         :class="item.status === 'published' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'"
       >
-        {{ item.status === 'published' ? 'Published' : 'Draft' }}
+        {{ item.status === 'published' ? $t('Published') : $t('Draft') }}
       </span>
       <label
         v-if="item.status === 'draft'"
         class="flex cursor-pointer items-center gap-1.5 text-xs text-slate-500"
-        title="Save drafts automatically a few seconds after each change"
+        :title="$t('Save drafts automatically a few seconds after each change')"
       >
-        <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> Autosave
+        <input v-model="autosave.enabled.value" type="checkbox" class="h-3.5 w-3.5 rounded" /> {{ $t('Autosave') }}
       </label>
-      <span class="text-xs text-slate-400">{{ busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved' }}</span>
-      <a v-if="item.status === 'published'" :href="liveUrl" target="_blank" class="btn-light"><i class="mdi mdi-open-in-new" /> View</a>
-      <button type="button" class="btn-light" :disabled="busy || !dirty" @click="save">Save</button>
+      <span class="text-xs text-slate-400">{{ $t(busy ? 'Saving…' : dirty ? 'Unsaved changes' : 'All changes saved') }}</span>
+      <a v-if="item.status === 'published'" :href="liveUrl" target="_blank" class="btn-light"
+        ><i class="mdi mdi-open-in-new" /> {{ $t('View') }}</a
+      >
+      <button type="button" class="btn-light" :disabled="busy || !dirty" @click="save">{{ $t('Save') }}</button>
       <button
         v-if="item.status !== 'published'"
         type="button"
@@ -181,11 +187,13 @@ onBeforeUnmount(() => {
         :disabled="busy"
         @click="setPublished(true)"
       >
-        <i class="mdi mdi-rocket-launch-outline" /> Publish
+        <i class="mdi mdi-rocket-launch-outline" /> {{ $t('Publish') }}
       </button>
-      <button v-else type="button" class="btn-light" :disabled="busy" @click="setPublished(false)">Unpublish</button>
+      <button v-else type="button" class="btn-light" :disabled="busy" @click="setPublished(false)">{{ $t('Unpublish') }}</button>
     </div>
-    <p v-if="item.status === 'published'" class="mt-2 text-xs text-slate-400">Saved changes to a published item go live straight away.</p>
+    <p v-if="item.status === 'published'" class="mt-2 text-xs text-slate-400">
+      {{ $t('Saved changes to a published item go live straight away.') }}
+    </p>
 
     <p
       v-if="message"
@@ -198,7 +206,7 @@ onBeforeUnmount(() => {
     <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_340px]">
       <!-- Text per language -->
       <section class="min-w-0 rounded-[2rem] bg-white p-7 shadow-sm">
-        <div class="flex rounded-full bg-slate-100 p-1 text-xs" role="tablist" aria-label="Language">
+        <div class="flex rounded-full bg-slate-100 p-1 text-xs" role="tablist" :aria-label="$t('Language')">
           <button
             v-for="l in locales"
             :key="l.code"
@@ -213,26 +221,27 @@ onBeforeUnmount(() => {
 
         <div class="mt-6 space-y-5">
           <div>
-            <label class="field-label" for="title">Title</label>
+            <label class="field-label" for="title">{{ $t('Title') }}</label>
             <input id="title" v-model="current.title" class="input !text-base !font-bold" :dir="dir" />
           </div>
           <div>
-            <label class="field-label" for="slug">Address</label>
+            <label class="field-label" for="slug">{{ $t('Address') }}</label>
             <div class="flex items-center gap-1 text-xs text-slate-400" dir="ltr">
-              <span class="shrink-0 whitespace-nowrap">/{{ locale }}/{{ collection.slugs[locale] }}/</span><input id="slug" v-model="current.slug" class="input font-mono text-xs" />
+              <span class="shrink-0 whitespace-nowrap">/{{ locale }}/{{ collection.slugs[locale] }}/</span
+              ><input id="slug" v-model="current.slug" class="input text-xs" />
             </div>
           </div>
           <div>
-            <label class="field-label" for="excerpt">Summary (shown on cards)</label>
+            <label class="field-label" for="excerpt">{{ $t('Summary (shown on cards)') }}</label>
             <textarea id="excerpt" v-model="current.excerpt" rows="2" class="input" :dir="dir" />
           </div>
           <div>
-            <label class="field-label" for="body">Story (separate paragraphs with a blank line)</label>
+            <label class="field-label" for="body">{{ $t('Story (separate paragraphs with a blank line)') }}</label>
             <textarea id="body" v-model="current.body" rows="10" class="input leading-relaxed" :dir="dir" />
           </div>
           <div>
-            <label class="field-label" for="tags">Tags (comma-separated; used for filters)</label>
-            <input id="tags" v-model.lazy="tagsText" class="input" :dir="dir" placeholder="Branding, Website" />
+            <label class="field-label" for="tags">{{ $t('Tags (comma-separated; used for filters)') }}</label>
+            <input id="tags" v-model.lazy="tagsText" class="input" :dir="dir" :placeholder="$t('Branding, Website')" />
           </div>
 
           <div v-if="collection.fields.length" class="space-y-4 rounded-2xl bg-slate-50 p-5">
@@ -245,20 +254,14 @@ onBeforeUnmount(() => {
                 class="text-xs text-slate-500 hover:text-slate-900"
                 @click="copyFieldsFrom(l.code)"
               >
-                <i class="mdi mdi-content-duplicate" /> Copy from {{ l.label }}
+                <i class="mdi mdi-content-duplicate" /> {{ $t('Copy from {lang}', { lang: l.label }) }}
               </button>
             </div>
-            <FieldInput
-              v-for="f in collection.fields"
-              :key="`${locale}-${f.key}`"
-              v-model="current.data[f.key]"
-              :field="f"
-              :dir="dir"
-            />
+            <FieldInput v-for="f in collection.fields" :key="`${locale}-${f.key}`" v-model="current.data[f.key]" :field="f" :dir="dir" />
           </div>
 
           <div>
-            <label class="field-label" for="seo">SEO description (defaults to the summary)</label>
+            <label class="field-label" for="seo">{{ $t('SEO description (defaults to the summary)') }}</label>
             <textarea id="seo" v-model="current.seoDescription" rows="2" class="input" :dir="dir" />
           </div>
         </div>
@@ -268,11 +271,11 @@ onBeforeUnmount(() => {
       <aside class="space-y-6">
         <section class="rounded-[2rem] bg-white p-7 shadow-sm">
           <FieldInput v-model="cover" :field="coverField" />
-          <p class="mt-2 text-[11px] text-slate-400">Shared by every language.</p>
+          <p class="mt-2 text-[11px] text-slate-400">{{ $t('Shared by every language.') }}</p>
         </section>
 
         <section class="rounded-[2rem] bg-white p-5 shadow-sm">
-          <p class="mb-3 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Card preview</p>
+          <p class="mb-3 px-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $t('Card preview') }}</p>
           <div class="site @container rounded-[1.5rem] p-3" :style="theme" :dir="dir" :lang="locale">
             <div class="pointer-events-none">
               <CardItem
@@ -289,7 +292,9 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <button type="button" class="btn-light w-full !text-red-600" @click="remove"><i class="mdi mdi-trash-can-outline" /> Delete item</button>
+        <button type="button" class="btn-light w-full !text-red-600" @click="remove">
+          <i class="mdi mdi-trash-can-outline" /> {{ $t('Delete item') }}
+        </button>
       </aside>
     </div>
   </div>

@@ -15,7 +15,9 @@ defineProps<{
       </div>
       <div class="px-3 pb-6 @3xl:px-8 @3xl:pb-0">
         <h2 class="text-2xl font-black @3xl:text-4xl"><EditableText :value="p.title" path="title" /></h2>
-        <p class="mt-4 whitespace-pre-line text-base font-extralight leading-loose text-muted @3xl:text-lg"><EditableText :value="p.text" path="text" multiline /></p>
+        <p class="mt-4 whitespace-pre-line text-base font-extralight leading-loose text-muted @3xl:text-lg">
+          <EditableText :value="p.text" path="text" multiline />
+        </p>
         <a
           v-if="p.buttonLabel"
           :href="resolveHref(p.buttonLink, locale)"

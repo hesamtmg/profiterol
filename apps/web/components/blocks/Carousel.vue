@@ -40,9 +40,12 @@ function restart() {
   clearInterval(timer);
   const reduce = import.meta.client && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!props.p.autoplay || editing || reduce || count.value < 2) return;
-  timer = setInterval(() => {
-    if (!paused.value) go(index.value + 1);
-  }, Math.max(2, Number(props.p.seconds) || 6) * 1000);
+  timer = setInterval(
+    () => {
+      if (!paused.value) go(index.value + 1);
+    },
+    Math.max(2, Number(props.p.seconds) || 6) * 1000,
+  );
 }
 
 onMounted(restart);
@@ -51,7 +54,13 @@ onBeforeUnmount(() => clearInterval(timer));
 </script>
 
 <template>
-  <section class="px-3 py-3 @3xl:px-6" @mouseenter="paused = true" @mouseleave="paused = false" @focusin="paused = true" @focusout="paused = false">
+  <section
+    class="px-3 py-3 @3xl:px-6"
+    @mouseenter="paused = true"
+    @mouseleave="paused = false"
+    @focusin="paused = true"
+    @focusout="paused = false"
+  >
     <div class="relative">
       <div
         ref="track"
@@ -67,7 +76,13 @@ onBeforeUnmount(() => clearInterval(timer));
           aria-roledescription="slide"
           :aria-label="`${i + 1} / ${count}`"
         >
-          <img v-if="slide.image" :src="slide.image" :alt="slide.title" class="absolute inset-0 h-full w-full object-cover" :loading="i ? 'lazy' : 'eager'" />
+          <img
+            v-if="slide.image"
+            :src="slide.image"
+            :alt="slide.title"
+            class="absolute inset-0 h-full w-full object-cover"
+            :loading="i ? 'lazy' : 'eager'"
+          />
           <div
             v-else
             class="absolute inset-0 bg-gradient-to-br"
@@ -77,7 +92,11 @@ onBeforeUnmount(() => clearInterval(timer));
           <div class="relative mt-auto flex max-w-2xl flex-col items-start gap-3 p-8 pb-14 @3xl:p-14 @3xl:pb-16">
             <h2 class="text-3xl font-black @3xl:text-5xl"><EditableText :value="slide.title" :path="`slides.${i}.title`" /></h2>
             <p class="font-extralight opacity-90 @3xl:text-xl"><EditableText :value="slide.text" :path="`slides.${i}.text`" multiline /></p>
-            <a v-if="slide.buttonLabel" :href="resolveHref(slide.buttonLink, locale)" class="btn-pill mt-2 bg-white text-dark hover:scale-105">
+            <a
+              v-if="slide.buttonLabel"
+              :href="resolveHref(slide.buttonLink, locale)"
+              class="btn-pill mt-2 bg-white text-dark hover:scale-105"
+            >
               <EditableText :value="slide.buttonLabel" :path="`slides.${i}.buttonLabel`" />
             </a>
           </div>

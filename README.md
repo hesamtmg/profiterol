@@ -75,5 +75,39 @@ npm run build -w @profiterol/blocks && npm test -w @profiterol/blocks
 npm run typecheck
 
 # API end-to-end tests: start the API against an empty database first
-npm run test:e2e -w @profiterol/api
+npm run test:api
+
+# Browser tests (site, editor, admin): see e2e/README.md
+node e2e/proxy.mjs &   # stands in for nginx on :8080
+npm run e2e
+
+# Lint and formatting (also run on staged files before each commit)
+npm run lint
 ```
+
+## Moving from minicms
+
+```sh
+npm run import:minicms -- minicms-dump.sql --uploads /path/to/minicms/public/uploads --publish
+```
+
+The dump is a MySQL dump of the minicms database. Profiterol must be running (it signs in as `ADMIN_EMAIL` /
+`ADMIN_PASSWORD` at `API_URL`, default `http://localhost:3001/api`). It brings over:
+
+- pages, with each section (the 12 minicms kinds) as the matching classic block, in Persian and English;
+- posts into the Blog collection and projects into Projects;
+- the pictures and videos they use, from `--uploads`;
+- a redirect from every old address (`/page/…`, `/post/…`, `/blog/…`, `/projects/…`) to its new page, so links and
+  search results keep working (see **Admin → Redirects**).
+
+Run it with `--dry-run` first to see what it finds. Running it again skips what is already there.
+
+## Users and sign-in
+
+The first admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Invite more people in **Admin → Users**: each gets a
+one-time link to choose a password (emailed when `SMTP_URL` is set, otherwise copy it to them). **Editors** edit pages,
+collections, media and the inbox; **admins** also change settings and users.
+
+The admin signs in with an httpOnly session cookie (scripts cannot read it) and every change carries a CSRF token.
+Five wrong passwords in a row lock an account for 15 minutes. "Forgot password?" emails a link when both `SMTP_URL`
+and `SITE_URL` are set. Scripts can still call the API with `Authorization: Bearer <token>` from `POST /api/auth/login`.

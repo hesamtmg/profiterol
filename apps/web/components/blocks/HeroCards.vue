@@ -63,7 +63,9 @@ const cards = computed(() => props.p.cards ?? []);
             :class="i === active ? 'translate-y-0 opacity-100 delay-300' : 'pointer-events-none translate-y-8 opacity-0'"
           >
             <h1 class="text-4xl font-black leading-tight @3xl:text-6xl"><EditableText :value="card.title" :path="`cards.${i}.title`" /></h1>
-            <p class="text-base font-extralight leading-relaxed @3xl:text-xl"><EditableText :value="card.text" :path="`cards.${i}.text`" multiline /></p>
+            <p class="text-base font-extralight leading-relaxed @3xl:text-xl">
+              <EditableText :value="card.text" :path="`cards.${i}.text`" multiline />
+            </p>
             <a
               v-if="card.buttonLabel"
               :href="resolveHref(card.buttonLink, locale)"

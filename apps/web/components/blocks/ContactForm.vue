@@ -4,14 +4,7 @@
  * (and optionally by email). The API checks every answer against the published form.
  */
 import EditableText from '../site/EditableText.vue';
-
-interface FormField {
-  label: string;
-  type: 'text' | 'email' | 'tel' | 'textarea' | 'select';
-  required: boolean;
-  options: string;
-  placeholder: string;
-}
+import type { FormField } from '~/composables/useBlockForm';
 
 const props = defineProps<{
   p: { title: string; text: string; fields: FormField[]; submitLabel: string; successMessage: string };
@@ -20,51 +13,12 @@ const props = defineProps<{
   data?: { pageId: string; blockId: string };
 }>();
 
-const editing = Boolean(useBlockEditing());
-const api = useApi();
 const fa = computed(() => props.locale === 'fa');
-const values = ref<string[]>([]);
-const website = ref('');
-const startedAt = ref(0);
-const sending = ref(false);
-const sent = ref('');
-const errors = ref<string[]>([]);
-
-watch(
-  () => props.p.fields?.length ?? 0,
-  (n) => (values.value = Array.from({ length: n }, (_, i) => values.value[i] ?? '')),
-  { immediate: true },
-);
-
-onMounted(() => (startedAt.value = Date.now()));
-
-function choices(options: string) {
-  return (options ?? '')
-    .split(/[,،]/)
-    .map((o) => o.trim())
-    .filter(Boolean);
-}
-
-async function submit() {
-  if (!props.data || editing) return;
-  sending.value = true;
-  errors.value = [];
-  try {
-    const res = await api<{ ok: boolean; message?: string }>(`/public/forms/${props.data.pageId}/${props.data.blockId}`, {
-      method: 'POST',
-      body: { locale: props.locale, values: values.value, website: website.value, startedAt: startedAt.value },
-    });
-    sent.value = res.message || props.p.successMessage;
-  } catch (err) {
-    const data = (err as { data?: { message?: string; errors?: string[] } }).data;
-    errors.value = data?.errors?.length ? data.errors : [data?.message ?? (fa.value ? 'ارسال نشد. دوباره تلاش کنید.' : 'The message could not be sent. Please try again.')];
-  } finally {
-    sending.value = false;
-  }
-}
+const { editing, values, website, sending, sent, errors, submit } = useBlockForm(props);
+const choices = formChoices;
 
 const inputClass =
-  'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/15';
+  'w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base outline-none transition focus:border-primary focus:bg-white focus:ring-4 focus:ring-[color-mix(in_srgb,var(--c-primary)_15%,transparent)]';
 </script>
 
 <template>
@@ -72,12 +26,21 @@ const inputClass =
     <div class="panel grid gap-10 px-6 py-10 @3xl:grid-cols-[2fr_3fr] @3xl:gap-16 @3xl:px-20 @3xl:py-16">
       <div>
         <h2 class="text-2xl font-black @3xl:text-4xl"><EditableText :value="p.title" path="title" /></h2>
-        <p v-if="p.text || editing" class="mt-3 font-extralight text-muted @3xl:text-lg"><EditableText :value="p.text" path="text" multiline /></p>
+        <p v-if="p.text || editing" class="mt-3 font-extralight text-muted @3xl:text-lg">
+          <EditableText :value="p.text" path="text" multiline />
+        </p>
       </div>
 
       <Transition mode="out-in" enter-active-class="transition-all duration-700" enter-from-class="opacity-0 translate-y-3">
-        <div v-if="sent" key="sent" class="flex flex-col items-center justify-center gap-4 rounded-[2rem] bg-slate-50 p-10 text-center" role="status">
-          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-3xl text-white"><i class="mdi mdi-check" /></span>
+        <div
+          v-if="sent"
+          key="sent"
+          class="flex flex-col items-center justify-center gap-4 rounded-[2rem] bg-slate-50 p-10 text-center"
+          role="status"
+        >
+          <span class="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-3xl text-white"
+            ><i class="mdi mdi-check"
+          /></span>
           <p class="text-lg font-medium">{{ sent }}</p>
         </div>
 
@@ -96,7 +59,13 @@ const inputClass =
               rows="5"
               :class="inputClass"
             />
-            <select v-else-if="f.type === 'select'" :id="`f-${data?.blockId ?? 'x'}-${i}`" v-model="values[i]" :required="f.required" :class="inputClass">
+            <select
+              v-else-if="f.type === 'select'"
+              :id="`f-${data?.blockId ?? 'x'}-${i}`"
+              v-model="values[i]"
+              :required="f.required"
+              :class="inputClass"
+            >
               <option value="" disabled>{{ f.placeholder || (fa ? 'انتخاب کنید' : 'Choose…') }}</option>
               <option v-for="o in choices(f.options)" :key="o" :value="o">{{ o }}</option>
             </select>
@@ -123,11 +92,15 @@ const inputClass =
           </ul>
 
           <div class="flex flex-wrap items-center gap-4">
-            <button type="submit" class="btn-pill bg-primary text-white hover:shadow-lg hover:brightness-110 disabled:opacity-60" :disabled="sending || editing || !data">
+            <button
+              type="submit"
+              class="btn-pill bg-primary text-white hover:shadow-lg hover:brightness-110 disabled:opacity-60"
+              :disabled="sending || editing || !data"
+            >
               <EditableText :value="p.submitLabel" path="submitLabel" />
               <i class="mdi" :class="sending ? 'mdi-loading mdi-spin' : 'mdi-send rtl:-scale-x-100'" />
             </button>
-            <span v-if="editing" class="text-xs text-muted" dir="ltr">Messages can be sent from the published page.</span>
+            <span v-if="editing" class="text-xs text-muted" dir="ltr">{{ $t('Messages can be sent from the published page.') }}</span>
           </div>
         </form>
       </Transition>

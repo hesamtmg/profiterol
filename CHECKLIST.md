@@ -18,9 +18,9 @@ This combines:
 - [x] Multi-stage Dockerfiles for api and web (small runtime images, non-root user)
 - [x] nginx: `/api` → Nest, `/uploads` straight from the volume, everything else → Nuxt; gzip, security headers, long cache for `/_nuxt`
 - [x] `.env.example` covering every setting
-- [ ] ESLint + Prettier config shared across the workspaces
+- [x] ESLint + Prettier config shared across the workspaces (`npm run lint`, `npm run format`), checked in CI
 - [x] CI (GitHub Actions): build, unit tests, API end-to-end tests against Postgres, migration drift check, web build, Docker build
-- [ ] Pre-commit hook (lint-staged)
+- [x] Pre-commit hook (husky + lint-staged): fixes and formats the staged files
 
 ## Phase 1: Core data and auth
 - [x] Users table with bcrypt password hashes and a role (`admin` or `editor`)
@@ -28,9 +28,10 @@ This combines:
 - [x] First admin created from `ADMIN_EMAIL` / `ADMIN_PASSWORD` on first start
 - [x] Locales declared once (`packages/blocks/src/locales.ts`) instead of `*_en` columns
 - [x] **TypeORM migrations**, run automatically on start (`npm run migration:generate --name=X -w @profiterol/api` after changing an entity)
-- [ ] User management screen: invite, change role, deactivate
-- [ ] Password reset by email; optional 2FA (minicms had both)
-- [ ] Rate-limit login (`@nestjs/throttler`) and lock out after repeated failures
+- [x] User management screen (Admin → Users): invite with a one-time link (emailed when email is set up), change role, deactivate / reactivate (ends their sessions at once), new password links; Your account → change your own password
+- [x] Password reset by email ("Forgot password?"; needs SMTP and `SITE_URL`); links are single-use, expire, and only their hash is stored
+- [ ] Optional 2FA (minicms had it)
+- [x] Rate-limit sign-ins per visitor address, and lock an account for 15 minutes after 5 wrong passwords
 - [ ] Fine-grained permissions (minicms used spatie/permission): per-collection create/edit/publish
 - [ ] Audit log: who changed what, when
 
@@ -42,12 +43,13 @@ This combines:
 - [x] Home page flag (only one page at a time)
 - [x] Validation: unknown blocks/fields, wrong types, `javascript:` links and bad colors are rejected
 - [x] Unit tests for the registry and validation (`npm test -w @profiterol/blocks`)
-- [ ] Page revisions: keep the last N versions and allow restoring one
-- [ ] Scheduled publishing (minicms `expire_time` / publish at)
-- [ ] Nested blocks (columns/containers holding other blocks)
+- [x] Page revisions: every publish plus edits every 10 minutes, last 50 kept; restore from the editor's Version history (the replaced draft is kept, so a restore can be undone)
+- [x] Scheduled publishing (minicms `expire_time` / publish at): go live and take offline at set times
+- [x] Nested blocks: Columns (2–4, widths, gap, stack below phone or tablet width) and Group; one level deep, full-screen blocks stay on the page; each column is its own container so blocks fit its width; drag in, out and between columns
 - [x] Per-block visibility: show on all devices, phones only, or tablets and desktops only (badge and dimming in the editor's previews)
-- [ ] Per-block style options: background color/image, spacing, full-bleed vs panel
-- [ ] Duplicate a page; move pages into folders; parent/child URLs
+- [x] Per-block style options on every block: backdrop color and picture, panel, text and accent colors (a small theme for the block), extra space above/below, content width
+- [x] Duplicate a page (a draft copy with its own addresses)
+- [ ] Move pages into folders; parent/child URLs
 
 ## Phase 3: Public site renderer
 - [x] Nuxt SSR pages at `/{locale}/{slug}`, with `/{locale}` as the home page and `/` redirecting by `Accept-Language`
@@ -58,13 +60,14 @@ This combines:
 - [x] 404 / error page in both languages
 - [x] Maintenance mode with a message per language
 - [x] Site header with menu (hovering one link blurs the others, as in AMSR), a language switch that keeps you on the same page, and a mobile overlay menu
-- [ ] Page loader / splash (minicms loader settings + the AMSR splash animation)
-- [ ] Optional full-page vertical scroll mode (AMSR Swiper / minicms "magic scroll")
+- [x] Page loader (minicms): percentage, top bar or site-name fill; real loading progress, a blurred background picture that sharpens, once per visit; removed by CSS after 8 s without JavaScript
+- [x] Section-by-section scroll mode (minicms “magic scroll”), a theme setting per site or page
 - [ ] Canonical URL setting (minicms hardcoded its domain)
-- [ ] Self-host fonts (no Google Fonts call) and preload them
+- [x] Self-host fonts (no Google Fonts call): every theme font from Fontsource, downloaded only when a page uses it
+- [ ] Preload the default fonts; trim the icon font's CSS to the icons in use
 - [ ] Google Tag Manager / analytics setting
-- [ ] Cache published pages (nginx micro-cache or Nitro route cache) and purge on publish
-- [ ] Custom cursor option (both projects had one)
+- [x] Cache published pages in the web app's memory; the API clears the cache after every admin change and scheduled publish (shared `CACHE_PURGE_TOKEN`)
+- [x] Custom cursor option (both projects had one): a theme setting, off on touch screens and with reduced motion
 
 ## Phase 4: Visual editor (the Wix part)
 - [x] Three-panel editor: block library, live canvas, property panel
@@ -80,14 +83,15 @@ This combines:
 - [x] **Inline text editing**: click any text on the canvas and type; the property panel and undo history follow along
 - [x] Autosave a few seconds after each change (pages, and collection items while they are drafts), with an on/off switch
 - [x] Drop a photo onto a block to use it as that block's image; drop or paste images into any image field, the media library window and the Media page
-- [ ] Rich text field (bold, italic, links, lists) with sanitized HTML output
-- [ ] Block presets / "sections": save a configured block and reuse it
+- [x] Rich text field (bold, italic, links, lists) with sanitized HTML output
+- [x] Saved sections: save any configured block (columns included) and insert it on other pages from the top of the library
 - [ ] Shareable draft preview link (signed token)
-- [ ] Editor UI in Persian as well as English
+- [x] Editor UI in Persian as well as English: a فارسی / English switch in the header, login and editor; right-to-left layout; remembered per browser; block names, fields and help text translated
 - [ ] Real-time multi-user awareness (someone else is editing this page)
 
 ## Phase 5: Blocks
 From **amsr-portfolio**:
+- [x] Full-screen spotlight hero from the redesigned AMSR home: cross-fading photo per person, tall side cards (logo + cut-out photo) that switch person, button in the next person's color, moving text, scroll hint, frosted header floating over it (`spotlight`)
 - [x] Expanding person/feature cards hero (`hero-cards`)
 - [x] Card grid in 3 styles: plain icon cards (AMSR services), raised hover cards, photo cards (`card-grid`)
 - [x] FAQ accordion (`faq`)
@@ -95,20 +99,46 @@ From **amsr-portfolio**:
 - [x] Statement with background image and CTA (`statement`)
 - [x] Contact + footer (`contact-footer`)
 
-From **minicms**'s 12 section kinds:
-- [x] Image + text, image on either side (kinds 3–6) (`image-text`)
-- [x] Text (`text`)
-- [x] Video hero, autoplay muted, still for visitors who turn off motion (kind 1) (`video-hero`)
-- [x] Three images (kind 2): use the Gallery block with 3 columns
-- [x] Fixed/parallax background (kinds 5–6): “Fixed background” option on the Statement block
-- [x] Contact form (kind 7) (`contact-form`)
-- [x] Info/request and complex forms (kinds 8–9): the contact form's fields are editable (short/long text, email, phone, choice; required or not)
-- [x] Video player: uploaded video, or a YouTube / Aparat link (kind 10) (`video`)
-- [x] Carousel with arrows, dots, swipe and optional autoplay (kind 11) (`carousel`)
-- [x] Gallery, even grid or masonry, with a full-screen viewer and keyboard arrows (kind 12) (`gallery`)
+From **minicms**'s 12 section kinds (`scrollview/kinds/kind-1 … 12`), each rebuilt as its own block under “Classic sections” in the editor, with a separate phone photo/video where minicms had one and the same scroll-in animations:
+- [x] 1 · Full-screen muted video with a light title, plus a phone version (`video-cover`)
+- [x] 2 · Title over three wide photo links that zoom and slide their text up on hover (`triple`)
+- [x] 3 · Full-width photo, blurred behind a centered title and text (`horizon`)
+- [x] 4 · Side by side: big number/title with a two-line label, paragraphs that open on hover, frosted button (`side-by-side`)
+- [x] 5 · Tall photo right, title and text beside it (`horizon-right`)
+- [x] 6 · Tall photo left, title and text beside it (`horizon-left`)
+- [x] 7 · Photo beside a frosted-glass contact form with address and email; messages go to the inbox (`contact-split`)
+- [x] 8 · Information: title and intro, then a longer text with its own heading beside a portrait photo (`information`)
+- [x] 9 · Free formatted text from an editor toolbar (headings, bold, lists, quotes, links); the API keeps only safe HTML (`rich-text`)
+- [x] 10 · Video in its own player: seek bar, volume, ±5 s, speed menu, full screen, keyboard keys, blurred glow (`video-showcase`)
+- [x] 11 · Full-screen fading slider with caption, button and arrows on glass pills; autoplay, swipe, arrow keys (`slider`)
+- [x] 12 · Chessboard grid of rows × columns with its own phone size; links or a larger view with the text (`photo-grid`)
+- [x] The minicms bottom bar: with “Section by section” scrolling, a glass bar shows the current section's title (from its heading) with previous/next buttons, plus dots at the side
+
+General blocks that cover the same ground in the newer style:
+- [x] Image + text, image on either side (`image-text`); text (`text`); statement with a fixed (parallax) background (`statement`)
+- [x] Video hero (`video-hero`), video player with YouTube / Aparat links (`video`), carousel with dots (`carousel`), gallery with masonry and a full-screen viewer (`gallery`), contact form with editable fields (`contact-form`)
 
 New:
-- [ ] Team members, partners/logos strip, testimonials, pricing table, stats/counters, map, spacer/divider
+- [x] Logos strip, testimonials, stats/counters, team (flip cards): see Animated below
+- [x] Pricing table with a monthly/yearly switch (`pricing`), OpenStreetMap map with directions links (`map`), spacer/divider with line, dots, wave, slant or curve (`spacer`)
+
+Animated (Wix-style motion; every one holds still for visitors who turn off animations):
+- [x] **Entrance animation** on every block, like Wix's Animation panel: fade, float up, slide from either side, zoom, flip, blur, wipe. Plays when the block scrolls into view; the hidden start is rendered on the server so nothing flashes; picking one in the editor replays it on the canvas
+- [x] Aurora hero: drifting glows, words rising in one by one, a changing word with a shimmering gradient, a light following the mouse (`aurora-hero`)
+- [x] Scroll-lit text: words light up as the visitor scrolls (`scroll-text`)
+- [x] Counters that count up when seen; real numbers in the server page, Persian digits in Persian (`counters`)
+- [x] Logo strip gliding endlessly, one or two rows, light or dark (`logo-strip`)
+- [x] Horizontal scroll: the page pins while cards slide sideways, with a progress bar; a swipe row on phones (`horizontal-scroll`)
+- [x] 3D tilt cards with a moving shine (`tilt-cards`)
+- [x] Flip cards (hover, tap or keyboard) (`flip-cards`)
+- [x] Before / after slider with a hint sweep; drag, touch or arrow keys (`before-after`)
+- [x] Testimonials with filling progress bars, pause on hover (`testimonials`)
+- [x] Timeline whose line draws as you scroll (`timeline`)
+- [x] Parallax layers: pictures (or built-in hills in the theme colors) moving at different speeds with scroll and mouse, title passing behind the front layers (`parallax`)
+- [x] Sticky story: a picture pinned while steps scroll beside it, cross-fading to each step's picture; inline pictures on phones (`sticky-story`)
+- [x] Cursor effects, a theme setting (site or page): dot and trailing ring, soft glow, or inverting circle; mouse/trackpad only, normal pointer over text fields
+- [x] Page transitions, a theme setting: fade, slide, curtain (with the site name) or circle from the click; the uncovering is pure CSS in the server page; Back button safe
+- [x] Both previewed live on the editor canvas from the Design tab; ready-made themes keep the motion settings
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
@@ -128,9 +158,10 @@ New:
 ## Phase 7: Media library
 - [x] Upload (JPG, PNG, WebP, GIF, AVIF, MP4, WebM; 20 MB; no SVG), random file names, list, delete
 - [x] Media picker inside the editor
-- [ ] Check the file's real type from its first bytes instead of trusting the browser's MIME type
-- [ ] Image processing (sharp): resize, WebP/AVIF, responsive `srcset`, blur placeholder
-- [ ] Alt text per language; folders/tags; search; usage tracking ("used on 3 pages")
+- [x] Check the file's real type from its first bytes instead of trusting the browser's MIME type
+- [x] Image processing (sharp): WebP copies at 480 / 960 / 1600 / 2400 px (never enlarged, EXIF-rotated), responsive `srcset` + `sizes` on every site image, rendered on the server; older photos are converted on start
+- [x] Blur placeholder while a photo loads (opaque photos; removed once loaded); AVIF copies made after upload and served automatically to browsers that accept them (nginx and the API both negotiate)
+- [x] Alt text per language (used when a block gives an image none), folders, search, kind filter, usage tracking ("used in 3", with links, and a warning before deleting a used file)
 - [ ] S3-compatible storage option (MinIO in Docker)
 
 ## Phase 8: Forms and inbox
@@ -146,25 +177,30 @@ New:
 - [x] Site name per language, logo, favicon
 - [x] Menu editor (labels per language, page/anchor/URL links)
 - [x] Theme editor: colors, corner radius, fonts, with live preview
+- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose), button shape (pill/rounded/square), solid or frosted-glass header, a wider choice of Persian and Latin fonts
+- [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page
+- [x] Upload your own fonts (WOFF2, WOFF, TTF, OTF; one file per weight) in Site settings; they appear in every theme's font lists and are served with `@font-face`
+- [x] Save your own themes under a name (Site settings or the editor's Design tab) and reuse them on any page
 - [ ] Footer and social links as settings, used by the header/footer blocks
 - [ ] Multiple menus and dropdowns
-- [ ] Redirects manager (old URL → new URL), useful when migrating minicms content
+- [x] Redirects manager (old URL → new URL; 301/302, visit counts), applied by the site before "not found"
 - [ ] Custom CSS / head code (admin only)
 
 ## Phase 10: Templates and multi-site
-- [ ] Page templates ("About", "Services", "Contact") to start from
-- [ ] Whole-site templates (an AMSR-style template, a minicms "studio" template)
-- [ ] Import minicms data (pages/page_details/posts → pages/blocks/collections)
+- [x] Page templates ("About", "Services", "Contact", two home pages) to start from, in English and Persian
+- [x] Whole-site templates (an AMSR-style portfolio, a minicms "studio"): theme, draft pages and menu links, from Site settings
+- [x] Import minicms data (`npm run import:minicms`): pages/page_details (all 12 kinds, both languages), posts and projects, their files, and redirects from the old addresses
 - [ ] Multi-site: `sites` table, all content scoped by `site_id`, custom domains, per-site theme
 - [ ] Sign-up and plans if this becomes a hosted product
 
 ## Phase 11: Quality and security
 - [x] API end-to-end tests against a real Postgres (`npm run test:e2e -w @profiterol/api`), run in CI
-- [ ] Component tests for blocks (Vitest) and Playwright tests for the editor
-- [ ] Content-Security-Policy for the site and admin
+- [x] Playwright browser tests in the repo (`e2e/`, `npm run e2e`): site, editor, admin, Persian, security; run in CI with screenshots as an artifact
+- [ ] Component tests for blocks (Vitest)
+- [x] Content-Security-Policy for the site and admin: scripts only from the site or with a per-response nonce; frames limited to YouTube, Aparat and OpenStreetMap
 - [x] Login cookie is marked Secure when the site runs on HTTPS
-- [ ] Store the JWT in an httpOnly cookie, with CSRF protection, instead of a JS-readable cookie
-- [ ] Helmet, request size limits and CORS rules on the API
+- [x] The admin's session is an httpOnly cookie, with double-submit CSRF protection on every change; API clients keep using bearer tokens
+- [x] Helmet, request size limits (2 MB JSON) and CORS rules (same-origin unless `CORS_ORIGINS` is set) on the API
 - [ ] Accessibility pass: focus states, contrast checks in the theme editor, reduced motion (done for the marquee)
 - [ ] Lighthouse budget: LCP < 2.5s on mobile
 

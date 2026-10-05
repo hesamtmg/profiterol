@@ -7,13 +7,14 @@ export class RateLimiter {
   constructor(
     private readonly max: number,
     private readonly windowMs: number,
+    private readonly message = 'Too many messages. Please try again in a few minutes.',
   ) {}
 
   check(key: string) {
     const now = Date.now();
     const recent = (this.hits.get(key) ?? []).filter((t) => now - t < this.windowMs);
     if (recent.length >= this.max) {
-      throw new HttpException('Too many messages. Please try again in a few minutes.', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(this.message, HttpStatus.TOO_MANY_REQUESTS);
     }
     recent.push(now);
     this.hits.set(key, recent);

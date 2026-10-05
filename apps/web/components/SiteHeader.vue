@@ -9,7 +9,13 @@ const props = defineProps<{
   locale: string;
   /** Links to this page in each language. */
   alternates?: { locale: string; slug: string }[];
+  /** Float over the first block instead of sitting above it (used above full-screen heroes). */
+  overlay?: boolean;
+  /** Frosted glass bar with white text (theme "header style"); always on when floating. */
+  glass?: boolean;
 }>();
+
+const isGlass = computed(() => props.overlay || props.glass);
 
 const open = ref(false);
 
@@ -20,10 +26,15 @@ function localeHref(code: string) {
 </script>
 
 <template>
-  <header class="sticky top-0 z-40 px-3 pt-3 @3xl:px-6">
-    <div class="flex items-center justify-between gap-4 rounded-full bg-surface/95 px-5 py-3 shadow-sm backdrop-blur @3xl:px-8">
+  <header class="top-0 z-40 px-3 pt-3 @3xl:px-6" :class="overlay ? 'absolute inset-x-0 @5xl:px-28 @5xl:pt-6' : 'sticky'">
+    <div
+      class="flex items-center justify-between gap-4 rounded-full px-5 py-3 @3xl:px-8"
+      :class="
+        isGlass ? 'glass text-white @3xl:py-4' : 'bg-[color-mix(in_srgb,var(--c-surface)_92%,transparent)] text-ink shadow-sm backdrop-blur'
+      "
+    >
       <a :href="`/${locale}`" class="flex items-center gap-3">
-        <img v-if="logo" :src="logo" :alt="siteName" class="h-9 w-auto" />
+        <img v-if="logo" :src="logo" :alt="siteName" class="h-9 w-auto" :style="isGlass ? 'filter: brightness(0) invert(1)' : ''" />
         <span class="text-lg font-black tracking-tight">{{ siteName }}</span>
       </a>
 
@@ -33,7 +44,8 @@ function localeHref(code: string) {
           v-for="(item, i) in menu"
           :key="i"
           :href="resolveHref(item.href, locale)"
-          class="text-sm font-medium transition-all duration-300 group-hover:blur-[1.5px] hover:!blur-none hover:text-primary"
+          class="text-sm font-medium transition-all duration-300 group-hover:blur-[1.5px] hover:!blur-none"
+          :class="isGlass ? 'tracking-wide' : 'hover:text-primary'"
         >
           {{ item.label[locale] ?? item.label.en }}
         </a>
@@ -44,7 +56,8 @@ function localeHref(code: string) {
           v-for="l in locales.filter((l) => l.code !== locale)"
           :key="l.code"
           :href="localeHref(l.code)"
-          class="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium hover:border-primary hover:text-primary"
+          class="rounded-full border px-3 py-1 text-xs font-medium"
+          :class="isGlass ? 'border-white/40 hover:bg-white/15' : 'border-slate-200 hover:border-primary hover:text-primary'"
           :lang="l.code"
         >
           {{ l.label }}
@@ -62,18 +75,12 @@ function localeHref(code: string) {
       enter-from-class="opacity-0"
       leave-to-class="opacity-0"
     >
-      <div v-if="open" class="fixed inset-0 z-50 flex flex-col bg-surface p-8">
+      <div v-if="open" class="fixed inset-0 z-50 flex flex-col bg-surface p-8 text-ink">
         <button type="button" class="self-end text-3xl" aria-label="Close" @click="open = false">
           <i class="mdi mdi-close" />
         </button>
         <nav class="mt-10 flex flex-col gap-6">
-          <a
-            v-for="(item, i) in menu"
-            :key="i"
-            :href="resolveHref(item.href, locale)"
-            class="text-3xl font-black"
-            @click="open = false"
-          >
+          <a v-for="(item, i) in menu" :key="i" :href="resolveHref(item.href, locale)" class="text-3xl font-black" @click="open = false">
             {{ item.label[locale] ?? item.label.en }}
           </a>
         </nav>

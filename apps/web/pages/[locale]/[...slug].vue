@@ -3,10 +3,24 @@
  * Every public URL under a locale. The path is tried, in order, as:
  * a page (`/en/about-us`), a collection item (`/en/projects/my-project`) and a collection index (`/en/projects`).
  */
-import { getLocale, themeToCss, type BlockNode } from '@profiterol/blocks';
+import {
+  cleanLoader,
+  fontFaceCss,
+  fontNames,
+  getLocale,
+  resolveTheme,
+  themeToCss,
+  type BlockNode,
+  type ThemeTokens,
+} from '@profiterol/blocks';
 import CollectionList from '~/components/blocks/CollectionList.vue';
 import ItemDetail from '~/components/site/ItemDetail.vue';
+import PageTransition from '~/components/site/PageTransition.vue';
+import SectionScroller from '~/components/site/SectionScroller.vue';
+import SiteCursor from '~/components/site/SiteCursor.vue';
+import SiteLoader from '~/components/site/SiteLoader.vue';
 import type { CollectionListData, PublicCollection, PublicItem } from '~/composables/useCollections';
+import type { MediaHints } from '~/composables/useMediaHints';
 
 interface PublicPage {
   id: string;
@@ -14,6 +28,8 @@ interface PublicPage {
   title: string;
   slug: string;
   isHome: boolean;
+  /** The page's own theme changes, or null to use the site theme. */
+  theme: Partial<ThemeTokens> | null;
   seoTitle: string;
   seoDescription: string;
   blocks: BlockNode[];
@@ -68,8 +84,25 @@ if (error.value) {
   throw createError({ statusCode: 503, statusMessage: 'Temporarily unavailable', fatal: true });
 }
 if (!resolved.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
+  // An old address (e.g. from before a move) may have a redirect in Admin → Redirects.
+  const moved = await api<{ to: string; status: number }>('/public/redirect', { query: { path: route.path } }).catch(() => null);
+  if (!moved) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
+  await navigateTo(moved.to, { redirectCode: moved.status, external: /^https?:/i.test(moved.to) });
 }
+
+// Blurred previews and descriptions of the photos on this page, for every <img> (plugins/srcset.ts).
+const mediaHints = useMediaHints();
+watchEffect(() => {
+  const r = resolved.value;
+  const media = (x: unknown) => (x as { media?: MediaHints } | null)?.media ?? {};
+  mediaHints.value = !r
+    ? {}
+    : r.kind === 'page'
+      ? media(r.page)
+      : r.kind === 'item'
+        ? media(r.entry)
+        : { ...media(r.collection), ...media(r.list) };
+});
 
 const siteName = computed(() => settings.value?.siteName?.[locale] ?? settings.value?.siteName?.en ?? '');
 // Behind nginx: use the visitor-facing host and protocol (https) for hreflang and og:image links.
@@ -85,7 +118,8 @@ const alternates = computed(() => {
 });
 
 const meta = computed(() => {
-  const r = resolved.value!;
+  const r = resolved.value;
+  if (!r) return { title: siteName.value, description: '', image: '' };
   if (r.kind === 'page') {
     return {
       title: r.page.isHome ? siteName.value : `${r.page.seoTitle} · ${siteName.value}`,
@@ -99,10 +133,20 @@ const meta = computed(() => {
   return { title: `${r.collection.name} · ${siteName.value}`, description: '', image: '' };
 });
 
+const loader = computed(() => cleanLoader(settings.value?.loader));
+
+/** Site theme with this page's own changes on top. */
+const theme = computed(() =>
+  resolveTheme(settings.value?.theme, resolved.value?.kind === 'page' ? resolved.value.page.theme : null, fontNames(settings.value?.fonts)),
+);
+/** Full-screen heroes get the header floating over them. */
+const overlayHeader = computed(() => resolved.value?.kind === 'page' && resolved.value.page.blocks[0]?.type === 'spotlight');
 useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
-  style: [{ innerHTML: `:root{${themeToCss(settings.value?.theme ?? {})}}` }],
+  // html:root outranks the stylesheet's :root defaults, which load after this tag.
+  style: [{ innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` }],
   link: [
+    // The default fonts are always loaded (nuxt.config); others only when the theme picks them.
     ...(settings.value?.favicon ? [{ rel: 'icon', href: settings.value.favicon }] : []),
     ...alternates.value.map((a) => ({
       rel: 'alternate',
@@ -135,12 +179,15 @@ useSeoMeta({
       </div>
     </template>
     <template v-else-if="resolved">
+      <SiteLoader v-if="loader.enabled" :loader="loader" :site-name="siteName" :locale="locale" />
       <SiteHeader
         :site-name="siteName"
         :logo="settings?.logo"
         :menu="settings?.menu ?? []"
         :locale="locale"
         :alternates="alternates"
+        :overlay="overlayHeader"
+        :glass="theme.headerStyle === 'glass'"
       />
       <main>
         <template v-if="resolved.kind === 'page'">
@@ -174,6 +221,9 @@ useSeoMeta({
           </div>
         </section>
       </main>
+      <SectionScroller v-if="theme.scrollMode === 'sections' && resolved.kind === 'page'" :locale="locale" />
+      <SiteCursor :mode="theme.cursor" />
+      <PageTransition :mode="theme.pageTransition" :label="siteName" />
     </template>
   </div>
 </template>

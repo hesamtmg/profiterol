@@ -7,12 +7,10 @@ import { AuthGuard } from './auth.guard';
 
 @Global()
 @Module({
-  imports: [
-    UsersModule,
-    JwtModule.register({ secret: config.jwtSecret, signOptions: { expiresIn: '7d' } }),
-  ],
+  imports: [UsersModule, JwtModule.register({ secret: config.jwtSecret, signOptions: { expiresIn: '7d' } })],
   controllers: [AuthController],
   providers: [AuthGuard],
-  exports: [AuthGuard, JwtModule],
+  // UsersModule is re-exported so AuthGuard (used in every module) can check the user on each request.
+  exports: [AuthGuard, JwtModule, UsersModule],
 })
 export class AuthModule {}

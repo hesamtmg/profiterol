@@ -1,14 +1,5 @@
 import type { FieldDef } from '@profiterol/blocks';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  ManyToOne,
-  OneToMany,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import type { Localized } from '../settings/settings.entity';
 
 /** A content type such as "projects" or "blog", with its own custom fields. */

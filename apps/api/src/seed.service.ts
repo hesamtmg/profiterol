@@ -13,28 +13,36 @@ function block(type: string, props: Record<string, unknown>): BlockNode {
 }
 
 const homeEn: BlockNode[] = [
-  block('hero-cards', {
-    marquee: 'BUILD BEAUTIFUL WEBSITES WITHOUT CODE',
-    cards: [
+  block('spotlight', {
+    people: [
       {
-        title: 'Design studio',
-        text: 'Drag blocks onto the page, edit them in place and publish in one click.',
-        image: '',
-        letter: 'D',
+        name: 'Design studio',
+        headline: 'Websites and brands',
+        text: 'Drag blocks onto the page, edit them in place and publish in one click. Click the card at the side to meet the content team.',
+        photo: '',
+        mobilePhoto: '',
+        cardPhoto: '',
+        cardLogo: '',
         color: '#00a998',
         buttonLabel: 'See our work',
-        buttonLink: '#services',
+        buttonLink: '#projects',
       },
       {
-        title: 'Content team',
+        name: 'Content team',
+        headline: 'Words and pictures in two languages',
         text: 'Write once per language. Persian pages flow right to left automatically.',
-        image: '',
-        letter: 'C',
+        photo: '',
+        mobilePhoto: '',
+        cardPhoto: '',
+        cardLogo: '',
         color: '#c49a6c',
         buttonLabel: 'Contact us',
-        buttonLink: '#contact',
+        buttonLink: 'contact',
       },
     ],
+    marquee: 'BUILD BEAUTIFUL WEBSITES WITHOUT CODE',
+    textSide: 'left',
+    scrollHint: true,
   }),
   block('card-grid', {
     anchor: 'services',
@@ -90,28 +98,36 @@ const homeEn: BlockNode[] = [
 ];
 
 const homeFa: BlockNode[] = [
-  block('hero-cards', {
-    marquee: 'ساخت وب‌سایت زیبا بدون کدنویسی',
-    cards: [
+  block('spotlight', {
+    people: [
       {
-        title: 'استودیو طراحی',
-        text: 'بلوک‌ها را روی صفحه بکشید، همان‌جا ویرایش کنید و با یک کلیک منتشر کنید.',
-        image: '',
-        letter: 'د',
+        name: 'استودیو طراحی',
+        headline: 'وب‌سایت و برند',
+        text: 'بلوک‌ها را روی صفحه بکشید، همان‌جا ویرایش کنید و با یک کلیک منتشر کنید. برای دیدن تیم محتوا روی کارت کناری بزنید.',
+        photo: '',
+        mobilePhoto: '',
+        cardPhoto: '',
+        cardLogo: '',
         color: '#00a998',
         buttonLabel: 'نمونه کارها',
-        buttonLink: '#services',
+        buttonLink: '#projects',
       },
       {
-        title: 'تیم محتوا',
+        name: 'تیم محتوا',
+        headline: 'متن و تصویر به دو زبان',
         text: 'برای هر زبان یک بار بنویسید. صفحه‌های فارسی خودکار راست‌به‌چپ می‌شوند.',
-        image: '',
-        letter: 'م',
+        photo: '',
+        mobilePhoto: '',
+        cardPhoto: '',
+        cardLogo: '',
         color: '#c49a6c',
         buttonLabel: 'تماس با ما',
-        buttonLink: '#contact',
+        buttonLink: 'contact',
       },
     ],
+    marquee: 'ساخت وب‌سایت زیبا بدون کدنویسی',
+    textSide: 'left',
+    scrollHint: true,
   }),
   block('card-grid', {
     anchor: 'services',

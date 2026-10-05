@@ -17,7 +17,7 @@ import { ArrayMaxSize, IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString 
 import type { Request } from 'express';
 import { AuthGuard } from '../auth/auth.guard';
 import { FormsService } from './forms.service';
-import { RateLimiter } from './rate-limit';
+import { RateLimiter } from '../common/rate-limit';
 
 class SubmitDto {
   @IsIn(locales.map((l) => l.code))

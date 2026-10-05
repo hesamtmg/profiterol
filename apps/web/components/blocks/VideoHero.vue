@@ -34,13 +34,20 @@ onMounted(() => {
         aria-hidden="true"
       />
       <img v-else-if="p.poster" :src="p.poster" alt="" class="absolute inset-0 h-full w-full object-cover" />
-      <div v-else class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,var(--c-primary),transparent_55%),radial-gradient(circle_at_80%_80%,var(--c-secondary),transparent_50%)]" />
+      <div
+        v-else
+        class="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,var(--c-primary),transparent_55%),radial-gradient(circle_at_80%_80%,var(--c-secondary),transparent_50%)]"
+      />
       <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
       <div class="relative mt-auto flex max-w-3xl flex-col items-start gap-5 p-8 @3xl:p-16">
         <h1 class="text-4xl font-black leading-tight @3xl:text-7xl"><EditableText :value="p.title" path="title" /></h1>
         <p class="text-lg font-extralight opacity-90 @3xl:text-2xl"><EditableText :value="p.text" path="text" multiline /></p>
-        <a v-if="p.buttonLabel" :href="resolveHref(p.buttonLink, locale)" class="btn-pill bg-white text-dark hover:scale-105 hover:shadow-xl">
+        <a
+          v-if="p.buttonLabel"
+          :href="resolveHref(p.buttonLink, locale)"
+          class="btn-pill bg-white text-dark hover:scale-105 hover:shadow-xl"
+        >
           <EditableText :value="p.buttonLabel" path="buttonLabel" />
           <i class="mdi mdi-arrow-right rtl:rotate-180" />
         </a>

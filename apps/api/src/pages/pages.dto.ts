@@ -2,14 +2,17 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsDateString,
   IsIn,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
   MaxLength,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { locales } from '@profiterol/blocks';
+import { locales, pageTemplates } from '@profiterol/blocks';
 import { SLUG_PATTERN } from '../common/slug';
 
 const localeCodes = locales.map((l) => l.code);
@@ -48,6 +51,11 @@ export class CreatePageDto {
   @MaxLength(120)
   name: string;
 
+  /** Start from a page template (its blocks in every language). */
+  @IsOptional()
+  @IsIn(pageTemplates.map((p) => p.key))
+  template?: string;
+
   @IsOptional()
   @IsBoolean()
   isHome?: boolean;
@@ -68,6 +76,21 @@ export class UpdatePageDto {
   @IsOptional()
   @IsBoolean()
   isHome?: boolean;
+
+  /** Publish the draft at this time (ISO date), or null to cancel. */
+  @ValidateIf((o: UpdatePageDto) => o.publishAt !== null && o.publishAt !== undefined)
+  @IsDateString()
+  publishAt?: string | null;
+
+  /** Take the page offline at this time (ISO date), or null to cancel. */
+  @ValidateIf((o: UpdatePageDto) => o.unpublishAt !== null && o.unpublishAt !== undefined)
+  @IsDateString()
+  unpublishAt?: string | null;
+
+  /** The page's own theme (cleaned in the service), or null to use the site theme. */
+  @ValidateIf((o: UpdatePageDto) => o.theme !== null && o.theme !== undefined)
+  @IsObject()
+  theme?: Record<string, unknown> | null;
 
   @IsOptional()
   @IsArray()
