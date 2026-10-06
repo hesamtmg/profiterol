@@ -1,5 +1,16 @@
 <script setup lang="ts">
-import { cleanLoader, fontNames, locales, resolveTheme, type FieldDef, type LoaderSettings, type ThemeTokens } from '@profiterol/blocks';
+import {
+  cleanBusiness,
+  cleanLoader,
+  fontNames,
+  locales,
+  resolveTheme,
+  type BusinessInfo,
+  type FieldDef,
+  type LoaderSettings,
+  type ThemeTokens,
+} from '@profiterol/blocks';
+import BusinessPicker from '~/components/admin/BusinessPicker.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
 import FontManager from '~/components/admin/FontManager.vue';
 import SiteLoader from '~/components/site/SiteLoader.vue';
@@ -10,7 +21,7 @@ import type { SiteSettings } from '~/composables/useSite';
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 const api = useApi();
-const settings = ref<(SiteSettings & { notifyEmail: string; loader: LoaderSettings }) | null>(null);
+const settings = ref<(SiteSettings & { notifyEmail: string; loader: LoaderSettings; business: BusinessInfo }) | null>(null);
 const customFonts = computed(() => fontNames(settings.value?.fonts));
 const loaderPreview = ref(0);
 const saving = ref(false);
@@ -29,7 +40,7 @@ async function load() {
     s.maintenanceText[l.code] ??= '';
     loader.text[l.code] ??= '';
   }
-  settings.value = { ...s, loader };
+  settings.value = { ...s, loader, business: cleanBusiness(s.business) };
 }
 
 /** Saved themes are kept with the other settings and stored with "Save settings". */
@@ -57,10 +68,11 @@ async function save() {
   saving.value = true;
   message.value = null;
   try {
-    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader } = settings.value;
+    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business } =
+      settings.value;
     await api('/admin/settings', {
       method: 'PUT',
-      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader },
+      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business },
     });
     message.value = { kind: 'ok', text: translate('Settings saved') };
   } catch (err) {
@@ -100,6 +112,16 @@ onMounted(load);
           </div>
           <FieldInput v-model="settings.logo" :field="imageField('logo', $t('Logo'))" />
           <FieldInput v-model="settings.favicon" :field="imageField('favicon', $t('Favicon'))" />
+        </div>
+      </section>
+
+      <section class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">{{ $t('Business') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ $t('What this site is for. Google uses it for business results and maps, so pick the closest kind.') }}
+        </p>
+        <div class="mt-4">
+          <BusinessPicker v-model="settings.business" />
         </div>
       </section>
 

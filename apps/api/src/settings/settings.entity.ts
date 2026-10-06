@@ -1,4 +1,4 @@
-import type { BlockNode, LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
+import type { BlockNode, BusinessInfo, LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
 import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 /** A configured block (with its columns, if any) kept under a name. */
@@ -60,6 +60,10 @@ export class SiteSettings {
 
   @Column({ type: 'jsonb', default: () => "'{}'" })
   maintenanceText: Localized;
+
+  /** What the site's owner is (a café, a law firm, a person…) and how to reach them, for search engines. */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  business: Partial<BusinessInfo>;
 
   /** Where new form messages are emailed (needs SMTP_URL). Empty means inbox only. */
   @Column({ default: '' })

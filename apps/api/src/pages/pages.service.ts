@@ -20,7 +20,7 @@ import {
   templateBlocks,
   validateBlocks,
 } from '@profiterol/blocks';
-import { DataSource, EntityManager, LessThanOrEqual, Not, QueryFailedError, Repository } from 'typeorm';
+import { DataSource, EntityManager, IsNull, LessThanOrEqual, Not, QueryFailedError, Repository } from 'typeorm';
 import { CollectionsService } from '../collections/collections.service';
 import { SettingsService } from '../settings/settings.controller';
 import { cleanHtml } from '../common/rich-text';
@@ -302,8 +302,9 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     const t = await qb.getOne();
     if (!t) throw new NotFoundException('Page not found');
 
+    // Only languages visitors can open: hreflang links to a draft-only translation would lead search engines to a 404.
     const siblings = await this.translations.find({
-      where: { page: { id: t.page.id } },
+      where: { page: { id: t.page.id }, publishedBlocks: Not(IsNull()) },
       select: { locale: true, slug: true },
     });
 
