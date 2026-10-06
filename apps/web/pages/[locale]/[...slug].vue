@@ -9,7 +9,9 @@ import {
   fontFaceCss,
   fontNames,
   getLocale,
+  jsonLdScript,
   resolveTheme,
+  siteJsonLd,
   themeToCss,
   type BlockNode,
   type ThemeTokens,
@@ -173,6 +175,21 @@ const shareImage = computed(() => {
   return src ? new URL(src, requestUrl.origin).href : '';
 });
 
+/** Structured data on the home page: who runs the site (Admin → Settings → Business) and the site itself. */
+const structuredData = computed(() => {
+  const r = resolved.value;
+  if (r?.kind !== 'page' || !r.page.isHome) return null;
+  return siteJsonLd({
+    business: settings.value?.business,
+    origin: requestUrl.origin,
+    homeUrl: pageUrl(locale, ''),
+    name: siteName.value,
+    locale,
+    logo: settings.value?.logo ? new URL(settings.value.logo, requestUrl.origin).href : '',
+    description: r.page.seoDescription,
+  });
+});
+
 const loader = computed(() => cleanLoader(settings.value?.loader));
 
 /** Site theme with this page's own changes on top. */
@@ -184,6 +201,7 @@ const overlayHeader = computed(() => resolved.value?.kind === 'page' && resolved
 useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
   // html:root outranks the stylesheet's :root defaults, which load after this tag.
+  script: () => (structuredData.value ? [{ type: 'application/ld+json', innerHTML: jsonLdScript(structuredData.value) }] : []),
   style: [{ innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` }],
   link: () => [
     // The default fonts are always loaded (nuxt.config); others only when the theme picks them.

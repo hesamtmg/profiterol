@@ -28,6 +28,7 @@ import {
 } from 'class-validator';
 import {
   type BlockNode,
+  cleanBusiness,
   cleanFonts,
   cleanLoader,
   cleanSavedThemes,
@@ -100,6 +101,11 @@ class UpdateSettingsDto {
   @IsObject()
   maintenanceText?: Localized;
 
+  /** Checked and trimmed by cleanBusiness. */
+  @IsOptional()
+  @IsObject()
+  business?: Record<string, unknown>;
+
   @IsOptional()
   @ValidateIf((o: UpdateSettingsDto) => o.notifyEmail !== '')
   @IsEmail()
@@ -123,6 +129,7 @@ export class SettingsService {
     if (dto.theme) next.theme = cleanTheme(dto.theme, custom);
     if (dto.savedThemes !== undefined) next.savedThemes = cleanSavedThemes(dto.savedThemes, custom);
     if (dto.loader !== undefined) next.loader = cleanLoader(dto.loader);
+    if (dto.business !== undefined) next.business = cleanBusiness(dto.business);
     return this.repo.save(next);
   }
 }

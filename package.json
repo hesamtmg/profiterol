@@ -18,7 +18,8 @@
     "prepare": "husky",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write . && eslint --fix .",
-    "import:minicms": "node scripts/import-minicms.mjs"
+    "import:minicms": "node scripts/import-minicms.mjs",
+    "check:business-types": "node scripts/check-business-types.mjs"
   },
   "engines": {
     "node": ">=20"

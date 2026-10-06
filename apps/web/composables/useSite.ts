@@ -1,4 +1,4 @@
-import type { LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
+import type { BusinessInfo, LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
 
 export interface MenuItem {
   label: Record<string, string>;
@@ -16,6 +16,7 @@ export interface SiteSettings {
   fonts: SiteFont[];
   savedThemes: SavedTheme[];
   loader: Partial<LoaderSettings>;
+  business: Partial<BusinessInfo>;
 }
 
 /** Site settings, fetched once per request and shared by the layout and pages. */

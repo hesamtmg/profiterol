@@ -1,0 +1,21 @@
+name: Business types
+
+# schema.org changes a few times a year: once a month, check that every business type owners can pick still exists
+# and list new ones worth adding (packages/blocks/src/business.ts). A failed run means the list needs updating.
+on:
+  schedule:
+    - cron: '17 6 1 * *'
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build -w @profiterol/blocks
+      - run: npm run check:business-types
