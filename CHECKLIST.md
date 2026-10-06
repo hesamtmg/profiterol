@@ -141,6 +141,16 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Scroll-moved words: rows of huge words (solid, outline or main color) sliding opposite ways, driven by scrolling (`scroll-marquee`)
 - [x] Opening picture: a picture splits like doors, sideways or up and down, uncovering a message (`split-reveal`)
 - [x] Floating photos: photos at different depths drifting past a title held in the middle of the screen (`floating-gallery`)
+- [x] Decoding text: big lines taking turns, each settling out of scrambled letters borrowed from the line itself, so any script works (`text-scramble`)
+- [x] Photo trail: moving the mouse over a big title leaves photos that pop up and fade; a row of photos without a mouse (`image-trail`)
+- [x] Hover-reveal list: big rows whose photo floats after the mouse and leans as it moves; small photos in the rows on phones (`hover-list`)
+- [x] Spinning badge: words round a circle that turns slowly and faster while scrolling, beside a title (`spinning-badge`)
+- [x] Expanding panels: photo panels side by side, the one pointed at or tapped widening to show its text (`expanding-panels`)
+- [x] Skill bars: bars filling one after another with their percentage counting when seen (`progress-bars`)
+- [x] Picture in letters: a huge word cut out of a photo that glides and zooms inside it as you scroll (`picture-text`)
+- [x] Orbiting icons: logos or icons circling a title on two rings turning opposite ways, pausing on hover (`orbit`)
+- [x] Fanning cards: a pile of cards spreading into a fan as you scroll, overlapping on small screens (`card-fan`)
+- [x] Endless photo columns: three columns of photos gliding up and down forever beside a title (`photo-columns`)
 - [x] Cursor effects, a theme setting (site or page): dot and trailing ring, soft glow, or inverting circle; mouse/trackpad only, normal pointer over text fields
 - [x] Page transitions, a theme setting: fade, slide, curtain (with the site name) or circle from the click; the uncovering is pure CSS in the server page; Back button safe
 - [x] Both previewed live on the editor canvas from the Design tab; ready-made themes keep the motion settings

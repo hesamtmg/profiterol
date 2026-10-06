@@ -374,6 +374,142 @@ const blocks = (l) => [
     },
   },
   {
+    id: 'm19',
+    type: 'text-scramble',
+    props: {
+      eyebrow: t('Hello', 'سلام')(l),
+      lines: t('We design.\nWe build.\nWe launch.', 'طراحی می‌کنیم.\nمی‌سازیم.\nمنتشر می‌کنیم.')(l),
+      text: t('Everything a good website needs, under one roof.', 'هر آنچه یک وب‌سایت خوب لازم دارد، زیر یک سقف.')(l),
+      buttonLabel: t('Start a project', 'شروع پروژه')(l),
+      buttonLink: '#m7',
+      seconds: 3,
+      look: 'dark',
+    },
+  },
+  {
+    id: 'm20',
+    type: 'image-trail',
+    props: {
+      eyebrow: t('Portfolio', 'نمونه‌کار')(l),
+      title: t('Ten years of making', 'ده سال ساختن')(l),
+      text: t('Brands, books, buildings and everything in between.', 'برند، کتاب، ساختمان و هر چه میان آن‌هاست.')(l),
+      hint: t('Move your mouse', 'ماوس را حرکت دهید')(l),
+      photos: photos.slice(0, 6).map((image, i) => ({ image, caption: `${t('Photo', 'عکس')(l)} ${i + 1}` })),
+    },
+  },
+  {
+    id: 'm21',
+    type: 'hover-list',
+    props: {
+      title: t('Recent projects', 'پروژه‌های اخیر')(l),
+      items: [
+        [t('Northwind Coffee', 'قهوه‌ی نورث‌ویند')(l), t('Brand · 2026', 'برند · ۱۴۰۵')(l)],
+        [t('Lumen Studio', 'استودیو لومن')(l), t('Website · 2026', 'وب‌سایت · ۱۴۰۵')(l)],
+        [t('Harbor Hotel', 'هتل بندر')(l), t('Website · 2025', 'وب‌سایت · ۱۴۰۴')(l)],
+        [t('Orbit Bikes', 'دوچرخه‌ی اوربیت')(l), t('Campaign · 2025', 'کمپین · ۱۴۰۴')(l)],
+      ].map(([title, meta], i) => ({ image: photos[i + 1], title, meta, link: '#m5' })),
+    },
+  },
+  {
+    id: 'm22',
+    type: 'spinning-badge',
+    props: {
+      eyebrow: t('Since 2012', 'از ۱۳۹۱')(l),
+      title: t('Small studio, big ideas', 'استودیوی کوچک، ایده‌های بزرگ')(l),
+      text: t('We work with a handful of clients at a time.', 'هم‌زمان با چند مشتری محدود کار می‌کنیم.')(l),
+      buttonLabel: t('Meet us', 'آشنایی با ما')(l),
+      buttonLink: '#m7',
+      badgeText: t('Design · Build · Launch ·', 'طراحی · ساخت · انتشار ·')(l),
+      image: '',
+      icon: 'mdi-star-four-points',
+      badgeSide: 'end',
+    },
+  },
+  {
+    id: 'm23',
+    type: 'expanding-panels',
+    props: {
+      title: t('Explore the rooms', 'اتاق‌ها را ببینید')(l),
+      panels: [t('Lobby', 'لابی')(l), t('Suites', 'سوئیت‌ها')(l), t('Spa', 'اسپا')(l), t('Rooftop', 'پشت‌بام')(l)].map((title, i) => ({
+        image: photos[i + 2],
+        title,
+        text: t('A short line about this room.', 'یک خط درباره‌ی این فضا.')(l),
+        link: '',
+      })),
+    },
+  },
+  {
+    id: 'm24',
+    type: 'progress-bars',
+    props: {
+      title: t('What we are good at', 'در چه کارهایی خوبیم')(l),
+      text: t('Ten years of projects, measured honestly.', 'ده سال پروژه، صادقانه سنجیده‌شده.')(l),
+      items: [
+        [t('Brand identity', 'هویت برند')(l), 95],
+        [t('Web design', 'طراحی وب')(l), 90],
+        [t('Development', 'برنامه‌نویسی')(l), 85],
+        [t('Motion', 'موشن')(l), 70],
+      ].map(([label, value]) => ({ label, value })),
+    },
+  },
+  {
+    id: 'm25',
+    type: 'picture-text',
+    props: {
+      eyebrow: t('Made by the sea', 'ساخته‌شده کنار دریا')(l),
+      word: t('OCEAN', 'دریا')(l),
+      image: photos[2],
+      text: t('Everything we make starts with a walk along the water.', 'هر چه می‌سازیم با قدم زدن کنار آب شروع می‌شود.')(l),
+      look: 'light',
+    },
+  },
+  {
+    id: 'm26',
+    type: 'orbit',
+    props: {
+      eyebrow: t('Works with', 'سازگار با')(l),
+      title: t('Everything you already use', 'هر چه همین حالا استفاده می‌کنید')(l),
+      text: t('Connect your favourite tools in a few clicks.', 'ابزارهای محبوبتان را با چند کلیک وصل کنید.')(l),
+      buttonLabel: t('See all integrations', 'همه‌ی اتصال‌ها')(l),
+      buttonLink: '#m7',
+      items: [
+        ...logos.map((image, i) => ({ image, icon: '', name: `Client ${i + 1}` })),
+        ...['mdi-google', 'mdi-slack', 'mdi-github', 'mdi-dropbox'].map((icon) => ({ image: '', icon, name: icon.slice(4) })),
+      ],
+      seconds: 40,
+    },
+  },
+  {
+    id: 'm27',
+    type: 'card-fan',
+    props: {
+      eyebrow: t('The collection', 'مجموعه')(l),
+      title: t('Five ways to begin', 'پنج راه برای شروع')(l),
+      text: t('Pick the one that fits.', 'هر کدام که مناسب است را انتخاب کنید.')(l),
+      cards: [
+        t('Starter', 'شروع')(l),
+        t('Shop', 'فروشگاه')(l),
+        t('Studio', 'استودیو')(l),
+        t('Hotel', 'هتل')(l),
+        t('Custom', 'سفارشی')(l),
+      ].map((title, i) => ({ image: photos[i + 1], title, text: t('A short line.', 'یک خط کوتاه.')(l) })),
+    },
+  },
+  {
+    id: 'm28',
+    type: 'photo-columns',
+    props: {
+      eyebrow: t('Photography', 'عکاسی')(l),
+      title: t('Stories in pictures', 'داستان در تصویر')(l),
+      text: t('Weddings, portraits and travel.', 'عروسی، پرتره و سفر.')(l),
+      buttonLabel: t('Book a session', 'رزرو جلسه')(l),
+      buttonLink: '#m7',
+      photos: [...photos, ...photos.slice(0, 2)].map((image, i) => ({ image, caption: `${t('Photo', 'عکس')(l)} ${i + 1}` })),
+      seconds: 30,
+      look: 'light',
+    },
+  },
+  {
     id: 'm11',
     type: 'horizon',
     props: {

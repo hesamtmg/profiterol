@@ -34,6 +34,16 @@ import StackingCards from './animated/StackingCards.vue';
 import ScrollMarquee from './animated/ScrollMarquee.vue';
 import SplitReveal from './animated/SplitReveal.vue';
 import FloatingGallery from './animated/FloatingGallery.vue';
+import TextScramble from './animated/TextScramble.vue';
+import ImageTrail from './animated/ImageTrail.vue';
+import HoverList from './animated/HoverList.vue';
+import SpinningBadge from './animated/SpinningBadge.vue';
+import ExpandingPanels from './animated/ExpandingPanels.vue';
+import ProgressBars from './animated/ProgressBars.vue';
+import PictureText from './animated/PictureText.vue';
+import Orbit from './animated/Orbit.vue';
+import CardFan from './animated/CardFan.vue';
+import PhotoColumns from './animated/PhotoColumns.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -92,6 +102,16 @@ export const blockComponents: Record<string, Component> = {
   'scroll-marquee': ScrollMarquee,
   'split-reveal': SplitReveal,
   'floating-gallery': FloatingGallery,
+  'text-scramble': TextScramble,
+  'image-trail': ImageTrail,
+  'hover-list': HoverList,
+  'spinning-badge': SpinningBadge,
+  'expanding-panels': ExpandingPanels,
+  'progress-bars': ProgressBars,
+  'picture-text': PictureText,
+  orbit: Orbit,
+  'card-fan': CardFan,
+  'photo-columns': PhotoColumns,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,

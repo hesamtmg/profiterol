@@ -11,6 +11,7 @@ const SUITES = [
   'classic',
   'motion',
   'motion-scroll',
+  'motion-more',
   'extras',
   'persian-admin-and-images',
   'security',
