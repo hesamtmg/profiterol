@@ -29,6 +29,11 @@ import Testimonials from './animated/Testimonials.vue';
 import Timeline from './animated/Timeline.vue';
 import Parallax from './animated/Parallax.vue';
 import StickyStory from './animated/StickyStory.vue';
+import ZoomReveal from './animated/ZoomReveal.vue';
+import StackingCards from './animated/StackingCards.vue';
+import ScrollMarquee from './animated/ScrollMarquee.vue';
+import SplitReveal from './animated/SplitReveal.vue';
+import FloatingGallery from './animated/FloatingGallery.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -82,6 +87,11 @@ export const blockComponents: Record<string, Component> = {
   timeline: Timeline,
   parallax: Parallax,
   'sticky-story': StickyStory,
+  'zoom-reveal': ZoomReveal,
+  'stacking-cards': StackingCards,
+  'scroll-marquee': ScrollMarquee,
+  'split-reveal': SplitReveal,
+  'floating-gallery': FloatingGallery,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,

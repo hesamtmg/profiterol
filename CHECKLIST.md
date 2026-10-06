@@ -136,6 +136,11 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Timeline whose line draws as you scroll (`timeline`)
 - [x] Parallax layers: pictures (or built-in hills in the theme colors) moving at different speeds with scroll and mouse, title passing behind the front layers (`parallax`)
 - [x] Sticky story: a picture pinned while steps scroll beside it, cross-fading to each step's picture; inline pictures on phones (`sticky-story`)
+- [x] Zoom-in picture: a small rounded picture grows to fill the screen as you scroll, then its title fades in (`zoom-reveal`)
+- [x] Stacking cards: cards stick and pile up as you scroll, the ones underneath shrinking and dimming (`stacking-cards`)
+- [x] Scroll-moved words: rows of huge words (solid, outline or main color) sliding opposite ways, driven by scrolling (`scroll-marquee`)
+- [x] Opening picture: a picture splits like doors, sideways or up and down, uncovering a message (`split-reveal`)
+- [x] Floating photos: photos at different depths drifting past a title held in the middle of the screen (`floating-gallery`)
 - [x] Cursor effects, a theme setting (site or page): dot and trailing ring, soft glow, or inverting circle; mouse/trackpad only, normal pointer over text fields
 - [x] Page transitions, a theme setting: fade, slide, curtain (with the site name) or circle from the click; the uncovering is pure CSS in the server page; Back button safe
 - [x] Both previewed live on the editor canvas from the Design tab; ready-made themes keep the motion settings
