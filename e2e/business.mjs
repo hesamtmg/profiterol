@@ -7,6 +7,8 @@ const ad = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
 watch(ad);
 await adminLogin(ad);
 await ad.goto(`${BASE}/admin/settings`, { waitUntil: 'networkidle' });
+// Start from no choice, even if an earlier run saved one.
+if (await ad.locator('button[aria-label="Remove"]').count()) await ad.click('button[aria-label="Remove"]');
 
 // Category first, then the kind of business.
 await ad.click('button:has-text("Food & drink")');

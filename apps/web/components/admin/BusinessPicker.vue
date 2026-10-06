@@ -7,7 +7,7 @@
 import { businessCategories, findBusinessType, isLocalBusiness, type BusinessCategory, type BusinessInfo } from '@profiterol/blocks';
 
 const model = defineModel<BusinessInfo>({ required: true });
-const { lang } = useAdminI18n();
+const { lang, dir } = useAdminI18n();
 
 const picking = ref(!model.value.type);
 const category = ref<BusinessCategory | null>(null);
@@ -94,7 +94,7 @@ const profiles = computed({
 
       <div v-else-if="category" class="mt-3">
         <button type="button" class="text-sm text-slate-500 hover:text-slate-900" @click="category = null">
-          <i class="mdi mdi-arrow-left rtl:rotate-180" /> {{ $t('All categories') }}
+          <i class="mdi" :class="dir === 'rtl' ? 'mdi-arrow-right' : 'mdi-arrow-left'" /> {{ $t('All categories') }}
         </button>
         <p class="mt-2 font-bold"><i class="mdi" :class="`mdi-${category.icon}`" /> {{ category.label[lang] }}</p>
         <div class="mt-3 flex flex-wrap gap-2">
@@ -141,15 +141,15 @@ const profiles = computed({
       </div>
       <div class="sm:col-span-2">
         <label class="field-label" for="biz-street">{{ $t('Street address') }}</label>
-        <input id="biz-street" v-model="model.street" class="input" maxlength="200" />
+        <input id="biz-street" v-model="model.street" class="input" dir="auto" maxlength="200" />
       </div>
       <div>
         <label class="field-label" for="biz-city">{{ $t('City') }}</label>
-        <input id="biz-city" v-model="model.city" class="input" maxlength="100" />
+        <input id="biz-city" v-model="model.city" class="input" dir="auto" maxlength="100" />
       </div>
       <div>
         <label class="field-label" for="biz-region">{{ $t('Province or state') }}</label>
-        <input id="biz-region" v-model="model.region" class="input" maxlength="100" />
+        <input id="biz-region" v-model="model.region" class="input" dir="auto" maxlength="100" />
       </div>
       <div>
         <label class="field-label" for="biz-postal">{{ $t('Postal code') }}</label>
@@ -157,11 +157,11 @@ const profiles = computed({
       </div>
       <div>
         <label class="field-label" for="biz-country">{{ $t('Country') }}</label>
-        <input id="biz-country" v-model="model.country" class="input" :placeholder="$t('e.g. IR')" maxlength="60" />
+        <input id="biz-country" v-model="model.country" class="input" dir="auto" :placeholder="$t('e.g. IR')" maxlength="60" />
       </div>
       <div v-if="local">
         <label class="field-label" for="biz-price">{{ $t('Price range') }}</label>
-        <input id="biz-price" v-model="model.priceRange" class="input" :placeholder="$t('e.g. $$')" maxlength="60" />
+        <input id="biz-price" v-model="model.priceRange" class="input" dir="auto" :placeholder="$t('e.g. $$')" maxlength="60" />
       </div>
       <div class="sm:col-span-2">
         <label class="field-label" for="biz-profiles">{{ $t('Profiles elsewhere (one link per line)') }}</label>
