@@ -189,14 +189,14 @@ await ed.waitForURL(`${BASE}/admin`);
 await ed.locator('article', { hasText: 'Motion' }).getByText('Edit').click();
 await ed.waitForSelector('main [id^=blk-]');
 check(
-  'editor: Animated group lists 17 blocks',
+  'editor: Animated group lists 27 blocks',
   (await ed
     .locator('aside h3', { hasText: /^Animated$/ })
     .locator('xpath=following-sibling::div[1]/button')
-    .count()) === 17,
+    .count()) === 27,
 );
 await ed.screenshot({ path: out + 'editor-animated.png' });
-await ed.locator('main [id^=blk-m2]').click({ position: { x: 30, y: 20 } });
+await ed.locator('main #blk-m2').click({ position: { x: 30, y: 20 } });
 await ed.locator('aside').last().locator('summary:has-text("Animation, anchor and visibility")').click();
 const select = ed
   .locator('aside')
@@ -205,7 +205,7 @@ const select = ed
   .filter({ has: ed.locator('option[value="flip"]') });
 await select.selectOption('zoom');
 await ed.waitForTimeout(150);
-check('editor: choosing an animation replays it on the canvas', (await ed.locator('main [id^=blk-m2] [class*="anim-zoom"]').count()) === 1);
+check('editor: choosing an animation replays it on the canvas', (await ed.locator('main #blk-m2 [class*="anim-zoom"]').count()) === 1);
 await ed.waitForTimeout(1500);
 await ed.screenshot({ path: out + 'editor-animation-field.png' });
 

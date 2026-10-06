@@ -241,7 +241,7 @@ check('editor: changing the transition replays it on the canvas', (await ed.loca
 await ed.screenshot({ path: out + 'editor-transition-preview.png' });
 await ed.selectOption('#theme-cursor', 'blend');
 await ed.waitForTimeout(200);
-const cb = await ed.locator('main [id^=blk-m2]').boundingBox();
+const cb = await ed.locator('main #blk-m2').boundingBox();
 await ed.mouse.move(cb.x + 300, cb.y + 60, { steps: 5 });
 await ed.waitForTimeout(400);
 check('editor: cursor preview over the canvas', (await ed.locator('main .mix-blend-difference').count()) === 1);

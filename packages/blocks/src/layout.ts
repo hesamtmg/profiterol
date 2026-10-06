@@ -94,6 +94,7 @@ export const topLevelOnlyTypes = [
   'stacking-cards',
   'split-reveal',
   'floating-gallery',
+  'card-fan',
   'horizontal-scroll',
   'video-cover',
   'slider',
