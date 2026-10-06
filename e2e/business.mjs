@@ -19,7 +19,8 @@ check('business: the choice is shown with its category', (await ad.locator('text
 await ad.click('button:has-text("Change")');
 await ad.fill('input[type=search]', 'دندان');
 check('business: search matches Persian labels', (await ad.locator('button:has-text("Dentist")').count()) === 1);
-await ad.fill('input[type=search]', 'coffee');
+await ad.fill('input[type=search]', 'cafe');
+check('business: search ignores accents', (await ad.locator('button:has-text("Café or coffee shop")').count()) === 1);
 await ad.click('button:has-text("Café or coffee shop")');
 
 await ad.fill('#biz-phone', '+98 21 1234 5678');

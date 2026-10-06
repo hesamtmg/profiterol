@@ -16,8 +16,15 @@ const query = ref('');
 const selected = computed(() => findBusinessType(model.value.type));
 const local = computed(() => isLocalBusiness(model.value.type));
 
-/** Persian has two spellings of ی and ک in common use; match either. */
-const normalize = (s: string) => s.toLowerCase().replace(/ي/g, 'ی').replace(/ك/g, 'ک').trim();
+/** "cafe" finds "Café", and either common spelling of the Persian ی and ک matches. */
+const normalize = (s: string) =>
+  s
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/ي/g, 'ی')
+    .replace(/ك/g, 'ک')
+    .trim();
 
 const results = computed(() => {
   const q = normalize(query.value);
