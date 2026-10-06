@@ -5,6 +5,7 @@
  */
 import {
   cleanLoader,
+  defaultLocale,
   fontFaceCss,
   fontNames,
   getLocale,
@@ -89,6 +90,18 @@ if (!resolved.value) {
   if (!moved) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
   await navigateTo(moved.to, { redirectCode: moved.status, external: /^https?:/i.test(moved.to) });
 }
+// The home page lives at /<locale>; its own slug (e.g. /en/home) would be a second copy of it.
+if (resolved.value?.kind === 'page' && resolved.value.page.isHome && slug.value) {
+  await navigateTo(`/${locale}`, { redirectCode: 301 });
+}
+// While the site is closed for maintenance, tell search engines to come back later rather than index the notice.
+if (import.meta.server && settings.value?.maintenance) {
+  const event = useRequestEvent();
+  if (event) {
+    setResponseStatus(event, 503, 'Temporarily unavailable');
+    setResponseHeader(event, 'Retry-After', '3600');
+  }
+}
 
 // Blurred previews and descriptions of the photos on this page, for every <img> (plugins/srcset.ts).
 const mediaHints = useMediaHints();
@@ -108,6 +121,20 @@ const siteName = computed(() => settings.value?.siteName?.[locale] ?? settings.v
 // Behind nginx: use the visitor-facing host and protocol (https) for hreflang and og:image links.
 const requestUrl = useRequestURL({ xForwardedHost: true, xForwardedProto: true });
 
+/** The first picture in a page's blocks (a hero photo, a slide, a poster), for link previews. */
+function firstImage(value: unknown): string {
+  if (typeof value === 'string') return /^(\/|https:)[^\s]*\.(jpe?g|png|webp|avif|gif)(\?.*)?$/i.test(value) ? value : '';
+  if (!value || typeof value !== 'object') return '';
+  for (const v of Object.values(value)) {
+    const found = firstImage(v);
+    if (found) return found;
+  }
+  return '';
+}
+
+// Encoded like the sitemap's addresses, so both name the same URL (Persian slugs included).
+const pageUrl = (loc: string, path: string) => `${requestUrl.origin}/${loc}${path ? `/${encodeURI(path)}` : ''}`;
+
 /** Links to this same content in every language, for the language switch and hreflang. */
 const alternates = computed(() => {
   const r = resolved.value;
@@ -124,13 +151,26 @@ const meta = computed(() => {
     return {
       title: r.page.isHome ? siteName.value : `${r.page.seoTitle} · ${siteName.value}`,
       description: r.page.seoDescription,
-      image: '',
+      image: firstImage(r.page.blocks.map((b) => [b.props, b.children])),
     };
   }
   if (r.kind === 'item') {
     return { title: `${r.entry.item.title} · ${siteName.value}`, description: r.entry.item.seoDescription, image: r.entry.item.cover };
   }
-  return { title: `${r.collection.name} · ${siteName.value}`, description: '', image: '' };
+  return { title: `${r.collection.name} · ${siteName.value}`, description: '', image: r.list.items.find((i) => i.cover)?.cover ?? '' };
+});
+
+/** The one address search engines should index for this content: no query string, home at /<locale>. */
+const canonical = computed(() => {
+  const r = resolved.value;
+  if (!r) return '';
+  if (r.kind === 'page') return pageUrl(locale, r.page.isHome ? '' : r.page.slug);
+  return pageUrl(locale, slug.value);
+});
+/** Shared links show the page's own picture, or the site logo. */
+const shareImage = computed(() => {
+  const src = meta.value.image || settings.value?.logo || '';
+  return src ? new URL(src, requestUrl.origin).href : '';
 });
 
 const loader = computed(() => cleanLoader(settings.value?.loader));
@@ -145,14 +185,19 @@ useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
   // html:root outranks the stylesheet's :root defaults, which load after this tag.
   style: [{ innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` }],
-  link: [
+  link: () => [
     // The default fonts are always loaded (nuxt.config); others only when the theme picks them.
     ...(settings.value?.favicon ? [{ rel: 'icon', href: settings.value.favicon }] : []),
-    ...alternates.value.map((a) => ({
-      rel: 'alternate',
-      hreflang: a.locale,
-      href: `${requestUrl.origin}/${a.locale}${a.slug ? `/${a.slug}` : ''}`,
-    })),
+    ...(canonical.value ? [{ rel: 'canonical', href: canonical.value }] : []),
+    // hreflang only makes sense with more than one language; x-default is where visitors with no match land.
+    ...(alternates.value.length > 1
+      ? [
+          ...alternates.value.map((a) => ({ rel: 'alternate', hreflang: a.locale, href: pageUrl(a.locale, a.slug) })),
+          ...alternates.value
+            .filter((a) => a.locale === defaultLocale)
+            .map((a) => ({ rel: 'alternate', hreflang: 'x-default', href: pageUrl(a.locale, a.slug) })),
+        ]
+      : []),
   ],
 });
 
@@ -161,10 +206,13 @@ useSeoMeta({
   description: () => meta.value.description,
   ogTitle: () => meta.value.title,
   ogDescription: () => meta.value.description,
-  ogImage: () => (meta.value.image ? new URL(meta.value.image, requestUrl.origin).href : undefined),
+  ogImage: () => shareImage.value || undefined,
+  ogUrl: () => canonical.value || undefined,
   ogSiteName: () => siteName.value,
   ogLocale: locale,
   ogType: () => (resolved.value?.kind === 'item' ? 'article' : 'website'),
+  twitterCard: () => (meta.value.image ? 'summary_large_image' : 'summary'),
+  robots: () => (settings.value?.maintenance ? 'noindex' : undefined),
 });
 </script>
 

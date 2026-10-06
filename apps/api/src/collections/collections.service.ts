@@ -203,7 +203,8 @@ export class CollectionsService {
       slug: c.slugs?.[locale] ?? '',
       href: `/${locale}/${c.slugs?.[locale] ?? ''}`,
       fields: c.fields,
-      alternates: locales.map((l) => ({ locale: l.code, slug: c.slugs?.[l.code] ?? '' })),
+      // A language without a URL segment for this collection has no index page.
+      alternates: locales.filter((l) => c.slugs?.[l.code]).map((l) => ({ locale: l.code, slug: c.slugs[l.code] })),
     };
   }
 
@@ -278,7 +279,7 @@ export class CollectionsService {
         publishedAt: t.item.publishedAt,
         updatedAt: t.item.updatedAt,
       },
-      alternates: siblings.map((s) => ({ locale: s.locale, path: `${c.slugs?.[s.locale]}/${s.slug}` })),
+      alternates: siblings.filter((s) => c.slugs?.[s.locale]).map((s) => ({ locale: s.locale, path: `${c.slugs[s.locale]}/${s.slug}` })),
       related: related.items,
     };
   }
