@@ -1,0 +1,108 @@
+# nginx behind the shared Oblivion reverse proxy (github.com/hesamtmg/Oblivion), used by
+# docker-compose.oblivion.yml. Oblivion owns ports 80/443 on the server and terminates HTTPS;
+# it forwards every request for ${DOMAIN} here over the shared "oblivion" Docker network.
+# Everything else is the same as prod/default.conf.template: uploads served from the volume,
+# security headers, the "back in a moment" page. No TLS, no certbot, no published ports.
+
+# Browsers that accept AVIF get the AVIF copy of a photo when one has been made (see the WebP location below).
+map $http_accept $avif {
+  default "";
+  "~*image/avif" ".avif";
+}
+
+# Look containers up through Docker's DNS on every request (cached 10s) rather than once at start-up,
+# so containers recreated by an update are found at their new addresses.
+resolver 127.0.0.11 valid=10s ipv6=off;
+map $host $api_upstream { default http://api:3001; }
+map $host $web_upstream { default http://web:3000; }
+
+# The visitor's real address: trust X-Forwarded-For from Oblivion (private Docker addresses only).
+set_real_ip_from 10.0.0.0/8;
+set_real_ip_from 172.16.0.0/12;
+set_real_ip_from 192.168.0.0/16;
+real_ip_header X-Forwarded-For;
+
+# Any other name (www., the health check's 127.0.0.1, …): health check, else redirect to the main domain.
+server {
+  listen 80 default_server;
+  server_name _;
+  server_tokens off;
+
+  # Docker health check; only ever answers "ok".
+  location = /nginx-health {
+    access_log off;
+    return 200 'ok';
+  }
+
+  location / {
+    return 301 https://${DOMAIN}$request_uri;
+  }
+}
+
+server {
+  listen 80;
+  server_name ${DOMAIN};
+  server_tokens off;
+
+  client_max_body_size 25m;
+
+  include /etc/nginx/snippets/security-headers.conf;
+
+  gzip on;
+  gzip_types text/css application/javascript application/json image/svg+xml application/xml text/plain;
+
+  # Sized copies of photos: answered with the smaller AVIF copy when the browser accepts it and it exists.
+  location ~ "^/uploads/(?<copy>[\w-]+-\d+)\.webp$" {
+    root /data;
+    types { image/webp webp; image/avif avif; }
+    expires 30d;
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "public, immutable";
+    add_header Vary Accept;
+    add_header Content-Security-Policy "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'" always;
+    try_files /uploads/$copy$avif /uploads/$copy.webp =404;
+  }
+
+  location /uploads/ {
+    alias /data/uploads/;
+    expires 30d;
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Cache-Control "public, immutable";
+    add_header Content-Security-Policy "default-src 'none'; img-src 'self'; media-src 'self'; style-src 'unsafe-inline'" always;
+    try_files $uri =404;
+  }
+
+  # While the site or API restarts (a few seconds during an update), show a friendly page
+  # with 503 + Retry-After instead of nginx's bare "502 Bad Gateway".
+  error_page 502 504 =503 /_unavailable.html;
+  location = /_unavailable.html {
+    root /usr/share/nginx/errors;
+    internal;
+    include /etc/nginx/snippets/security-headers.conf;
+    add_header Retry-After 10 always;
+    add_header Cache-Control "no-store" always;
+  }
+
+  # The API clears the web app's page cache directly, not through here.
+  location /_cache/ {
+    return 404;
+  }
+
+  location /api/ {
+    proxy_pass $api_upstream;
+    include /etc/nginx/snippets/proxy.conf;
+  }
+
+  location /_nuxt/ {
+    proxy_pass $web_upstream;
+    include /etc/nginx/snippets/proxy.conf;
+    include /etc/nginx/snippets/security-headers.conf;
+    expires 1y;
+    add_header Cache-Control "public, immutable";
+  }
+
+  location / {
+    proxy_pass $web_upstream;
+    include /etc/nginx/snippets/proxy.conf;
+  }
+}

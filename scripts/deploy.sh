@@ -8,7 +8,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-compose=(docker compose -f docker-compose.prod.yml)
+# COMPOSE_FILE in .env (e.g. docker-compose.prod.yml:docker-compose.oblivion.yml behind the shared
+# Oblivion proxy) picks the files; without it, the standalone production stack.
+if grep -q '^COMPOSE_FILE=' .env 2>/dev/null; then
+  compose=(docker compose)
+else
+  compose=(docker compose -f docker-compose.prod.yml)
+fi
 build="" backup=1 pull=1
 for arg in "$@"; do
   case "$arg" in

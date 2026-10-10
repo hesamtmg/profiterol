@@ -1,0 +1,32 @@
+# Run behind the shared Oblivion reverse proxy (github.com/hesamtmg/Oblivion) instead of owning
+# ports 80/443 on the server. Layered on top of docker-compose.prod.yml; enable it in .env with
+#
+#   COMPOSE_FILE=docker-compose.prod.yml:docker-compose.oblivion.yml
+#
+# (the scripts and plain `docker compose` then use both files). Oblivion terminates HTTPS and
+# renews the certificate; this project's nginx only listens on the shared "oblivion" network,
+# as "profiterol-nginx", and keeps serving uploads, security headers and the update page.
+# Create the network once on the server: docker network create oblivion
+
+services:
+  nginx:
+    ports: !reset []
+    volumes: !override
+      - ./docker/nginx/oblivion/default.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./docker/nginx/prod/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro
+      - ./docker/nginx/prod/proxy.conf:/etc/nginx/snippets/proxy.conf:ro
+      - ./docker/nginx/prod/unavailable.html:/usr/share/nginx/errors/_unavailable.html:ro
+      - uploads:/data/uploads:ro
+    networks:
+      default:
+      oblivion:
+        # Unique name Oblivion's nginx/conf.d/profiterol.conf proxies to.
+        aliases: [profiterol-nginx]
+
+  # Oblivion renews certificates; nothing to do here.
+  certbot:
+    profiles: [standalone-https]
+
+networks:
+  oblivion:
+    external: true

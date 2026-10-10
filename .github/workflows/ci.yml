@@ -104,6 +104,8 @@ jobs:
         run: |
           cp .env.production.example .env
           docker compose -f docker-compose.prod.yml config --quiet
+          docker network create oblivion
+          docker compose -f docker-compose.prod.yml -f docker-compose.oblivion.yml config --quiet
       - name: Production nginx config is valid
         run: |
           mkdir -p /tmp/le/live/example.com
@@ -114,6 +116,13 @@ jobs:
             -v "$PWD/docker/nginx/prod/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro" \
             -v "$PWD/docker/nginx/prod/proxy.conf:/etc/nginx/snippets/proxy.conf:ro" \
             -v /tmp/le:/etc/letsencrypt:ro \
+            nginx:1.27-alpine /docker-entrypoint.sh nginx -t
+      - name: Oblivion nginx config is valid
+        run: |
+          docker run --rm -e DOMAIN=example.com \
+            -v "$PWD/docker/nginx/oblivion/default.conf.template:/etc/nginx/templates/default.conf.template:ro" \
+            -v "$PWD/docker/nginx/prod/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro" \
+            -v "$PWD/docker/nginx/prod/proxy.conf:/etc/nginx/snippets/proxy.conf:ro" \
             nginx:1.27-alpine /docker-entrypoint.sh nginx -t
       - name: Backup image builds
         run: docker build -f docker/backup/Dockerfile .
