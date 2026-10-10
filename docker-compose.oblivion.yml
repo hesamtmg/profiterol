@@ -9,6 +9,18 @@
 # Create the network once on the server: docker network create oblivion
 
 services:
+  # Unique names for nginx to reach these by (docker/nginx/oblivion/default.conf.template): plain
+  # "api"/"web" can resolve to another project's containers on the shared oblivion network.
+  api:
+    networks:
+      default:
+        aliases: [profiterol-api]
+
+  web:
+    networks:
+      default:
+        aliases: [profiterol-web]
+
   nginx:
     ports: !reset []
     volumes: !override

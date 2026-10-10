@@ -13,8 +13,11 @@ map $http_accept $avif {
 # Look containers up through Docker's DNS on every request (cached 10s) rather than once at start-up,
 # so containers recreated by an update are found at their new addresses.
 resolver 127.0.0.11 valid=10s ipv6=off;
-map $host $api_upstream { default http://api:3001; }
-map $host $web_upstream { default http://web:3000; }
+# Not plain "api"/"web": this nginx is also on the shared oblivion network, where other projects'
+# services may be called api/web too (shoppi's are), and Docker may answer with theirs.
+# docker-compose.oblivion.yml gives our containers these unique aliases.
+map $host $api_upstream { default http://profiterol-api:3001; }
+map $host $web_upstream { default http://profiterol-web:3000; }
 
 # The visitor's real address: trust X-Forwarded-For from Oblivion (private Docker addresses only).
 set_real_ip_from 10.0.0.0/8;
