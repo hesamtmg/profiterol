@@ -19,6 +19,10 @@ EXTRA_DOMAINS=$(env_get EXTRA_DOMAINS)
 LETSENCRYPT_EMAIL=$(env_get LETSENCRYPT_EMAIL)
 : "${DOMAIN:?Set DOMAIN in .env}"
 
+if grep -q '^COMPOSE_FILE=.*oblivion' .env; then
+  echo "This server runs behind Oblivion, which handles HTTPS: use Oblivion's scripts/issue-cert.sh instead." >&2
+  exit 1
+fi
 compose=(docker compose -f docker-compose.prod.yml)
 self_signed=""
 [[ "${1:-}" == "--self-signed" ]] && self_signed=1

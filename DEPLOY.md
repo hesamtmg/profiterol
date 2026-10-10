@@ -127,13 +127,28 @@ It asks you to type `restore` to confirm. Leave out the uploads file to restore 
 ## 8. Day-to-day
 
 ```sh
-C="docker compose -f docker-compose.prod.yml"
+C="docker compose -f docker-compose.prod.yml"   # behind Oblivion: C="docker compose"
 $C ps                 # status and health of every container
 $C logs -f api        # follow the API's logs (also: web, nginx, db, backup, certbot)
 $C restart web        # restart one service
 ```
 
 Logs are rotated automatically (5 files of 10 MB per container).
+
+## Behind Oblivion (several sites on one server)
+
+When the server already runs other sites behind the shared [Oblivion](https://github.com/hesamtmg/Oblivion) reverse proxy, Profiterol must not take ports 80/443 itself. `docker-compose.oblivion.yml` changes the stack so that:
+
+- this project's nginx publishes no ports and has no TLS; it joins the shared `oblivion` Docker network as `profiterol-nginx` and still serves uploads, security headers and the update page (`docker/nginx/oblivion/default.conf.template`);
+- the `certbot` container is not started: Oblivion issues and renews the certificate.
+
+Turn it on in `.env`:
+
+```sh
+COMPOSE_FILE=docker-compose.prod.yml:docker-compose.oblivion.yml
+```
+
+`deploy.sh`, the GitHub deploy job and plain `docker compose …` commands then use both files. Skip step 5 (`init-letsencrypt.sh`); on the Oblivion side, `nginx/conf.d/profiterol.conf` routes the domain here and `scripts/setup-profiterol.sh` does the whole first install (settings, start, certificate).
 
 ## 9. Hosting in Iran
 
