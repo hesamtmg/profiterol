@@ -135,6 +135,26 @@ $C restart web        # restart one service
 
 Logs are rotated automatically (5 files of 10 MB per container).
 
+### Mazaheri content
+
+`scripts/seed-mazaheri.mjs` builds the Mazaheri Trading customs-clearance guide in Persian and English. It is not in the images, so run it from the checkout with the API image, which already has Node, sharp and the admin login from `.env`:
+
+```sh
+cd /opt/profiterol && git pull
+$C run --rm backup backup        # a backup first, in case you want the old content back
+$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=http://api:3001/api api node /seed/seed-mazaheri.mjs
+```
+
+That adds a separate page, `/fa/ترخیص-کالا` and `/en/customs-clearance`, and leaves the rest of the site alone. Add `--home` at the end to put it on the home page instead; that also sets the site name, menu, colors and contact details. Running it again updates the same page. If the admin password is no longer the one in `.env`, add `-e ADMIN_EMAIL=… -e ADMIN_PASSWORD=…`.
+
+From your own computer instead (with the repository and `npm install`):
+
+```sh
+API_URL=https://your-domain/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:mazaheri            # or: -- --home
+```
+
+The pictures are generated placeholders, and the numbers and testimonials are examples: replace them in the editor.
+
 ## Behind Oblivion (several sites on one server)
 
 When the server already runs other sites behind the shared [Oblivion](https://github.com/hesamtmg/Oblivion) reverse proxy, Profiterol must not take ports 80/443 itself. `docker-compose.oblivion.yml` changes the stack so that:
