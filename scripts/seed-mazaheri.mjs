@@ -8,7 +8,7 @@
  *
  * Settings: API_URL (default http://localhost:8080/api), ADMIN_EMAIL, ADMIN_PASSWORD.
  * Running it again updates the same page; the pictures are uploaded again each time.
- * On the server, see the "Mazaheri content" section of DEPLOY.md.
+ * On the server, run scripts/seed-mazaheri.sh instead (see the "Mazaheri content" section of DEPLOY.md).
  */
 import { createRequire } from 'node:module';
 

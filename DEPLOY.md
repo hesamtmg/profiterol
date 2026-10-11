@@ -137,15 +137,15 @@ Logs are rotated automatically (5 files of 10 MB per container).
 
 ### Mazaheri content
 
-`scripts/seed-mazaheri.mjs` builds the Mazaheri Trading customs-clearance guide in Persian and English. It is not in the images, so run it from the checkout with the API image, which already has Node, sharp and the admin login from `.env`:
+`scripts/seed-mazaheri.mjs` builds the Mazaheri Trading customs-clearance guide in Persian and English. On the server, `scripts/seed-mazaheri.sh` takes a backup and then runs it with the API image, which already has Node, sharp and the admin login from `.env`:
 
 ```sh
-cd /opt/profiterol && git pull
-$C run --rm backup backup        # a backup first, in case you want the old content back
-$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=http://api:3001/api api node /seed/seed-mazaheri.mjs
+cd /opt/profiterol
+git pull
+./scripts/seed-mazaheri.sh
 ```
 
-That adds a separate page, `/fa/ترخیص-کالا` and `/en/customs-clearance`, and leaves the rest of the site alone. Add `--home` at the end to put it on the home page instead; that also sets the site name, menu, colors and contact details. Running it again updates the same page. If the admin password is no longer the one in `.env`, add `-e ADMIN_EMAIL=… -e ADMIN_PASSWORD=…`.
+That adds a separate page, `/fa/ترخیص-کالا` and `/en/customs-clearance`, and leaves the rest of the site alone. `./scripts/seed-mazaheri.sh --home` puts it on the home page instead; that also sets the site name, menu, colors and contact details. Running it again updates the same page. If the admin password is no longer the one in `.env`: `ADMIN_EMAIL=… ADMIN_PASSWORD=… ./scripts/seed-mazaheri.sh`.
 
 From your own computer instead (with the repository and `npm install`):
 
