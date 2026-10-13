@@ -33,12 +33,14 @@ fi
 if [[ -n "$build" ]]; then
   echo "### Building images"
   "${compose[@]}" build api web backup
+  if "${compose[@]}" config --services | grep -qx domains; then "${compose[@]}" build domains; fi
 else
   if [[ -n "$pull" ]]; then
     echo "### Pulling images (tag: ${TAG:-latest})"
     "${compose[@]}" pull api web
-    # Small image built from this repo's scripts; rebuilt so script changes take effect.
+    # Small images built from this repo's scripts; rebuilt so script changes take effect.
     "${compose[@]}" build backup
+    if "${compose[@]}" config --services | grep -qx domains; then "${compose[@]}" build domains; fi
   fi
 fi
 

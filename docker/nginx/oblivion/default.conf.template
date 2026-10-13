@@ -1,6 +1,9 @@
 # nginx behind the shared Oblivion reverse proxy (github.com/hesamtmg/Oblivion), used by
 # docker-compose.oblivion.yml. Oblivion owns ports 80/443 on the server and terminates HTTPS;
-# it forwards every request for ${DOMAIN} here over the shared "oblivion" Docker network.
+# it forwards every request for every site's address here over the shared "oblivion" Docker
+# network (nginx/conf.d/profiterol-sites.conf, written by the domains agent from Admin → Sites).
+# The app picks the site from the address, so every name is served; Oblivion only sends known ones,
+# and redirects www. and other aliases to the main address itself.
 # Everything else is the same as prod/default.conf.template: uploads served from the volume,
 # security headers, the "back in a moment" page. No TLS, no certbot, no published ports.
 
@@ -22,7 +25,13 @@ set_real_ip_from 172.16.0.0/12;
 set_real_ip_from 192.168.0.0/16;
 real_ip_header X-Forwarded-For;
 
-# Any other name (www., the health check's 127.0.0.1, …): health check, else redirect to the main domain.
+# Whether the visitor came over HTTPS, as Oblivion saw it: sites without a certificate yet are served over plain
+# HTTP, and the app must know (secure cookies, links). Without the header, HTTPS as before.
+map $http_x_forwarded_proto $visitor_proto {
+  default $http_x_forwarded_proto;
+  "" https;
+}
+
 server {
   listen 80 default_server;
   server_name _;
@@ -33,16 +42,6 @@ server {
     access_log off;
     return 200 'ok';
   }
-
-  location / {
-    return 301 https://${DOMAIN}$request_uri;
-  }
-}
-
-server {
-  listen 80;
-  server_name ${DOMAIN};
-  server_tokens off;
 
   client_max_body_size 25m;
 
@@ -90,12 +89,12 @@ server {
 
   location /api/ {
     proxy_pass $api_upstream;
-    include /etc/nginx/snippets/proxy.conf;
+    include /etc/nginx/snippets/oblivion-proxy.conf;
   }
 
   location /_nuxt/ {
     proxy_pass $web_upstream;
-    include /etc/nginx/snippets/proxy.conf;
+    include /etc/nginx/snippets/oblivion-proxy.conf;
     include /etc/nginx/snippets/security-headers.conf;
     expires 1y;
     add_header Cache-Control "public, immutable";
@@ -103,6 +102,6 @@ server {
 
   location / {
     proxy_pass $web_upstream;
-    include /etc/nginx/snippets/proxy.conf;
+    include /etc/nginx/snippets/oblivion-proxy.conf;
   }
 }

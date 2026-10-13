@@ -29,7 +29,7 @@ This combines:
 - [x] Locales declared once (`packages/blocks/src/locales.ts`) instead of `*_en` columns
 - [x] **TypeORM migrations**, run automatically on start (`npm run migration:generate --name=X -w @profiterol/api` after changing an entity)
 - [x] User management screen (Admin → Users): invite with a one-time link (emailed when email is set up), change role, deactivate / reactivate (ends their sessions at once), new password links; Your account → change your own password
-- [x] Password reset by email ("Forgot password?"; needs SMTP and `SITE_URL`); links are single-use, expire, and only their hash is stored
+- [x] Password reset by email ("Forgot password?"; needs SMTP; links use the site's own address); links are single-use, expire, and only their hash is stored
 - [ ] Optional 2FA (minicms had it)
 - [x] Rate-limit sign-ins per visitor address, and lock an account for 15 minutes after 5 wrong passwords
 - [ ] Fine-grained permissions (minicms used spatie/permission): per-collection create/edit/publish
@@ -205,7 +205,9 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Page templates ("About", "Services", "Contact", two home pages) to start from, in English and Persian
 - [x] Whole-site templates (an AMSR-style portfolio, a minicms "studio"): theme, draft pages and menu links, from Site settings
 - [x] Import minicms data (`npm run import:minicms`): pages/page_details (all 12 kinds, both languages), posts and projects, their files, and redirects from the old addresses
-- [ ] Multi-site: `sites` table, all content scoped by `site_id`, custom domains, per-site theme
+- [x] Multi-site: `sites` table, all content scoped by `siteId`, sites picked by address, an owner account managing them in Admin → Sites (add by address, one-time sign-in to each site's admin, delete)
+- [x] Per-site SSL through Oblivion: the owner decides when, and follows each step (DNS, challenge, certificate, proxy, HTTPS); automatic retries and renewal tracking (`docker/domains/agent.sh`)
+- [x] Per-site SEO: title pattern, default description and share picture, verification codes, robots.txt, hide the site; noindex per page and item; sitemap index with hreflang and images; breadcrumb and article structured data; SEO check
 - [ ] Sign-up and plans if this becomes a hosted product
 
 ## Phase 11: Quality and security

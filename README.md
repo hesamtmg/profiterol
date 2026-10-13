@@ -102,12 +102,19 @@ The dump is a MySQL dump of the minicms database. Profiterol must be running (it
 
 Run it with `--dry-run` first to see what it finds. Running it again skips what is already there.
 
+## Several sites
+
+One installation can run many websites (`example.com`, `another.com`…), each with its own content, settings,
+SEO and users. The owner adds a site by typing its address in **Admin → Sites**, decides when to issue its SSL
+certificate and follows each step there. See DEPLOY.md, "Several sites from one install".
+
 ## Users and sign-in
 
-The first admin comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`. Invite more people in **Admin → Users**: each gets a
-one-time link to choose a password (emailed when `SMTP_URL` is set, otherwise copy it to them). **Editors** edit pages,
-collections, media and the inbox; **admins** also change settings and users.
+The first account comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; it is the **owner**, who manages every site (Admin →
+Sites) and is an admin on each. Invite more people to a site in **Admin → Users**: each gets a one-time link to choose
+a password (emailed when `SMTP_URL` is set, otherwise copy it to them). **Editors** edit pages, collections, media and
+the inbox; **admins** also change settings and users. Both belong to one site.
 
 The admin signs in with an httpOnly session cookie (scripts cannot read it) and every change carries a CSRF token.
-Five wrong passwords in a row lock an account for 15 minutes. "Forgot password?" emails a link when both `SMTP_URL`
-and `SITE_URL` are set. Scripts can still call the API with `Authorization: Bearer <token>` from `POST /api/auth/login`.
+Five wrong passwords in a row lock an account for 15 minutes. "Forgot password?" emails a link (to the site's own
+address) when `SMTP_URL` is set. Scripts can still call the API with `Authorization: Bearer <token>` from `POST /api/auth/login`.
