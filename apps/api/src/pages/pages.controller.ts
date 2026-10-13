@@ -27,7 +27,7 @@ export class PublicPagesController {
 
   @Get('sitemap')
   sitemap() {
-    return this.pages.listPublished();
+    return this.pages.sitemap();
   }
 }
 

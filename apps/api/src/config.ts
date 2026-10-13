@@ -30,4 +30,9 @@ export const config = {
     .map((o) => o.trim())
     .filter(Boolean),
   smtpFrom: process.env.SMTP_FROM || 'Profiterol <no-reply@localhost>',
+  /** The first site's address and its other names, given to it on first start (see SeedService). */
+  domain: (process.env.DOMAIN ?? '').trim(),
+  extraDomains: (process.env.EXTRA_DOMAINS ?? '').split(/[\s,]+/).filter(Boolean),
+  /** Shared with the domains agent (docker/domains), which calls /api/internal/*. Without it those routes are off. */
+  internalToken: process.env.INTERNAL_TOKEN ?? '',
 };

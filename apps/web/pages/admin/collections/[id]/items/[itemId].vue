@@ -17,6 +17,7 @@ const item = ref<AdminItem | null>(null);
 const theme = ref('');
 const locale = ref(locales[0].code);
 const cover = ref('');
+const noindex = ref(false);
 const drafts = reactive<Record<string, AdminItemTranslation>>({});
 const saved = ref('');
 const busy = ref(false);
@@ -24,7 +25,7 @@ const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
 const current = computed(() => drafts[locale.value]);
 const dir = computed(() => getLocale(locale.value)?.dir ?? 'ltr');
-const snapshot = () => JSON.stringify({ cover: cover.value, drafts });
+const snapshot = () => JSON.stringify({ cover: cover.value, noindex: noindex.value, drafts });
 const dirty = computed(() => saved.value !== '' && snapshot() !== saved.value);
 
 const coverField: FieldDef = { key: 'cover', label: 'Cover image', type: 'image' };
@@ -43,6 +44,7 @@ const tagsText = computed({
 function fromItem(i: AdminItem) {
   item.value = i;
   cover.value = i.cover;
+  noindex.value = !!i.noindex;
   for (const l of locales) {
     const t = i.translations.find((x) => x.locale === l.code);
     const data: Record<string, unknown> = {};
@@ -85,7 +87,7 @@ async function save() {
   try {
     const updated = await api<AdminItem>(`/admin/collections/${cid}/items/${iid}`, {
       method: 'PATCH',
-      body: { cover: cover.value, translations: locales.map((l) => drafts[l.code]) },
+      body: { cover: cover.value, noindex: noindex.value, translations: locales.map((l) => drafts[l.code]) },
     });
     item.value = updated;
     saved.value = sent;
@@ -272,6 +274,9 @@ onBeforeUnmount(() => {
         <section class="rounded-[2rem] bg-white p-7 shadow-sm">
           <FieldInput v-model="cover" :field="coverField" />
           <p class="mt-2 text-[11px] text-slate-400">{{ $t('Shared by every language.') }}</p>
+          <label class="mt-4 flex items-center gap-2 text-sm">
+            <input v-model="noindex" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Hide from search engines') }}
+          </label>
         </section>
 
         <section class="rounded-[2rem] bg-white p-5 shadow-sm">

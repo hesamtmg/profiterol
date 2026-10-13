@@ -78,7 +78,7 @@ onMounted(refresh);
           {{ $t('Content that repeats, like projects, blog posts or team members. Show it on any page with the “Collection list” block.') }}
         </p>
       </div>
-      <button v-if="user?.role === 'admin'" type="button" class="btn-dark" @click="showForm = !showForm">
+      <button v-if="user?.role === 'admin' || user?.role === 'owner'" type="button" class="btn-dark" @click="showForm = !showForm">
         <i class="mdi mdi-plus" /> {{ $t('New collection') }}
       </button>
     </div>

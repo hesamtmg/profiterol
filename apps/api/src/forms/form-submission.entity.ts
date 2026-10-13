@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Site } from '../sites/site.entity';
 
 export interface SubmittedField {
   label: string;
@@ -7,10 +8,17 @@ export interface SubmittedField {
 
 /** One message sent through a contact-form block. */
 @Entity('form_submissions')
-@Index(['read', 'createdAt'])
+@Index(['siteId', 'read', 'createdAt'])
 export class FormSubmission {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
+
+  @Column({ type: 'uuid' })
+  siteId: string;
 
   @Column({ type: 'uuid', nullable: true })
   pageId: string | null;

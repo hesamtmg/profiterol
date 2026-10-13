@@ -38,6 +38,8 @@ export interface PublicItem {
     tags: string[];
     data: Record<string, unknown>;
     cover: string;
+    /** Kept out of search engines. */
+    noindex?: boolean;
     seoDescription: string;
     publishedAt: string | null;
     updatedAt: string;
@@ -72,6 +74,8 @@ export interface AdminItem {
   id: string;
   status: 'draft' | 'published';
   cover: string;
+  /** Kept out of search engines and the sitemap. */
+  noindex?: boolean;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;

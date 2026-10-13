@@ -4,8 +4,9 @@
 #   COMPOSE_FILE=docker-compose.prod.yml:docker-compose.oblivion.yml
 #
 # (the scripts and plain `docker compose` then use both files). Oblivion terminates HTTPS and
-# renews the certificate; this project's nginx only listens on the shared "oblivion" network,
+# renews the certificates; this project's nginx only listens on the shared "oblivion" network,
 # as "profiterol-nginx", and keeps serving uploads, security headers and the update page.
+# The "domains" agent gives every site from Admin → Sites its address and certificate on Oblivion.
 # Create the network once on the server: docker network create oblivion
 
 services:
@@ -14,7 +15,7 @@ services:
     volumes: !override
       - ./docker/nginx/oblivion/default.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./docker/nginx/prod/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro
-      - ./docker/nginx/prod/proxy.conf:/etc/nginx/snippets/proxy.conf:ro
+      - ./docker/nginx/oblivion/proxy.conf:/etc/nginx/snippets/oblivion-proxy.conf:ro
       - ./docker/nginx/prod/unavailable.html:/usr/share/nginx/errors/_unavailable.html:ro
       - uploads:/data/uploads:ro
     networks:
@@ -26,6 +27,41 @@ services:
   # Oblivion renews certificates; nothing to do here.
   certbot:
     profiles: [standalone-https]
+
+  # Writes Oblivion's nginx/conf.d/profiterol-sites.conf for every site and gets certificates when the owner asks
+  # (Admin → Sites), with Oblivion's own scripts. It runs Docker commands on this server, so it gets the Docker
+  # socket; it only talks to the API and Oblivion. See docker/domains/agent.sh.
+  domains:
+    image: profiterol-domains:local
+    build:
+      context: .
+      dockerfile: docker/domains/Dockerfile
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:3001/api
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-${JWT_SECRET}}
+      OBLIVION_DIR: ${OBLIVION_DIR:-/root/Oblivion}
+      OBLIVION_NGINX: ${OBLIVION_NGINX:-oblivion-nginx}
+      UPSTREAM: profiterol-nginx:80
+      LETSENCRYPT_STAGING: ${LETSENCRYPT_STAGING:-}
+      SKIP_DNS_CHECK: ${SKIP_DNS_CHECK:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Same path inside as on the server, so Oblivion's scripts and compose project work as if run there.
+      - ${OBLIVION_DIR:-/root/Oblivion}:${OBLIVION_DIR:-/root/Oblivion}
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      default:
+      oblivion:
+    logging:
+      driver: json-file
+      options:
+        max-size: '10m'
+        max-file: '5'
 
 networks:
   oblivion:

@@ -42,7 +42,7 @@ import type { SiteSettings } from '~/composables/useSite';
 
 definePageMeta({ layout: false, middleware: 'admin' });
 
-type Draft = Pick<AdminTranslation, 'locale' | 'title' | 'slug' | 'seoTitle' | 'seoDescription' | 'blocks'>;
+type Draft = Pick<AdminTranslation, 'locale' | 'title' | 'slug' | 'seoTitle' | 'seoDescription' | 'ogImage' | 'blocks'>;
 
 const route = useRoute();
 const api = useApi();
@@ -51,6 +51,7 @@ const page = ref<AdminPage | null>(null);
 const settings = ref<SiteSettings | null>(null);
 const name = ref('');
 const isHome = ref(false);
+const noindex = ref(false);
 const drafts = reactive<Record<string, Draft>>({});
 const locale = ref(locales[0].code);
 const device = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -64,7 +65,7 @@ const { user } = useAuth();
 const siteTheme = ref<ThemeTokens>({ ...defaultTheme });
 const savedSiteTheme = ref('');
 const pageTheme = ref<Partial<ThemeTokens> | null>(null);
-const isAdmin = computed(() => user.value?.role === 'admin');
+const isAdmin = computed(() => user.value?.role === 'admin' || user.value?.role === 'owner');
 /** What the canvas shows: the site theme with this page's changes on top. */
 const customFonts = computed(() => fontNames(settings.value?.fonts));
 const canvasTheme = computed(() => resolveTheme(siteTheme.value, pageTheme.value, customFonts.value));
@@ -109,7 +110,14 @@ const categories: { key: BlockCategory; label: string }[] = [
 // ---------- Loading & saving ----------
 
 function snapshot() {
-  return JSON.stringify({ name: name.value, isHome: isHome.value, drafts, pageTheme: pageTheme.value, siteTheme: siteTheme.value });
+  return JSON.stringify({
+    name: name.value,
+    isHome: isHome.value,
+    noindex: noindex.value,
+    drafts,
+    pageTheme: pageTheme.value,
+    siteTheme: siteTheme.value,
+  });
 }
 const dirty = computed(() => savedSnapshot.value !== '' && snapshot() !== savedSnapshot.value);
 
@@ -117,6 +125,7 @@ function fromPage(p: AdminPage) {
   page.value = p;
   name.value = p.name;
   isHome.value = p.isHome;
+  noindex.value = !!p.noindex;
   pageTheme.value = p.theme ? { ...p.theme } : null;
   for (const l of locales) {
     const t = p.translations.find((x) => x.locale === l.code);
@@ -126,6 +135,7 @@ function fromPage(p: AdminPage) {
       slug: t?.slug ?? '',
       seoTitle: t?.seoTitle ?? '',
       seoDescription: t?.seoDescription ?? '',
+      ogImage: t?.ogImage ?? '',
       // Fill in any props added to a block since it was saved, so every field has a value to edit.
       blocks: (t?.blocks ?? []).map((b) => ({ ...b, props: mergeDefaults(b) })),
     };
@@ -158,6 +168,7 @@ async function save() {
       body: {
         name: name.value,
         isHome: isHome.value,
+        noindex: noindex.value,
         theme: pageTheme.value,
         translations: locales.map((l) => {
           const d = drafts[l.code];
@@ -167,6 +178,7 @@ async function save() {
             slug: d.slug,
             seoTitle: d.seoTitle,
             seoDescription: d.seoDescription,
+            ogImage: d.ogImage ?? '',
             blocks: d.blocks,
           };
         }),
@@ -958,6 +970,9 @@ function deleteTheme(key: string) {
             <label class="flex items-center gap-2 text-sm">
               <input v-model="isHome" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Use as home page') }}
             </label>
+            <label class="flex items-center gap-2 text-sm">
+              <input v-model="noindex" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Hide from search engines') }}
+            </label>
             <div class="rounded-2xl bg-slate-50 p-4">
               <p class="mb-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                 {{ $t('{lang} version', { lang: getLocale(locale)?.label ?? locale }) }}
@@ -981,7 +996,14 @@ function deleteTheme(key: string) {
                 <div>
                   <label class="field-label">{{ $t('SEO description') }}</label>
                   <textarea v-model="current.seoDescription" rows="3" class="input" :dir="localeDir" />
+                  <p class="mt-1 text-[11px]" :class="(current.seoDescription?.length ?? 0) > 160 ? 'text-amber-600' : 'text-slate-400'">
+                    {{ $t('{n} of about 160 characters', { n: current.seoDescription?.length ?? 0 }) }}
+                  </p>
                 </div>
+                <FieldInput
+                  v-model="current.ogImage"
+                  :field="{ key: 'ogImage', label: $t('Picture when shared (default: the first picture)'), type: 'image' }"
+                />
               </div>
             </div>
             <PageSchedule v-if="page" :page="page" @updated="onScheduled" />

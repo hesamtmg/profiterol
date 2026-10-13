@@ -377,7 +377,7 @@ export function siteJsonLd(input: SiteJsonLdInput): Record<string, unknown> | nu
 }
 
 /** Drops empty values, so the JSON-LD never claims an empty phone number or address. */
-function compact(o: Record<string, unknown>): Record<string, unknown> {
+export function compact(o: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(o).filter(([, v]) => v !== '' && v !== undefined && v !== null));
 }
 

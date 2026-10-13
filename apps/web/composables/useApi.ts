@@ -7,9 +7,13 @@ function csrfToken(): string {
   return decodeURIComponent(document.cookie.match(/(?:^|; )pt_csrf=([^;]*)/)?.[1] ?? '');
 }
 
-/** `$fetch` pointed at the API: directly to the container on the server, through nginx in the browser. */
+/**
+ * `$fetch` pointed at the API: directly to the container on the server, through nginx in the browser. On the server
+ * it passes on the visitor's address, which is how the API knows which site the page is for.
+ */
 export function useApi() {
   const config = useRuntimeConfig();
+  const host = import.meta.server ? useRequestURL({ xForwardedHost: true }).host : '';
 
   return <T>(path: string, opts: Parameters<typeof $fetch>[1] = {}) =>
     $fetch<T>(path, {
@@ -20,6 +24,7 @@ export function useApi() {
       headers: {
         ...(opts.headers as Record<string, string> | undefined),
         ...(csrfToken() ? { 'x-csrf-token': csrfToken() } : {}),
+        ...(host ? { 'x-forwarded-host': host } : {}),
       },
     });
 }

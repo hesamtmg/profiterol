@@ -1,5 +1,6 @@
-import type { BlockNode, BusinessInfo, LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
-import { Column, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import type { BlockNode, BusinessInfo, LoaderSettings, SavedTheme, SeoSettings, SiteFont, ThemeTokens } from '@profiterol/blocks';
+import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { Site } from '../sites/site.entity';
 
 /** A configured block (with its columns, if any) kept under a name. */
 export interface SavedSection {
@@ -18,11 +19,15 @@ export interface MenuItem {
   href: string;
 }
 
-/** Site-wide settings. There is exactly one row, with id 1. */
+/** Site-wide settings: one row per site. */
 @Entity('site_settings')
 export class SiteSettings {
-  @PrimaryColumn({ default: 1 })
-  id: number;
+  @PrimaryColumn({ type: 'uuid' })
+  siteId: string;
+
+  @OneToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
 
   @Column({ type: 'jsonb', default: () => "'{}'" })
   siteName: Localized;
@@ -64,6 +69,10 @@ export class SiteSettings {
   /** What the site's owner is (a café, a law firm, a person…) and how to reach them, for search engines. */
   @Column({ type: 'jsonb', default: () => "'{}'" })
   business: Partial<BusinessInfo>;
+
+  /** Search engine settings: title pattern, default description and share picture, verification codes, robots.txt. */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  seo: Partial<SeoSettings>;
 
   /** Where new form messages are emailed (needs SMTP_URL). Empty means inbox only. */
   @Column({ default: '' })

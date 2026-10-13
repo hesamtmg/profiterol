@@ -170,6 +170,51 @@ COMPOSE_FILE=docker-compose.prod.yml:docker-compose.oblivion.yml
 
 `deploy.sh`, the GitHub deploy job and plain `docker compose …` commands then use both files. Skip step 5 (`init-letsencrypt.sh`); on the Oblivion side, `nginx/conf.d/profiterol.conf` routes the domain here and `scripts/setup-profiterol.sh` does the whole first install (settings, start, certificate).
 
+## Several sites from one install
+
+One Profiterol (one API, one site app, one database) can run many websites, e.g. `example.com` and `another.com`. Each site has its own pages, collections, media, settings, SEO, inbox, redirects and users; nothing of one shows on another. The site is picked by the address the visitor uses.
+
+The **owner** account manages them all in **Admin → Sites**. On an existing install, the first admin becomes the owner when you update, and everything already there becomes the first site, at `DOMAIN` (with `EXTRA_DOMAINS` as its other addresses). Owners can invite more owners from the same page.
+
+This needs the Oblivion setup above: Oblivion keeps ports 80/443, and the **domains agent** (the `domains` service in `docker-compose.oblivion.yml`) gives every site its address and certificate there. Tell it where Oblivion is checked out, in `.env`:
+
+```sh
+OBLIVION_DIR=/root/Oblivion       # the folder with Oblivion's docker-compose.yml
+# INTERNAL_TOKEN=…                # optional: its own secret for the agent (default: JWT_SECRET)
+```
+
+then `./scripts/deploy.sh`. Within half a minute **Admin → Sites** stops showing "The domains agent is not running".
+
+### Adding a site
+
+1. At the domain's registrar, add an **A record** for `another.com` (and `www.another.com`) pointing to the server. Admin → Sites shows the server's address.
+2. In **Admin → Sites → Add site**, type the address. Choose whether to **issue the SSL certificate now** (DNS must already work) and whether to start with the demo pages, and optionally invite the site's admin by email.
+3. The site works at once over plain HTTP. If you chose SSL, its **Progress** shows each step as it happens:
+
+   | Step | What is checked |
+   |---|---|
+   | DNS check | every address points to this server (else nothing is asked of Let's Encrypt, so its limits are not used up) |
+   | Let's Encrypt can reach the site | `/.well-known/acme-challenge/` answers through Oblivion |
+   | Certificate | Oblivion's `scripts/issue-cert.sh` gets it |
+   | Proxy configuration / reload | `nginx/conf.d/profiterol-sites.conf` is written, tested with `nginx -t` (the old one is kept if it fails) and Oblivion reloads |
+   | HTTPS check | `https://another.com` answers; the expiry date is recorded |
+
+   A failed attempt says why and is retried by itself after 10, 30 and 60 minutes; **Try again now** skips the wait. **Issue SSL** later, **Renew now** and **Turn SSL off** are on each site.
+
+Certificates renew by themselves (Oblivion's certbot); the agent notices the new date and adds "Renewed" to the timeline. Try the whole flow without using up Let's Encrypt's limits with `LETSENCRYPT_STAGING=1` in `.env` (browsers will warn), then remove it and choose **Renew now**. Behind a CDN, where the domain does not point straight at the server, set `SKIP_DNS_CHECK=1`.
+
+The agent owns `nginx/conf.d/profiterol-sites.conf` in Oblivion (do not edit it) and leaves alone any address that another file there already serves. So the hand-written `profiterol.conf` keeps the first site working until you delete it: once that site shows **Secure** in Admin → Sites, remove `nginx/conf.d/profiterol.conf` from Oblivion and the agent takes the address over within a minute.
+
+### Each site's admin and SEO
+
+**Open admin** signs the owner in to another site's admin with a one-time link (sign-ins are per address). Each site's admins and editors only exist on that site.
+
+Each site has its own **Settings → Search engines (SEO)**: title pattern, default description and share picture, X account, search console verification codes, extra robots.txt lines, and "hide the whole site" while it is being built. Pages and collection items can be hidden from search engines one by one, and pages can have their own share picture. Every site gets its own `/robots.txt` and a sitemap index at `/sitemap.xml` (`/sitemaps/pages.xml` and one per collection, with every language of each page and its pictures), plus structured data: business and website on the home page, breadcrumbs, and articles for collection items. **SEO check** in Admin → Sites lists what to fix.
+
+Scripts that call the API directly (`seed-mazaheri.mjs`, `import-minicms.mjs`) fill one site: add `SITE=another.com` (the first site is used when there is only one).
+
+**Deleting a site** (type its address to confirm) removes everything in it, its files included. The certificate is left in Oblivion. Backups (step 7) hold every site.
+
 ## 9. Hosting in Iran
 
 Servers in Iranian data centers often cannot reach Docker Hub, GitHub Container Registry or npm reliably. Some options:

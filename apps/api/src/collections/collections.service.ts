@@ -11,6 +11,8 @@ import {
 } from '@profiterol/blocks';
 import { QueryFailedError, Repository } from 'typeorm';
 import { SEGMENT_PATTERN, slugify, UNIQUE_VIOLATION } from '../common/slug';
+import { currentSiteId } from '../sites/site-context';
+import type { SitemapEntry } from '../pages/pages.service';
 import type { Localized } from '../settings/settings.entity';
 import { Collection, CollectionItem, ItemTranslation } from './collection.entity';
 import { CreateCollectionDto, CreateItemDto, UpdateCollectionDto, UpdateItemDto } from './collections.dto';
@@ -49,21 +51,24 @@ export class CollectionsService {
     return this.collections
       .createQueryBuilder('c')
       .loadRelationCountAndMap('c.itemCount', 'c.items')
+      .where('c.siteId = :siteId', { siteId: currentSiteId() })
       .orderBy('c.createdAt', 'ASC')
       .getMany();
   }
 
   async getCollection(id: string) {
-    const c = await this.collections.findOneBy({ id });
+    const c = await this.collections.findOneBy({ id, siteId: currentSiteId() });
     if (!c) throw new NotFoundException('Collection not found');
     return c;
   }
 
   async createCollection(dto: CreateCollectionDto) {
-    if (await this.collections.existsBy({ key: dto.key })) throw new ConflictException(`A collection with key "${dto.key}" already exists`);
+    const siteId = currentSiteId();
+    if (await this.collections.existsBy({ siteId, key: dto.key }))
+      throw new ConflictException(`A collection with key "${dto.key}" already exists`);
     const slugs = await this.checkSlugs(dto.slugs);
     const fields = this.checkFields(dto.fields ?? []);
-    return this.collections.save(this.collections.create({ key: dto.key, name: this.localized(dto.name), slugs, fields }));
+    return this.collections.save(this.collections.create({ siteId, key: dto.key, name: this.localized(dto.name), slugs, fields }));
   }
 
   async updateCollection(id: string, dto: UpdateCollectionDto) {
@@ -94,7 +99,7 @@ export class CollectionsService {
   private async checkSlugs(input: Localized, ownId?: string): Promise<Localized> {
     const slugs = this.localized(input);
     const errors: ValidationError[] = [];
-    const others = (await this.collections.find()).filter((c) => c.id !== ownId);
+    const others = (await this.collections.findBy({ siteId: currentSiteId() })).filter((c) => c.id !== ownId);
     for (const l of locales) {
       const s = slugs[l.code];
       if (!SEGMENT_PATTERN.test(s)) errors.push({ path: `slugs.${l.code}`, message: 'must be one word or words joined by dashes' });
@@ -148,6 +153,7 @@ export class CollectionsService {
     const c = await this.getCollection(collectionId);
     const item = await this.getItem(collectionId, id);
     if (dto.cover !== undefined) item.cover = dto.cover;
+    if (dto.noindex !== undefined) item.noindex = dto.noindex;
 
     for (const t of dto.translations ?? []) {
       // Drop values for fields that were removed from the collection, then validate the rest.
@@ -211,7 +217,11 @@ export class CollectionsService {
   /** The collection whose URL segment is `slug` in this locale, for its automatic index page. */
   async findPublicCollection(locale: string, slug: string) {
     if (!isLocale(locale)) throw new NotFoundException();
-    const c = await this.collections.createQueryBuilder('c').where(`c.slugs ->> :locale = :slug`, { locale, slug }).getOne();
+    const c = await this.collections
+      .createQueryBuilder('c')
+      .where('c.siteId = :siteId', { siteId: currentSiteId() })
+      .andWhere(`c.slugs ->> :locale = :slug`, { locale, slug })
+      .getOne();
     if (!c) throw new NotFoundException('Collection not found');
     return this.publicCollection(c, locale);
   }
@@ -219,7 +229,7 @@ export class CollectionsService {
   /** Published items of a collection as cards, newest first. */
   async listPublished(locale: string, key: string, opts: { limit?: number; tag?: string; excludeId?: string } = {}) {
     if (!isLocale(locale)) throw new NotFoundException();
-    const c = await this.collections.findOneBy({ key });
+    const c = await this.collections.findOneBy({ siteId: currentSiteId(), key });
     if (!c) return { collection: null, items: [] as ItemCard[], tags: [] as string[] };
 
     const qb = this.translations
@@ -250,7 +260,7 @@ export class CollectionsService {
   /** A published item's detail page. */
   async findPublishedItem(locale: string, collectionSlug: string, itemSlug: string) {
     const collection = await this.findPublicCollection(locale, collectionSlug);
-    const c = await this.collections.findOneByOrFail({ key: collection.key });
+    const c = await this.collections.findOneByOrFail({ siteId: currentSiteId(), key: collection.key });
     const t = await this.translations
       .createQueryBuilder('t')
       .innerJoinAndSelect('t.item', 'i')
@@ -275,6 +285,7 @@ export class CollectionsService {
         tags: t.tags,
         data: t.data,
         cover: t.item.cover,
+        noindex: t.item.noindex,
         seoDescription: t.seoDescription || t.excerpt,
         publishedAt: t.item.publishedAt,
         updatedAt: t.item.updatedAt,
@@ -284,21 +295,47 @@ export class CollectionsService {
     };
   }
 
-  /** Published items and collection index pages for the sitemap. */
-  async sitemapEntries() {
-    const all = await this.collections.find();
+  /**
+   * One sitemap group per collection: its index page (unless the site turned those off) and its published items,
+   * each with its address in every language. Hidden (noindex) items are left out.
+   */
+  async sitemapGroups(indexPages = true): Promise<{ group: string; entries: SitemapEntry[] }[]> {
+    const all = await this.collections.find({ where: { siteId: currentSiteId() }, order: { createdAt: 'ASC' } });
+    if (!all.length) return [];
     const rows = await this.translations
       .createQueryBuilder('t')
       .innerJoinAndSelect('t.item', 'i')
-      .where(`i.status = 'published'`)
+      .where('t.collectionId IN (:...ids)', { ids: all.map((c) => c.id) })
+      .andWhere(`i.status = 'published'`)
+      .andWhere('i.noindex = false')
       .getMany();
-    const byId = new Map(all.map((c) => [c.id, c]));
-    const entries = rows
-      .filter((t) => byId.get(t.collectionId)?.slugs?.[t.locale])
-      .map((t) => ({ locale: t.locale, slug: `${byId.get(t.collectionId)!.slugs[t.locale]}/${t.slug}`, updatedAt: t.item.updatedAt }));
-    for (const c of all) {
-      for (const l of locales) if (c.slugs?.[l.code]) entries.push({ locale: l.code, slug: c.slugs[l.code], updatedAt: c.updatedAt });
-    }
-    return entries;
+    return all.map((c) => {
+      const items = new Map<string, ItemTranslation[]>();
+      for (const t of rows.filter((r) => r.collectionId === c.id && c.slugs?.[r.locale])) {
+        items.set(t.item.id, [...(items.get(t.item.id) ?? []), t]);
+      }
+      const latest = Math.max(c.updatedAt.getTime(), ...rows.filter((r) => r.collectionId === c.id).map((r) => r.item.updatedAt.getTime()));
+      const index: SitemapEntry[] =
+        indexPages && locales.some((l) => c.slugs?.[l.code])
+          ? [
+              {
+                updatedAt: new Date(latest),
+                paths: locales.filter((l) => c.slugs?.[l.code]).map((l) => ({ locale: l.code, path: c.slugs[l.code] })),
+                images: [],
+              },
+            ]
+          : [];
+      const entries = [...items.values()].map((list) => ({
+        updatedAt: list[0].item.updatedAt,
+        paths: list.map((t) => ({ locale: t.locale, path: `${c.slugs[t.locale]}/${t.slug}` })),
+        images: [
+          list[0].item.cover,
+          ...list.flatMap((t) => JSON.stringify(t.data).match(/\/uploads\/[\w-]+\.(?:jpe?g|png|webp|avif|gif)/gi) ?? []),
+        ]
+          .filter(Boolean)
+          .slice(0, 50),
+      }));
+      return { group: c.key, entries: [...index, ...entries] };
+    });
   }
 }

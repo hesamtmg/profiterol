@@ -1,4 +1,4 @@
-import type { BusinessInfo, LoaderSettings, SavedTheme, SiteFont, ThemeTokens } from '@profiterol/blocks';
+import type { BusinessInfo, LoaderSettings, SavedTheme, SeoSettings, SiteFont, ThemeTokens } from '@profiterol/blocks';
 
 export interface MenuItem {
   label: Record<string, string>;
@@ -17,6 +17,11 @@ export interface SiteSettings {
   savedThemes: SavedTheme[];
   loader: Partial<LoaderSettings>;
   business: Partial<BusinessInfo>;
+  seo: Partial<SeoSettings>;
+  /** The site's main address, e.g. https://example.com: canonical links and share links use it. */
+  origin: string;
+  /** Every address of the site, the main one first. */
+  domains: string[];
 }
 
 /** Site settings, fetched once per request and shared by the layout and pages. */

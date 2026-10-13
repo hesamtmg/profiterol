@@ -1,9 +1,18 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Site } from '../sites/site.entity';
 
 @Entity('media')
+@Index(['siteId', 'createdAt'])
 export class Media {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
+
+  @Column({ type: 'uuid' })
+  siteId: string;
 
   @Column()
   filename: string;

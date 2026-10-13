@@ -1,15 +1,34 @@
 import type { FieldDef } from '@profiterol/blocks';
-import { Column, CreateDateColumn, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Site } from '../sites/site.entity';
 import type { Localized } from '../settings/settings.entity';
 
 /** A content type such as "projects" or "blog", with its own custom fields. */
 @Entity('collections')
+@Index(['siteId', 'key'], { unique: true })
 export class Collection {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  /** Stable machine name, used by collection-list blocks. */
-  @Column({ length: 40, unique: true })
+  @ManyToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
+
+  @Column({ type: 'uuid' })
+  siteId: string;
+
+  /** Stable machine name, used by collection-list blocks; unique within the site. */
+  @Column({ length: 40 })
   key: string;
 
   @Column({ type: 'jsonb', default: () => "'{}'" })
@@ -53,6 +72,10 @@ export class CollectionItem {
   /** Card and header image, shared by every language. */
   @Column({ default: '' })
   cover: string;
+
+  /** Hidden from search engines: a noindex tag, and left out of the sitemap. */
+  @Column({ default: false })
+  noindex: boolean;
 
   @OneToMany(() => ItemTranslation, (t) => t.item, { cascade: true, eager: true })
   translations: ItemTranslation[];

@@ -1,12 +1,31 @@
 import type { BlockNode, ThemeTokens } from '@profiterol/blocks';
-import { Column, CreateDateColumn, Entity, Index, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  Index,
+  JoinColumn,
+  ManyToOne,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import { Site } from '../sites/site.entity';
 
 export type PageStatus = 'draft' | 'published';
 
 @Entity('pages')
+@Index(['siteId'])
 export class Page {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
+
+  @Column({ type: 'uuid' })
+  siteId: string;
 
   /** Internal name shown in the admin list. */
   @Column()
@@ -14,6 +33,10 @@ export class Page {
 
   @Column({ default: false })
   isHome: boolean;
+
+  /** Hidden from search engines: a noindex tag, and left out of the sitemap. */
+  @Column({ default: false })
+  noindex: boolean;
 
   @Column({ type: 'varchar', length: 16, default: 'draft' })
   status: PageStatus;
@@ -49,11 +72,19 @@ export class Page {
 
 /** One language version of a page. `blocks` is the working draft; `publishedBlocks` is what visitors see. */
 @Entity('page_translations')
-@Index(['locale', 'slug'], { unique: true })
+@Index(['siteId', 'locale', 'slug'], { unique: true })
 @Index(['page', 'locale'], { unique: true })
 export class PageTranslation {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /** Copied from the page so slugs can be unique per site. */
+  @ManyToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
+
+  @Column({ type: 'uuid' })
+  siteId: string;
 
   @ManyToOne(() => Page, (p) => p.translations, { onDelete: 'CASCADE' })
   page: Page;
@@ -73,6 +104,10 @@ export class PageTranslation {
   @Column({ default: '' })
   seoDescription: string;
 
+  /** The picture shown when the page is shared; empty means the page's first picture, then the site's default. */
+  @Column({ default: '' })
+  ogImage: string;
+
   @Column({ type: 'jsonb', default: () => "'[]'" })
   blocks: BlockNode[];
 
@@ -84,7 +119,15 @@ export class PageTranslation {
 export interface PageSnapshot {
   name: string;
   theme: Partial<ThemeTokens> | null;
-  translations: { locale: string; title: string; slug: string; seoTitle: string; seoDescription: string; blocks: BlockNode[] }[];
+  translations: {
+    locale: string;
+    title: string;
+    slug: string;
+    seoTitle: string;
+    seoDescription: string;
+    ogImage?: string;
+    blocks: BlockNode[];
+  }[];
 }
 
 export type RevisionKind = 'save' | 'publish' | 'restore';

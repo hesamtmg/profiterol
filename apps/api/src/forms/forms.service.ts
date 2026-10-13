@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { canSendMail, sendMail } from '../common/mail';
 import { PagesService } from '../pages/pages.service';
 import { SettingsService } from '../settings/settings.controller';
+import { currentSiteId } from '../sites/site-context';
 import { FormSubmission, SubmittedField } from './form-submission.entity';
 
 interface FormField {
@@ -88,7 +89,7 @@ export class FormsService {
     const page = await this.pages.get(pageId);
     const pageTitle = page.translations.find((t) => t.locale === locale)?.title ?? page.name;
     const saved = await this.submissions.save(
-      this.submissions.create({ pageId, pageTitle, blockId, formTitle: props.title ?? '', locale, data }),
+      this.submissions.create({ siteId: currentSiteId(), pageId, pageTitle, blockId, formTitle: props.title ?? '', locale, data }),
     );
     this.notify(saved).catch((err) => this.log.warn(`Could not email form message: ${err}`));
     return { ok: true, message: props.successMessage };
@@ -107,22 +108,22 @@ export class FormsService {
   }
 
   list() {
-    return this.submissions.find({ order: { createdAt: 'DESC' }, take: 500 });
+    return this.submissions.find({ where: { siteId: currentSiteId() }, order: { createdAt: 'DESC' }, take: 500 });
   }
 
   unreadCount() {
-    return this.submissions.countBy({ read: false });
+    return this.submissions.countBy({ siteId: currentSiteId(), read: false });
   }
 
   async setRead(id: string, read: boolean) {
-    const s = await this.submissions.findOneBy({ id });
+    const s = await this.submissions.findOneBy({ id, siteId: currentSiteId() });
     if (!s) throw new NotFoundException();
     s.read = read;
     return this.submissions.save(s);
   }
 
   async remove(id: string) {
-    const s = await this.submissions.findOneBy({ id });
+    const s = await this.submissions.findOneBy({ id, siteId: currentSiteId() });
     if (!s) throw new NotFoundException();
     await this.submissions.remove(s);
   }

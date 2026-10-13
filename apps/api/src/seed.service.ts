@@ -5,6 +5,8 @@ import { CollectionsService } from './collections/collections.service';
 import { config } from './config';
 import { PagesService } from './pages/pages.service';
 import { SettingsService } from './settings/settings.controller';
+import { runInSite } from './sites/site-context';
+import { SitesService } from './sites/sites.service';
 import { UsersService } from './users/users.service';
 
 function block(type: string, props: Record<string, unknown>): BlockNode {
@@ -230,7 +232,10 @@ const contactFa: BlockNode[] = [
   }),
 ];
 
-/** On first start, creates the admin user, default settings and a demo home page. */
+/**
+ * On first start: gives the first site its address (DOMAIN, else localhost), creates the owner account and fills
+ * the site with demo content. New sites get the same demo content from `seedSite`.
+ */
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
   private readonly log = new Logger(SeedService.name);
@@ -240,18 +245,46 @@ export class SeedService implements OnApplicationBootstrap {
     private readonly pages: PagesService,
     private readonly settings: SettingsService,
     private readonly collections: CollectionsService,
+    private readonly sites: SitesService,
   ) {}
 
   async onApplicationBootstrap() {
-    if ((await this.users.count()) === 0) {
-      await this.users.create(config.adminEmail, config.adminPassword, 'admin', 'Admin');
-      this.log.log(`Created admin user ${config.adminEmail}`);
+    const first = await this.firstSite();
+
+    if ((await this.users.countOwners()) === 0) {
+      await this.users.create(config.adminEmail, config.adminPassword, 'owner', 'Owner');
+      this.log.log(`Created owner account ${config.adminEmail}`);
     }
 
+    await runInSite(await this.sites.context(first.id), () => this.seedSite());
+  }
+
+  /** The oldest site, made if there is none, with DOMAIN (or localhost) as its address if it has none yet. */
+  private async firstSite() {
+    let [first] = await this.sites.list();
+    if (!first) first = await this.sites.sites.save(this.sites.sites.create({ name: 'Main site', domains: [] }));
+    if (!(await this.sites.domains.count())) {
+      const domains = config.domain ? [config.domain, ...config.extraDomains] : ['localhost'];
+      await this.sites.domains.save(
+        domains.map((d, i) => this.sites.domains.create({ siteId: first.id, domain: d.toLowerCase(), primary: i === 0 })),
+      );
+      // An existing HTTPS install (SITE_URL=https://DOMAIN) keeps its certificate: the domains agent takes it over.
+      if (config.domain && config.siteUrl.startsWith('https://')) {
+        await this.sites.requestSsl(first.id, 'The site already used HTTPS before it was managed from Admin → Sites');
+      }
+      await this.sites.sites.update(first.id, { name: first.name === 'Main site' && config.domain ? config.domain : first.name });
+      this.sites.forget();
+      this.log.log(`The first site's address is ${domains.join(', ')}`);
+    }
+    return this.sites.get(first.id);
+  }
+
+  /** Demo content for the current site, for whatever it does not have yet: settings, collections and pages. */
+  async seedSite(name?: string) {
     const settings = await this.settings.get();
     if (!settings.siteName?.en) {
       await this.settings.update({
-        siteName: { fa: 'پروفیترول', en: 'Profiterol' },
+        siteName: name ? { fa: name, en: name } : { fa: 'پروفیترول', en: 'Profiterol' },
         theme: defaultTheme,
         menu: [
           { label: { fa: 'خدمات', en: 'Services' }, href: '#services' },

@@ -9,10 +9,12 @@ import {
   IsString,
   Matches,
   MaxLength,
+  Validate,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { locales, pageTemplates } from '@profiterol/blocks';
+import { SafeUrl } from '../common/safe-url';
 import { SLUG_PATTERN } from '../common/slug';
 
 const localeCodes = locales.map((l) => l.code);
@@ -41,6 +43,13 @@ export class TranslationDto {
   @MaxLength(500)
   seoDescription?: string;
 
+  /** Picture for link previews: an upload or an https address. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  @Validate(SafeUrl)
+  ogImage?: string;
+
   /** Validated against the block registry in the service. */
   @IsArray()
   blocks: unknown[];
@@ -60,6 +69,11 @@ export class CreatePageDto {
   @IsBoolean()
   isHome?: boolean;
 
+  /** Keep this page out of search engines. */
+  @IsOptional()
+  @IsBoolean()
+  noindex?: boolean;
+
   @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
@@ -76,6 +90,11 @@ export class UpdatePageDto {
   @IsOptional()
   @IsBoolean()
   isHome?: boolean;
+
+  /** Keep this page out of search engines. */
+  @IsOptional()
+  @IsBoolean()
+  noindex?: boolean;
 
   /** Publish the draft at this time (ISO date), or null to cancel. */
   @ValidateIf((o: UpdatePageDto) => o.publishAt !== null && o.publishAt !== undefined)

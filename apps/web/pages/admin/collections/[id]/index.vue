@@ -314,11 +314,22 @@ onMounted(load);
       </section>
 
       <div class="mt-6 flex flex-wrap items-center gap-3">
-        <button v-if="user?.role === 'admin'" type="button" class="btn-dark" :disabled="busy" @click="saveSettings">
+        <button
+          v-if="user?.role === 'admin' || user?.role === 'owner'"
+          type="button"
+          class="btn-dark"
+          :disabled="busy"
+          @click="saveSettings"
+        >
           {{ busy ? $t('Saving…') : $t('Save collection') }}
         </button>
         <span v-else class="text-sm text-slate-400">{{ $t('Only admins can change collection settings.') }}</span>
-        <button v-if="user?.role === 'admin'" type="button" class="btn-light ms-auto !text-red-600" @click="removeCollection">
+        <button
+          v-if="user?.role === 'admin' || user?.role === 'owner'"
+          type="button"
+          class="btn-light ms-auto !text-red-600"
+          @click="removeCollection"
+        >
           <i class="mdi mdi-trash-can-outline" /> {{ $t('Delete collection') }}
         </button>
       </div>

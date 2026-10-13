@@ -51,10 +51,17 @@ describe('public site', () => {
     assert.equal((await call('GET', '/public/en/page?slug=does-not-exist')).status, 404);
   });
 
-  test('sitemap lists pages and collection items', async () => {
+  test('sitemap lists pages and collection items, grouped, with every language of each', async () => {
     const res = await call('GET', '/public/sitemap');
-    assert.ok(res.body.some((e) => e.slug === '' && e.locale === 'en'));
-    assert.ok(res.body.some((e) => e.slug.startsWith('projects/')));
+    const pages = res.body.find((g) => g.group === 'pages').entries;
+    const home = pages.find((e) => e.paths.some((p) => p.path === '' && p.locale === 'en'));
+    assert.deepEqual(home.paths.map((p) => p.locale).sort(), ['en', 'fa'], 'the home page in both languages');
+    const projects = res.body.find((g) => g.group === 'projects').entries;
+    assert.ok(projects.some((e) => e.paths.some((p) => p.path.startsWith('projects/'))));
+    assert.ok(
+      projects.some((e) => e.paths.some((p) => p.path === 'projects')),
+      'the collection page too',
+    );
   });
 });
 

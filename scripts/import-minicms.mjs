@@ -8,7 +8,8 @@
  *
  * dump.sql is a MySQL dump of the minicms database (mysqldump or Navicat). Profiterol must be running; the script
  * signs in as ADMIN_EMAIL / ADMIN_PASSWORD at API_URL (default http://localhost:3001/api). Pages that already
- * exist (same English address) are skipped, so it can be run again after fixing something.
+ * exist (same English address) are skipped, so it can be run again after fixing something. With several sites,
+ * set SITE to the address of the one to import into.
  */
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, extname, join } from 'node:path';
@@ -26,6 +27,8 @@ if (!dumpPath || flag('help')) {
   process.exit(dumpPath ? 0 : 1);
 }
 const API = (option('api') ?? process.env.API_URL ?? 'http://localhost:3001/api').replace(/\/$/, '');
+// With several sites, the one to fill: its address, e.g. SITE=example.com (sent as X-Forwarded-Host).
+const SITE = process.env.SITE ? { 'x-forwarded-host': process.env.SITE } : {};
 const UPLOADS = option('uploads');
 const PUBLISH = flag('publish');
 const DRY = flag('dry-run');
@@ -164,7 +167,7 @@ let token = '';
 async function call(method, path, body) {
   const res = await fetch(API + path, {
     method,
-    headers: { authorization: `Bearer ${token}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+    headers: { authorization: `Bearer ${token}`, ...SITE, ...(body ? { 'content-type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
@@ -209,7 +212,7 @@ async function media(path) {
     new Blob([readFileSync(file)], { type: TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream' }),
     basename(file),
   );
-  const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: fd });
+  const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}`, ...SITE }, body: fd });
   const url = res.ok ? (await res.json()).url : '';
   if (!url) missing.add(`${clean} (refused: ${res.status})`);
   uploaded.set(clean, url);
@@ -354,7 +357,7 @@ async function main() {
   if (!DRY) {
     const res = await fetch(`${API}/auth/login`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', ...SITE },
       body: JSON.stringify({ email: process.env.ADMIN_EMAIL ?? 'admin@example.com', password: process.env.ADMIN_PASSWORD ?? 'admin12345' }),
     });
     if (!res.ok) throw new Error(`Could not sign in at ${API} (${res.status}); set API_URL, ADMIN_EMAIL and ADMIN_PASSWORD`);

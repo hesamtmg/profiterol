@@ -11,8 +11,10 @@ const nav = [
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
   { to: '/admin/redirects', label: 'Redirects', icon: 'mdi-directions-fork' },
   { to: '/admin/users', label: 'Users', icon: 'mdi-account-multiple-outline', admin: true },
+  { to: '/admin/sites', label: 'Sites', icon: 'mdi-web', owner: true },
 ];
-const visibleNav = computed(() => nav.filter((item) => !item.admin || user.value?.role === 'admin'));
+const { isAdmin, isOwner } = useAuth();
+const visibleNav = computed(() => nav.filter((item) => (!item.admin || isAdmin.value) && (!item.owner || isOwner.value)));
 
 // Unread form messages, shown as a badge on Inbox. The inbox page keeps it up to date.
 const api = useApi();
@@ -62,6 +64,14 @@ useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, di
           </NuxtLink>
         </nav>
         <div class="ms-auto flex items-center gap-3 text-sm">
+          <NuxtLink
+            v-if="isOwner && user?.site"
+            to="/admin/sites"
+            class="hidden max-w-48 truncate rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-600 hover:bg-slate-200 lg:inline"
+            :title="$t('You are editing this site. Switch in Sites.')"
+          >
+            <i class="mdi mdi-web" /> {{ user.site.name || user.site.primary }}
+          </NuxtLink>
           <AdminLangSwitch />
           <a href="/" target="_blank" class="hidden whitespace-nowrap text-slate-500 hover:text-slate-900 sm:inline">
             <i class="mdi mdi-open-in-new" /> {{ $t('View site') }}

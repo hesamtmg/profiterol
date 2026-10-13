@@ -11,6 +11,8 @@ import { PagesModule } from './pages/pages.module';
 import { RedirectsModule } from './redirects/redirects.module';
 import { SeedService } from './seed.service';
 import { SettingsModule } from './settings/settings.module';
+import { AdminSitesController, InternalSitesController } from './sites/sites.controller';
+import { SitesModule } from './sites/sites.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -22,6 +24,7 @@ import { UsersModule } from './users/users.module';
       synchronize: config.dbSync,
       migrationsRun: !config.dbSync,
     }),
+    SitesModule,
     UsersModule,
     AuthModule,
     PagesModule,
@@ -31,7 +34,7 @@ import { UsersModule } from './users/users.module';
     MediaModule,
     FormsModule,
   ],
-  controllers: [HealthController],
+  controllers: [HealthController, AdminSitesController, InternalSitesController],
   providers: [SeedService],
 })
 export class AppModule {}

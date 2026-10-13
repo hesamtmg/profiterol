@@ -32,6 +32,8 @@ jobs:
       # The browser tests run with the page cache on, so every change must clear it.
       CACHE_PURGE_TOKEN: ci-purge-token
       NUXT_CACHE_PURGE_TOKEN: ci-purge-token
+      # The domains agent's routes (the site tests play the agent).
+      INTERNAL_TOKEN: ci-agent-token
       UPLOAD_DIR: /tmp/uploads
     steps:
       - uses: actions/checkout@v4
@@ -99,7 +101,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint shell scripts
-        run: shellcheck scripts/*.sh docker/backup/entrypoint.sh docker/nginx/prod/40-reload-certificates.sh
+        run: shellcheck scripts/*.sh docker/backup/entrypoint.sh docker/nginx/prod/40-reload-certificates.sh docker/domains/agent.sh
       - name: Production compose file is valid
         run: |
           cp .env.production.example .env
@@ -122,10 +124,35 @@ jobs:
           docker run --rm -e DOMAIN=example.com \
             -v "$PWD/docker/nginx/oblivion/default.conf.template:/etc/nginx/templates/default.conf.template:ro" \
             -v "$PWD/docker/nginx/prod/security-headers.conf:/etc/nginx/snippets/security-headers.conf:ro" \
-            -v "$PWD/docker/nginx/prod/proxy.conf:/etc/nginx/snippets/proxy.conf:ro" \
+            -v "$PWD/docker/nginx/oblivion/proxy.conf:/etc/nginx/snippets/oblivion-proxy.conf:ro" \
             nginx:1.27-alpine /docker-entrypoint.sh nginx -t
-      - name: Backup image builds
-        run: docker build -f docker/backup/Dockerfile .
+      - name: Sites config written by the domains agent is valid
+        run: |
+          sudo apt-get install -y --no-install-recommends jq > /dev/null
+          for d in a.test c.test; do
+            mkdir -p /tmp/le/live/$d
+            openssl req -x509 -nodes -newkey rsa:2048 -days 1 -subj /CN=$d \
+              -keyout /tmp/le/live/$d/privkey.pem -out /tmp/le/live/$d/fullchain.pem
+          done
+          mkdir -p /tmp/ob/snippets /tmp/ob/conf.d
+          echo 'location ^~ /.well-known/acme-challenge/ { root /var/www/certbot; }' > /tmp/ob/snippets/acme.conf
+          printf 'proxy_set_header Host $host;\nproxy_set_header X-Forwarded-Proto $scheme;\n' > /tmp/ob/snippets/proxy.conf
+          echo 'resolver 127.0.0.11 valid=10s;' > /tmp/ob/conf.d/00-http.conf
+          echo '[{"id":"1","name":"A","primary":"a.test","domains":["a.test","www.a.test"],"sslMode":"requested"},
+                 {"id":"2","name":"B","primary":"b.test","domains":["b.test","www.b.test"],"sslMode":"off"},
+                 {"id":"3","name":"C","primary":"c.test","domains":["c.test"],"sslMode":"requested"},
+                 {"id":"4","name":"D","primary":"d.test","domains":["d.test"],"sslMode":"requested"}]' |
+            CERTS_DIR=/tmp/le/live CERTS_PATH=/etc/letsencrypt/live ELSEWHERE=d.test \
+              sh docker/domains/agent.sh render > /tmp/ob/conf.d/profiterol-sites.conf
+          grep -q 'server_name c.test;' /tmp/ob/conf.d/profiterol-sites.conf
+          ! grep -q 'd.test;' /tmp/ob/conf.d/profiterol-sites.conf
+          cat /tmp/ob/conf.d/profiterol-sites.conf
+          docker run --rm -v /tmp/ob/conf.d:/etc/nginx/conf.d:ro -v /tmp/ob/snippets:/etc/nginx/snippets:ro \
+            -v /tmp/le:/etc/letsencrypt:ro nginx:1.27-alpine nginx -t
+      - name: Backup and domains agent images build
+        run: |
+          docker build -f docker/backup/Dockerfile .
+          docker build -f docker/domains/Dockerfile .
 
   docker:
     name: Docker images

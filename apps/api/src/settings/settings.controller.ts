@@ -32,6 +32,7 @@ import {
   cleanFonts,
   cleanLoader,
   cleanSavedThemes,
+  cleanSeo,
   cleanTheme,
   fontNames,
   mapRichText,
@@ -42,6 +43,7 @@ import { cleanHtml } from '../common/rich-text';
 import { Repository } from 'typeorm';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
+import { currentSite, currentSiteId, siteOrigin } from '../sites/site-context';
 import { Localized, SavedSection, SiteSettings } from './settings.entity';
 
 const MAX_SECTIONS = 60;
@@ -101,6 +103,11 @@ class UpdateSettingsDto {
   @IsObject()
   maintenanceText?: Localized;
 
+  /** Checked and trimmed by cleanSeo. */
+  @IsOptional()
+  @IsObject()
+  seo?: Record<string, unknown>;
+
   /** Checked and trimmed by cleanBusiness. */
   @IsOptional()
   @IsObject()
@@ -116,13 +123,19 @@ class UpdateSettingsDto {
 export class SettingsService {
   constructor(@InjectRepository(SiteSettings) private readonly repo: Repository<SiteSettings>) {}
 
+  /** The current site's settings, made on first use. */
   async get(): Promise<SiteSettings> {
-    return (await this.repo.findOneBy({ id: 1 })) ?? this.repo.save(this.repo.create({ id: 1 }));
+    const siteId = currentSiteId();
+    const found = await this.repo.findOneBy({ siteId });
+    if (found) return found;
+    // Two first requests at once may both try to make the row; the second just reads it.
+    await this.repo.createQueryBuilder().insert().values({ siteId }).orIgnore().execute();
+    return this.repo.findOneByOrFail({ siteId });
   }
 
   async update(dto: Partial<SiteSettings>) {
     const current = await this.get();
-    const next = { ...current, ...dto, id: 1 };
+    const next = { ...current, ...dto, siteId: current.siteId };
     // Fonts first: the themes may use the uploaded fonts' names.
     if (dto.fonts !== undefined) next.fonts = cleanFonts(dto.fonts);
     const custom = fontNames(next.fonts);
@@ -130,6 +143,7 @@ export class SettingsService {
     if (dto.savedThemes !== undefined) next.savedThemes = cleanSavedThemes(dto.savedThemes, custom);
     if (dto.loader !== undefined) next.loader = cleanLoader(dto.loader);
     if (dto.business !== undefined) next.business = cleanBusiness(dto.business);
+    if (dto.seo !== undefined) next.seo = cleanSeo(dto.seo);
     return this.repo.save(next);
   }
 }
@@ -138,10 +152,12 @@ export class SettingsService {
 export class SettingsController {
   constructor(private readonly settings: SettingsService) {}
 
+  /** What the site renderer needs, plus the site's own address for canonical URLs, sitemaps and share links. */
   @Get('public/settings')
   async get() {
-    const { notifyEmail: _private, sections: _editorOnly, ...rest } = await this.settings.get();
-    return rest;
+    const { notifyEmail: _private, sections: _editorOnly, siteId: _id, ...rest } = await this.settings.get();
+    const site = currentSite();
+    return { ...rest, origin: siteOrigin(site), domains: site.domains };
   }
 
   @Get('admin/settings')
@@ -194,7 +210,7 @@ export class SectionsController {
     const sections = current.sections ?? [];
     if (sections.length >= MAX_SECTIONS) throw new BadRequestException(`You can keep up to ${MAX_SECTIONS} saved sections`);
     const section: SavedSection = { key: randomBytes(6).toString('hex'), name, block, createdAt: new Date().toISOString() };
-    await this.repo.update(1, { sections: [section, ...sections] as never });
+    await this.repo.update({ siteId: currentSiteId() }, { sections: [section, ...sections] as never });
     return section;
   }
 
@@ -203,6 +219,6 @@ export class SectionsController {
   async remove(@Param('key') key: string) {
     const sections = (await this.settings.get()).sections ?? [];
     if (!sections.some((s) => s.key === key)) throw new NotFoundException();
-    await this.repo.update(1, { sections: sections.filter((s) => s.key !== key) as never });
+    await this.repo.update({ siteId: currentSiteId() }, { sections: sections.filter((s) => s.key !== key) as never });
   }
 }

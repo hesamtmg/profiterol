@@ -18,18 +18,27 @@ import {
 } from '@nestjs/common';
 import { InjectRepository, TypeOrmModule } from '@nestjs/typeorm';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, Repository } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, Repository } from 'typeorm';
+import { Site } from '../sites/site.entity';
 import { isSafeUrl } from '@profiterol/blocks';
 import { AuthGuard } from '../auth/auth.guard';
+import { currentSiteId } from '../sites/site-context';
 
 /** An old address that now lives somewhere else, e.g. after moving from minicms. */
 @Entity('redirects')
+@Index(['siteId', 'from'], { unique: true })
 export class Redirect {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @ManyToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
+
+  @Column({ type: 'uuid' })
+  siteId: string;
+
   /** The old path, e.g. /page/about-us (no domain, no query). */
-  @Index({ unique: true })
   @Column({ length: 500 })
   from: string;
 
@@ -93,7 +102,7 @@ export class RedirectsService {
   constructor(@InjectRepository(Redirect) private readonly repo: Repository<Redirect>) {}
 
   list() {
-    return this.repo.find({ order: { createdAt: 'DESC' } });
+    return this.repo.find({ where: { siteId: currentSiteId() }, order: { createdAt: 'DESC' } });
   }
 
   private checkTarget(to: string) {
@@ -111,8 +120,9 @@ export class RedirectsService {
     }
     const to = this.checkTarget(dto.to);
     if (normalizePath(to) === from) throw new BadRequestException('An address cannot redirect to itself');
-    if (await this.repo.existsBy({ from })) throw new ConflictException('There is already a redirect for this address');
-    return this.repo.save(this.repo.create({ from, to, status: dto.status ?? 301 }));
+    const siteId = currentSiteId();
+    if (await this.repo.existsBy({ siteId, from })) throw new ConflictException('There is already a redirect for this address');
+    return this.repo.save(this.repo.create({ siteId, from, to, status: dto.status ?? 301 }));
   }
 
   /** Adds many at once, skipping old addresses that already have one. Used by the minicms import. */
@@ -130,7 +140,7 @@ export class RedirectsService {
   }
 
   async update(id: string, dto: UpdateRedirectDto) {
-    const r = await this.repo.findOneBy({ id });
+    const r = await this.repo.findOneBy({ id, siteId: currentSiteId() });
     if (!r) throw new NotFoundException();
     if (dto.to !== undefined) r.to = this.checkTarget(dto.to);
     if (dto.status !== undefined) r.status = dto.status;
@@ -138,14 +148,14 @@ export class RedirectsService {
   }
 
   async remove(id: string) {
-    const r = await this.repo.findOneBy({ id });
+    const r = await this.repo.findOneBy({ id, siteId: currentSiteId() });
     if (!r) throw new NotFoundException();
     await this.repo.remove(r);
   }
 
   /** For the site: where an old address goes, counting the visit. */
   async resolve(path: string) {
-    const r = await this.repo.findOneBy({ from: normalizePath(path) });
+    const r = await this.repo.findOneBy({ siteId: currentSiteId(), from: normalizePath(path) });
     if (!r) return null;
     await this.repo.update(r.id, { hits: () => 'hits + 1', lastHitAt: new Date() });
     return { to: r.to, status: r.status };

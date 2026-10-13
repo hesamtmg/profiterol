@@ -46,8 +46,12 @@ services:
       UPLOAD_DIR: /data/uploads
       SMTP_URL: ${SMTP_URL:-}
       SMTP_FROM: ${SMTP_FROM:-}
-      # Used in emailed links (password resets, invitations).
+      # The first site's address (more sites are added in Admin → Sites). SITE_URL marks it as already on HTTPS.
+      DOMAIN: ${DOMAIN}
+      EXTRA_DOMAINS: ${EXTRA_DOMAINS:-}
       SITE_URL: https://${DOMAIN}
+      # Shared with the domains agent (docker-compose.oblivion.yml).
+      INTERNAL_TOKEN: ${INTERNAL_TOKEN:-${JWT_SECRET}}
       # Clears the web app's page cache after changes; the same secret is given to the web app below.
       WEB_INTERNAL_URL: http://web:3000
       CACHE_PURGE_TOKEN: ${CACHE_PURGE_TOKEN:-${JWT_SECRET}}

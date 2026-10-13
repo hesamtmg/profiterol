@@ -3,6 +3,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsObject,
   IsOptional,
@@ -104,6 +105,11 @@ export class UpdateItemDto {
   @MaxLength(500)
   @Validate(SafeUrl)
   cover?: string;
+
+  /** Keep this item out of search engines. */
+  @IsOptional()
+  @IsBoolean()
+  noindex?: boolean;
 
   @IsOptional()
   @IsArray()

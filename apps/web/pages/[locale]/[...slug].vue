@@ -4,15 +4,20 @@
  * a page (`/en/about-us`), a collection item (`/en/projects/my-project`) and a collection index (`/en/projects`).
  */
 import {
+  articleJsonLd,
+  breadcrumbJsonLd,
   cleanLoader,
   defaultLocale,
   fontFaceCss,
   fontNames,
   getLocale,
   jsonLdScript,
+  publicOrigin,
   resolveTheme,
+  seoTitle,
   siteJsonLd,
   themeToCss,
+  verificationMeta,
   type BlockNode,
   type ThemeTokens,
 } from '@profiterol/blocks';
@@ -35,6 +40,12 @@ interface PublicPage {
   theme: Partial<ThemeTokens> | null;
   seoTitle: string;
   seoDescription: string;
+  /** Picture for link previews chosen in the page settings ('' = the page's first picture). */
+  ogImage?: string;
+  /** Kept out of search engines. */
+  noindex?: boolean;
+  publishedAt?: string | null;
+  updatedAt?: string;
   blocks: BlockNode[];
   alternates: { locale: string; slug: string }[];
 }
@@ -120,8 +131,11 @@ watchEffect(() => {
 });
 
 const siteName = computed(() => settings.value?.siteName?.[locale] ?? settings.value?.siteName?.en ?? '');
-// Behind nginx: use the visitor-facing host and protocol (https) for hreflang and og:image links.
+const seo = computed(() => settings.value?.seo ?? {});
+// Canonical, hreflang and share links use the site's main address (not www. or another alias), from the API;
+// without one, the visitor-facing host and protocol (behind nginx).
 const requestUrl = useRequestURL({ xForwardedHost: true, xForwardedProto: true });
+const origin = computed(() => publicOrigin(settings.value?.origin, requestUrl));
 
 /** The first picture in a page's blocks (a hero photo, a slide, a poster), for link previews. */
 function firstImage(value: unknown): string {
@@ -135,7 +149,7 @@ function firstImage(value: unknown): string {
 }
 
 // Encoded like the sitemap's addresses, so both name the same URL (Persian slugs included).
-const pageUrl = (loc: string, path: string) => `${requestUrl.origin}/${loc}${path ? `/${encodeURI(path)}` : ''}`;
+const pageUrl = (loc: string, path: string) => `${origin.value}/${loc}${path ? `/${encodeURI(path)}` : ''}`;
 
 /** Links to this same content in every language, for the language switch and hreflang. */
 const alternates = computed(() => {
@@ -146,20 +160,34 @@ const alternates = computed(() => {
   return r.collection.alternates;
 });
 
+/** Title (in the site's pattern), description (else the site's default) and picture for search results and shares. */
 const meta = computed(() => {
   const r = resolved.value;
-  if (!r) return { title: siteName.value, description: '', image: '' };
+  const title = (t: string) => seoTitle(seo.value, locale, t, siteName.value);
+  const fallback = seo.value.description?.[locale] ?? '';
+  if (!r) return { title: siteName.value, description: fallback, image: '' };
   if (r.kind === 'page') {
     return {
-      title: r.page.isHome ? siteName.value : `${r.page.seoTitle} · ${siteName.value}`,
-      description: r.page.seoDescription,
-      image: firstImage(r.page.blocks.map((b) => [b.props, b.children])),
+      title: r.page.isHome ? siteName.value : title(r.page.seoTitle),
+      description: r.page.seoDescription || fallback,
+      image: r.page.ogImage || firstImage(r.page.blocks.map((b) => [b.props, b.children])),
     };
   }
   if (r.kind === 'item') {
-    return { title: `${r.entry.item.title} · ${siteName.value}`, description: r.entry.item.seoDescription, image: r.entry.item.cover };
+    return { title: title(r.entry.item.title), description: r.entry.item.seoDescription || fallback, image: r.entry.item.cover };
   }
-  return { title: `${r.collection.name} · ${siteName.value}`, description: '', image: r.list.items.find((i) => i.cover)?.cover ?? '' };
+  return { title: title(r.collection.name), description: fallback, image: r.list.items.find((i) => i.cover)?.cover ?? '' };
+});
+
+/** Hidden from search engines: the whole site (Settings → SEO, or maintenance), or this page or item. */
+const noindex = computed(() => {
+  const r = resolved.value;
+  return (
+    !!settings.value?.maintenance ||
+    !!seo.value.hideSite ||
+    (r?.kind === 'page' && !!r.page.noindex) ||
+    (r?.kind === 'item' && !!r.entry.item.noindex)
+  );
 });
 
 /** The one address search engines should index for this content: no query string, home at /<locale>. */
@@ -169,25 +197,52 @@ const canonical = computed(() => {
   if (r.kind === 'page') return pageUrl(locale, r.page.isHome ? '' : r.page.slug);
   return pageUrl(locale, slug.value);
 });
-/** Shared links show the page's own picture, or the site logo. */
+/** Shared links show the page's own picture, else the site's default share picture, else the logo. */
 const shareImage = computed(() => {
-  const src = meta.value.image || settings.value?.logo || '';
-  return src ? new URL(src, requestUrl.origin).href : '';
+  const src = meta.value.image || seo.value.shareImage || settings.value?.logo || '';
+  return src ? new URL(src, origin.value).href : '';
 });
 
-/** Structured data on the home page: who runs the site (Admin → Settings → Business) and the site itself. */
+/**
+ * Structured data for search engines: on the home page, who runs the site (Admin → Settings → Business) and the
+ * site itself; elsewhere a breadcrumb trail, plus an article for collection items.
+ */
 const structuredData = computed(() => {
   const r = resolved.value;
-  if (r?.kind !== 'page' || !r.page.isHome) return null;
-  return siteJsonLd({
-    business: settings.value?.business,
-    origin: requestUrl.origin,
-    homeUrl: pageUrl(locale, ''),
-    name: siteName.value,
-    locale,
-    logo: settings.value?.logo ? new URL(settings.value.logo, requestUrl.origin).href : '',
-    description: r.page.seoDescription,
-  });
+  if (!r) return [];
+  const home = { name: siteName.value, url: pageUrl(locale, '') };
+  if (r.kind === 'page' && r.page.isHome) {
+    const site = siteJsonLd({
+      business: settings.value?.business,
+      origin: origin.value,
+      homeUrl: home.url,
+      name: siteName.value,
+      locale,
+      logo: settings.value?.logo ? new URL(settings.value.logo, origin.value).href : '',
+      description: meta.value.description,
+    });
+    return site ? [site] : [];
+  }
+  if (r.kind === 'page') return [breadcrumbJsonLd([home, { name: r.page.title, url: canonical.value }])].filter(Boolean);
+  if (r.kind === 'collection') return [breadcrumbJsonLd([home, { name: r.collection.name, url: canonical.value }])].filter(Boolean);
+  const { collection, item } = r.entry;
+  const blogLike = collection.key === 'blog' || collection.fields.some((f) => f.key === 'author');
+  return [
+    breadcrumbJsonLd([home, { name: collection.name, url: pageUrl(locale, collection.slug) }, { name: item.title, url: canonical.value }]),
+    articleJsonLd({
+      type: blogLike ? 'BlogPosting' : 'Article',
+      url: canonical.value,
+      headline: item.title,
+      description: meta.value.description,
+      image: shareImage.value,
+      locale,
+      published: item.publishedAt,
+      modified: item.updatedAt,
+      author: typeof item.data?.author === 'string' ? item.data.author : '',
+      publisher: siteName.value,
+      origin: origin.value,
+    }),
+  ].filter(Boolean);
 });
 
 const loader = computed(() => cleanLoader(settings.value?.loader));
@@ -201,7 +256,9 @@ const overlayHeader = computed(() => resolved.value?.kind === 'page' && resolved
 useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
   // html:root outranks the stylesheet's :root defaults, which load after this tag.
-  script: () => (structuredData.value ? [{ type: 'application/ld+json', innerHTML: jsonLdScript(structuredData.value) }] : []),
+  script: () => structuredData.value.map((data) => ({ type: 'application/ld+json', innerHTML: jsonLdScript(data) })),
+  // Search console ownership checks (Admin → Settings → SEO).
+  meta: () => verificationMeta(seo.value),
   style: [{ innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` }],
   link: () => [
     // The default fonts are always loaded (nuxt.config); others only when the theme picks them.
@@ -228,9 +285,14 @@ useSeoMeta({
   ogUrl: () => canonical.value || undefined,
   ogSiteName: () => siteName.value,
   ogLocale: locale,
+  ogLocaleAlternate: () => alternates.value.filter((a) => a.locale !== locale).map((a) => a.locale),
   ogType: () => (resolved.value?.kind === 'item' ? 'article' : 'website'),
-  twitterCard: () => (meta.value.image ? 'summary_large_image' : 'summary'),
-  robots: () => (settings.value?.maintenance ? 'noindex' : undefined),
+  articlePublishedTime: () => (resolved.value?.kind === 'item' ? (resolved.value.entry.item.publishedAt ?? undefined) : undefined),
+  articleModifiedTime: () => (resolved.value?.kind === 'item' ? resolved.value.entry.item.updatedAt : undefined),
+  twitterCard: () => (shareImage.value ? 'summary_large_image' : 'summary'),
+  twitterSite: () => (seo.value.twitter ? `@${seo.value.twitter}` : undefined),
+  twitterImage: () => shareImage.value || undefined,
+  robots: () => (noindex.value ? 'noindex, follow' : 'index, follow, max-image-preview:large'),
 });
 </script>
 
