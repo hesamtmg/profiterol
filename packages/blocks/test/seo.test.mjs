@@ -100,3 +100,10 @@ test('sitemaps: hreflang alternates, images and escaping', () => {
     /<sitemapindex .*<loc>https:\/\/a\.com\/sitemap-pages\.xml<\/loc>/,
   );
 });
+
+test('public links use the main address, with the port the visitor used on it', async () => {
+  const { publicOrigin } = await import('../dist/esm/index.js');
+  assert.equal(publicOrigin('http://localhost', new URL('http://localhost:8080/en')), 'http://localhost:8080');
+  assert.equal(publicOrigin('https://a.com', new URL('https://www.a.com/en')), 'https://a.com', 'aliases link to the main address');
+  assert.equal(publicOrigin('', new URL('https://b.com:4443/en')), 'https://b.com:4443');
+});

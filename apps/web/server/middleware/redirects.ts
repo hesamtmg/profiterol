@@ -3,6 +3,6 @@ export default defineEventHandler(async (event) => {
   if (event.method !== 'GET' && event.method !== 'HEAD') return;
   const path = event.path.split('?')[0];
   if (!outsidePages(path)) return;
-  const found = await findRedirect(path);
+  const found = await findRedirect(requestHost(event), path);
   if (found) return sendRedirect(event, headerSafe(found.to), found.status);
 });

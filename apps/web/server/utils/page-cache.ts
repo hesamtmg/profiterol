@@ -2,9 +2,10 @@ import { locales } from '@profiterol/blocks';
 import type { H3Event } from 'h3';
 
 /**
- * Rendered public pages, kept in memory so visitors are not waiting for a render each time. The API clears the
- * whole cache after every change in the admin (POST /_cache/purge), and entries expire after `pageCacheSeconds`
- * anyway (scheduled publishing, collection lists). One cache per web process.
+ * Rendered public pages, kept in memory so visitors are not waiting for a render each time. Keyed by address and
+ * path, since one installation serves several sites. After every change in a site's admin, the API clears that
+ * site's pages (POST /_cache/purge), and entries expire after `pageCacheSeconds` anyway (scheduled publishing,
+ * collection lists). One cache per web process.
  */
 export interface CachedPage {
   status: number;
@@ -27,7 +28,7 @@ export function cacheKey(event: H3Event): string | null {
   const url = event.path;
   if (url.includes('?') || !LOCALE_PATH.test(url)) return null;
   if ((getRequestHeader(event, 'cookie') ?? '').includes('pt_session=')) return null;
-  return url;
+  return requestHost(event) + url;
 }
 
 export function readPage(key: string): CachedPage | null {
@@ -45,8 +46,10 @@ export function storePage(key: string, entry: CachedPage) {
   pages.set(key, entry);
 }
 
-export function purgePages() {
+/** Forgets these sites' pages (by address), or every page. Returns how many were dropped. */
+export function purgePages(hosts?: string[]) {
   const count = pages.size;
-  pages.clear();
-  return count;
+  if (!hosts) pages.clear();
+  else for (const key of pages.keys()) if (hosts.some((h) => key.startsWith(`${h}/`))) pages.delete(key);
+  return count - pages.size;
 }

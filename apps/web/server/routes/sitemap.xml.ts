@@ -1,25 +1,9 @@
-interface Entry {
-  locale: string;
-  slug: string;
-  updatedAt: string;
-}
+import { sitemapIndexXml } from '@profiterol/blocks';
 
-function escapeXml(s: string) {
-  return s.replace(/[<>&'"]/g, (c) => `&#${c.charCodeAt(0)};`);
-}
-
+/** The site's sitemap index: one sitemap for its pages and one per collection (see sitemaps/[name].ts). */
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig();
-  const origin = getRequestURL(event, { xForwardedHost: true, xForwardedProto: true }).origin;
-  const entries = await $fetch<Entry[]>(`${config.apiInternal}/public/sitemap`);
-
-  const urls = entries
-    .map((e) => {
-      const path = `/${e.locale}${e.slug ? `/${encodeURI(e.slug)}` : ''}`;
-      return `<url><loc>${escapeXml(origin + path)}</loc><lastmod>${new Date(e.updatedAt).toISOString()}</lastmod></url>`;
-    })
-    .join('');
-
+  const { origin, groups } = await siteSitemap(event);
+  const files = groups.flatMap((g) => sitemapFiles(origin, g));
   setHeader(event, 'content-type', 'application/xml; charset=utf-8');
-  return `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
+  return sitemapIndexXml(files.map((f) => ({ loc: `${origin}/sitemaps/${f.name}`, lastmod: f.lastmod || null })));
 });

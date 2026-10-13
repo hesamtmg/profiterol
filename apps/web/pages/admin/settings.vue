@@ -2,12 +2,14 @@
 import {
   cleanBusiness,
   cleanLoader,
+  cleanSeo,
   fontNames,
   locales,
   resolveTheme,
   type BusinessInfo,
   type FieldDef,
   type LoaderSettings,
+  type SeoSettings,
   type ThemeTokens,
 } from '@profiterol/blocks';
 import BusinessPicker from '~/components/admin/BusinessPicker.vue';
@@ -21,7 +23,9 @@ import type { SiteSettings } from '~/composables/useSite';
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 const api = useApi();
-const settings = ref<(SiteSettings & { notifyEmail: string; loader: LoaderSettings; business: BusinessInfo }) | null>(null);
+const settings = ref<(SiteSettings & { notifyEmail: string; loader: LoaderSettings; business: BusinessInfo; seo: SeoSettings }) | null>(
+  null,
+);
 const customFonts = computed(() => fontNames(settings.value?.fonts));
 const loaderPreview = ref(0);
 const saving = ref(false);
@@ -40,7 +44,12 @@ async function load() {
     s.maintenanceText[l.code] ??= '';
     loader.text[l.code] ??= '';
   }
-  settings.value = { ...s, loader, business: cleanBusiness(s.business) };
+  const seo = cleanSeo(s.seo);
+  for (const l of locales) {
+    seo.titleTemplate[l.code] ??= '';
+    seo.description[l.code] ??= '';
+  }
+  settings.value = { ...s, loader, business: cleanBusiness(s.business), seo };
 }
 
 /** Saved themes are kept with the other settings and stored with "Save settings". */
@@ -68,11 +77,11 @@ async function save() {
   saving.value = true;
   message.value = null;
   try {
-    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business } =
+    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business, seo } =
       settings.value;
     await api('/admin/settings', {
       method: 'PUT',
-      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business },
+      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business, seo },
     });
     message.value = { kind: 'ok', text: translate('Settings saved') };
   } catch (err) {
@@ -123,6 +132,63 @@ onMounted(load);
         <div class="mt-4">
           <BusinessPicker v-model="settings.business" />
         </div>
+      </section>
+
+      <section id="seo" class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">{{ $t('Search engines (SEO)') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ $t('How this site appears in Google and when shared. Each page can also have its own title, description and picture.') }}
+        </p>
+        <label class="mt-4 flex items-center gap-2 text-sm">
+          <input v-model="settings.seo.hideSite" type="checkbox" class="h-4 w-4 rounded" />
+          {{ $t('Hide the whole site from search engines (while it is being built)') }}
+        </label>
+        <div class="mt-4 grid gap-4 sm:grid-cols-2">
+          <div v-for="l in locales" :key="`t-${l.code}`">
+            <label class="field-label">{{ $t('Title pattern ({lang})', { lang: l.label }) }}</label>
+            <input v-model="settings.seo.titleTemplate[l.code]" class="input" :dir="l.dir" placeholder="%s · {site}" maxlength="120" />
+            <p class="mt-1 text-[11px] text-slate-400">{{ $t('%s is the page title, {site} the site name.') }}</p>
+          </div>
+          <div v-for="l in locales" :key="`d-${l.code}`">
+            <label class="field-label">{{ $t('Default description ({lang})', { lang: l.label }) }}</label>
+            <textarea v-model="settings.seo.description[l.code]" rows="2" class="input" :dir="l.dir" maxlength="300" />
+            <p class="mt-1 text-[11px]" :class="settings.seo.description[l.code].length > 160 ? 'text-amber-600' : 'text-slate-400'">
+              {{ $t('{n} of about 160 characters', { n: settings.seo.description[l.code].length }) }}
+            </p>
+          </div>
+          <FieldInput v-model="settings.seo.shareImage" :field="imageField('shareImage', $t('Default picture when shared (1200×630)'))" />
+          <div>
+            <label class="field-label" for="seo-twitter">{{ $t('X (Twitter) account') }}</label>
+            <input id="seo-twitter" v-model="settings.seo.twitter" class="input" dir="ltr" placeholder="yoursite" />
+          </div>
+        </div>
+        <h3 class="mt-6 text-sm font-bold">{{ $t('Search console verification') }}</h3>
+        <p class="mt-1 text-xs text-slate-400">{{ $t('Paste only the code (content="…") the console gives you.') }}</p>
+        <div class="mt-3 grid gap-4 sm:grid-cols-2">
+          <div v-for="v in ['google', 'bing', 'yandex', 'baidu'] as const" :key="v">
+            <label class="field-label capitalize">{{ v }}</label>
+            <input v-model="settings.seo.verification[v]" class="input font-mono text-xs" dir="ltr" />
+          </div>
+        </div>
+        <h3 class="mt-6 text-sm font-bold">{{ $t('Sitemap and robots.txt') }}</h3>
+        <label class="mt-3 flex items-center gap-2 text-sm">
+          <input v-model="settings.seo.collectionPages" type="checkbox" class="h-4 w-4 rounded" />
+          {{ $t('List collection pages (e.g. /en/projects) in the sitemap') }}
+        </label>
+        <label class="field-label mt-4" for="seo-robots">{{ $t('Extra robots.txt lines') }}</label>
+        <textarea
+          id="seo-robots"
+          v-model="settings.seo.robotsExtra"
+          rows="3"
+          class="input font-mono text-xs"
+          dir="ltr"
+          placeholder="Disallow: /drafts"
+        />
+        <p class="mt-2 text-xs text-slate-500">
+          <a :href="`${settings.origin}/sitemap.xml`" target="_blank" class="underline">{{ settings.origin }}/sitemap.xml</a>
+          ·
+          <a :href="`${settings.origin}/robots.txt`" target="_blank" class="underline">robots.txt</a>
+        </p>
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">

@@ -68,6 +68,22 @@ export function cleanSeo(input: unknown): SeoSettings {
   };
 }
 
+/**
+ * The address to put in canonical, hreflang and sitemap links: the site's main address (from the API, http or https
+ * as the site has a certificate), keeping the visitor's port when they are on that address (local development on
+ * :8080). Without a known address, the one the visitor used.
+ */
+export function publicOrigin(siteOrigin: string | undefined, request: URL): string {
+  if (!siteOrigin) return request.origin;
+  try {
+    const u = new URL(siteOrigin);
+    if (u.hostname === request.hostname && request.port) u.port = request.port;
+    return u.origin;
+  } catch {
+    return request.origin;
+  }
+}
+
 /** A page's <title>: the site's pattern with the page title and site name filled in. The home page is the site name. */
 export function seoTitle(seo: Partial<SeoSettings> | null | undefined, locale: string, title: string, siteName: string): string {
   if (!title || title === siteName) return siteName;

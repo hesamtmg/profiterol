@@ -7,6 +7,8 @@ export interface AdminTranslation {
   slug: string;
   seoTitle: string;
   seoDescription: string;
+  /** Picture for link previews; '' = the page's first picture. */
+  ogImage?: string;
   blocks: BlockNode[];
   publishedBlocks?: BlockNode[] | null;
 }
@@ -15,6 +17,8 @@ export interface AdminPage {
   id: string;
   name: string;
   isHome: boolean;
+  /** Kept out of search engines and the sitemap. */
+  noindex?: boolean;
   status: 'draft' | 'published';
   publishedAt: string | null;
   /** Scheduled times (ISO) to publish the draft and to take the page offline. */

@@ -1,13 +1,19 @@
-interface AdminUser {
+export interface AdminUser {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'editor';
+  /** Owners manage every site (Admin → Sites) and are admins on each. */
+  role: 'owner' | 'admin' | 'editor';
+  /** The site this admin is for (from /auth/me). */
+  site?: { id: string; name: string; primary: string };
 }
 
 export function useAuth() {
   const user = useState<AdminUser | null>('auth-user', () => null);
   const api = useApi();
+  const isOwner = computed(() => user.value?.role === 'owner');
+  /** Admins and owners: settings, users, collections' fields. */
+  const isAdmin = computed(() => user.value?.role === 'admin' || isOwner.value);
 
   async function login(email: string, password: string) {
     const res = await api<{ user: AdminUser }>('/auth/login', {
@@ -16,6 +22,8 @@ export function useAuth() {
       headers: { 'x-session': 'cookie' },
     });
     user.value = res.user;
+    // The login answer has no site details; /auth/me does.
+    await fetchMe();
   }
 
   async function fetchMe() {
@@ -35,5 +43,5 @@ export function useAuth() {
     return navigateTo('/admin/login');
   }
 
-  return { user, login, fetchMe, logout };
+  return { user, isAdmin, isOwner, login, fetchMe, logout };
 }
