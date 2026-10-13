@@ -225,6 +225,7 @@ describe('accounts', () => {
     assert.ok(open.body.url.startsWith(`http://${B}/admin/sso#ticket=`));
     const ticket = open.body.url.split('#ticket=')[1];
     const sso = (host) => call('POST', '/auth/sso', { host, token: '', ip: '198.51.100.42', body: { ticket } });
+    assert.equal((await call('GET', '/auth/me', { host: B, token: ticket })).status, 401, 'a link is not a session');
     assert.equal((await sso(A)).status, 401, 'made for B');
     const ok = await sso(B);
     assert.equal(ok.status, 200);

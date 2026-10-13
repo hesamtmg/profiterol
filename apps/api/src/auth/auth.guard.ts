@@ -32,12 +32,14 @@ export class AuthGuard implements CanActivate {
     const found = readToken(req);
     if (!found) throw new UnauthorizedException();
 
-    let claims: AuthUser;
+    let claims: AuthUser & { purpose?: string };
     try {
-      claims = await this.jwt.verifyAsync<AuthUser>(found.token);
+      claims = await this.jwt.verifyAsync<AuthUser & { purpose?: string }>(found.token);
     } catch {
       throw new UnauthorizedException();
     }
+    // Only session tokens sign in; one-time links (purpose 'sso') are spent at /auth/sso, never used as a session.
+    if (claims.purpose) throw new UnauthorizedException();
     if (found.fromCookie && !csrfOk(req)) throw new ForbiddenException('Missing or wrong security token. Reload the page and try again.');
 
     // Checked on every request, so deactivating a user or changing a password takes effect at once.
