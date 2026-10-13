@@ -6,13 +6,16 @@
  *   node scripts/seed-mazaheri.mjs           a separate page at /fa/ترخیص-کالا and /en/customs-clearance (safe)
  *   node scripts/seed-mazaheri.mjs --home    replaces the home page, and sets the site name, menu and colors
  *
- * Settings: API_URL (default http://localhost:8080/api), ADMIN_EMAIL, ADMIN_PASSWORD.
+ * Settings: API_URL (default http://localhost:8080/api), ADMIN_EMAIL, ADMIN_PASSWORD, and SITE (the site's address)
+ * when the installation has several sites.
  * Running it again updates the same page; the pictures are uploaded again each time.
  * On the server, see the "Mazaheri content" section of DEPLOY.md.
  */
 import { createRequire } from 'node:module';
 
 const API = (process.env.API_URL ?? 'http://localhost:8080/api').replace(/\/$/, '');
+// With several sites, the one to fill: its address, e.g. SITE=example.com (sent as X-Forwarded-Host).
+const SITE = process.env.SITE ? { 'x-forwarded-host': process.env.SITE } : {};
 const ADMIN = { email: process.env.ADMIN_EMAIL ?? 'admin@example.com', password: process.env.ADMIN_PASSWORD ?? 'admin12345' };
 const HOME = process.argv.includes('--home');
 
@@ -32,7 +35,7 @@ const sharp = loadSharp();
 // ---------- API ----------
 const login = await fetch(`${API}/auth/login`, {
   method: 'POST',
-  headers: { 'content-type': 'application/json' },
+  headers: { 'content-type': 'application/json', ...SITE },
   body: JSON.stringify(ADMIN),
 });
 if (!login.ok) throw new Error(`login failed (${login.status}): check API_URL, ADMIN_EMAIL and ADMIN_PASSWORD`);
@@ -41,7 +44,7 @@ const token = (await login.json()).token;
 async function api(method, path, body) {
   const res = await fetch(API + path, {
     method,
-    headers: { authorization: `Bearer ${token}`, ...(body ? { 'content-type': 'application/json' } : {}) },
+    headers: { authorization: `Bearer ${token}`, ...SITE, ...(body ? { 'content-type': 'application/json' } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
@@ -52,7 +55,7 @@ async function api(method, path, body) {
 async function upload(bytes, name, type) {
   const fd = new FormData();
   fd.append('file', new Blob([bytes], { type }), name);
-  const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}` }, body: fd });
+  const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}`, ...SITE }, body: fd });
   if (!res.ok) throw new Error(`upload ${name}: ${res.status} ${await res.text()}`);
   return (await res.json()).url;
 }

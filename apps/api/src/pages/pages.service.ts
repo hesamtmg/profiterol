@@ -25,9 +25,23 @@ import { CollectionsService } from '../collections/collections.service';
 import { SettingsService } from '../settings/settings.controller';
 import { cleanHtml } from '../common/rich-text';
 import { purgePageCache } from '../common/page-cache';
+import { currentSite, currentSiteId, runInSite } from '../sites/site-context';
+import { SitesService } from '../sites/sites.service';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
 import { CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
 import { Page, PageRevision, PageSnapshot, PageTranslation, RevisionKind } from './page.entity';
+
+/** One page or item in the sitemap: its address in each language, when it last changed and its pictures. */
+export interface SitemapEntry {
+  updatedAt: Date;
+  paths: { locale: string; path: string }[];
+  images: string[];
+}
+
+/** Uploaded pictures used in a page's blocks, for image sitemaps. */
+export function imagesIn(value: unknown): string[] {
+  return [...new Set(JSON.stringify(value ?? '').match(/\/uploads\/[\w-]+\.(?:jpe?g|png|webp|avif|gif)/gi) ?? [])];
+}
 
 /** Versions kept per page; while editing, saves within this many minutes update the latest version. */
 export const KEEP_REVISIONS = 50;
@@ -45,6 +59,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     private readonly dataSource: DataSource,
     private readonly collections: CollectionsService,
     private readonly settings: SettingsService,
+    private readonly sites: SitesService,
   ) {}
 
   /** Scheduled publishing: checks every 30 seconds for pages due to go online or offline. */
@@ -56,23 +71,30 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     clearInterval(this.timer);
   }
 
+  /** Runs for every site: each due page is published or taken offline as a request for its own site. */
   async runSchedule(now = new Date()) {
-    const changes = await this.pages.count({
+    const due = await this.pages.find({
       where: [{ publishAt: LessThanOrEqual(now) }, { unpublishAt: LessThanOrEqual(now), status: 'published' }],
+      select: { id: true, siteId: true },
     });
-    for (const page of await this.pages.find({ where: { publishAt: LessThanOrEqual(now) } })) {
-      await this.publish(page.id, '');
-      this.log.log(`Published "${page.name}" as scheduled`);
-    }
-    const due = await this.pages.find({ where: { unpublishAt: LessThanOrEqual(now), status: 'published' } });
-    for (const page of due) {
-      await this.pages.update(page.id, { status: 'draft', unpublishAt: null });
-      this.log.log(`Took "${page.name}" offline as scheduled`);
+    const changed = new Set<string>();
+    for (const siteId of new Set(due.map((p) => p.siteId))) {
+      await runInSite(await this.sites.context(siteId), async () => {
+        for (const page of await this.pages.find({ where: { siteId, publishAt: LessThanOrEqual(now) } })) {
+          await this.publish(page.id, '');
+          this.log.log(`Published "${page.name}" as scheduled`);
+        }
+        for (const page of await this.pages.find({ where: { siteId, unpublishAt: LessThanOrEqual(now), status: 'published' } })) {
+          await this.pages.update(page.id, { status: 'draft', unpublishAt: null });
+          this.log.log(`Took "${page.name}" offline as scheduled`);
+        }
+      });
+      changed.add(siteId);
     }
     // A passed end time on a page that is already offline has nothing left to do.
     await this.pages.update({ unpublishAt: LessThanOrEqual(now), status: Not('published') }, { unpublishAt: null });
-    // The site's cached pages show the old state until cleared.
-    if (changes) await purgePageCache();
+    // Those sites' cached pages show the old state until cleared.
+    for (const siteId of changed) await purgePageCache((await this.sites.context(siteId)).domains);
   }
 
   /** A time due before the next regular check gets its own timer, so "in a minute" means a minute. */
@@ -84,11 +106,11 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
   }
 
   list() {
-    return this.pages.find({ order: { isHome: 'DESC', updatedAt: 'DESC' } });
+    return this.pages.find({ where: { siteId: currentSiteId() }, order: { isHome: 'DESC', updatedAt: 'DESC' } });
   }
 
   async get(id: string) {
-    const page = await this.pages.findOneBy({ id });
+    const page = await this.pages.findOneBy({ id, siteId: currentSiteId() });
     if (!page) throw new NotFoundException('Page not found');
     return page;
   }
@@ -112,11 +134,14 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     );
     translations.forEach((t) => this.assertBlocks(t.blocks, t.locale));
 
+    const siteId = currentSiteId();
     return this.save(async (manager) => {
-      if (dto.isHome) await manager.update(Page, { isHome: true }, { isHome: false });
+      if (dto.isHome) await manager.update(Page, { siteId, isHome: true }, { isHome: false });
       const page = manager.create(Page, {
+        siteId,
         name: dto.name,
         isHome: dto.isHome ?? false,
+        noindex: dto.noindex ?? false,
         translations: translations.map((t) => manager.create(PageTranslation, this.toTranslation(t))),
       });
       return manager.save(page);
@@ -129,9 +154,10 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     const customFonts = dto.theme ? fontNames((await this.settings.get()).fonts) : [];
 
     return this.save(async (manager) => {
-      if (dto.isHome) await manager.update(Page, { isHome: true }, { isHome: false });
+      if (dto.isHome) await manager.update(Page, { siteId: page.siteId, isHome: true }, { isHome: false });
       if (dto.name !== undefined) page.name = dto.name;
       if (dto.isHome !== undefined) page.isHome = dto.isHome;
+      if (dto.noindex !== undefined) page.noindex = dto.noindex;
       if (dto.theme !== undefined) page.theme = dto.theme === null ? null : cleanTheme(dto.theme, customFonts);
       if (dto.publishAt !== undefined) page.publishAt = dto.publishAt ? new Date(dto.publishAt) : null;
       if (dto.unpublishAt !== undefined) page.unpublishAt = dto.unpublishAt ? new Date(dto.unpublishAt) : null;
@@ -178,6 +204,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
         slug: t.slug,
         seoTitle: t.seoTitle,
         seoDescription: t.seoDescription,
+        ogImage: t.ogImage,
         blocks: t.blocks,
       })),
     };
@@ -224,6 +251,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
   }
 
   async getRevision(pageId: string, revisionId: string) {
+    await this.get(pageId);
     const rev = await this.revisions.findOne({ where: { id: revisionId, page: { id: pageId } } });
     if (!rev) throw new NotFoundException('Version not found');
     return rev;
@@ -260,11 +288,15 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
         slug: await this.freeSlug(t.locale, `${t.slug || slugify(source.name)}-copy`),
         seoTitle: t.seoTitle,
         seoDescription: t.seoDescription,
+        ogImage: t.ogImage,
         blocks: t.blocks,
+        siteId: source.siteId,
       })),
     );
     return this.save(async (manager) => {
       const page = manager.create(Page, {
+        siteId: source.siteId,
+        noindex: source.noindex,
         name: `${source.name} (copy)`,
         theme: source.theme,
         translations: translations.map((t) => manager.create(PageTranslation, t)),
@@ -293,7 +325,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     const qb = this.translations
       .createQueryBuilder('t')
       .innerJoinAndSelect('t.page', 'p')
-      .where('t.locale = :locale', { locale })
+      .where('t.siteId = :siteId', { siteId: currentSiteId() })
+      .andWhere('t.locale = :locale', { locale })
       .andWhere('p.status = :status', { status: 'published' })
       .andWhere('t.publishedBlocks IS NOT NULL');
     if (slug) qb.andWhere('t.slug = :slug', { slug });
@@ -317,6 +350,9 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       theme: t.page.publishedTheme,
       seoTitle: t.seoTitle || t.title,
       seoDescription: t.seoDescription,
+      ogImage: t.ogImage,
+      noindex: t.page.noindex,
+      publishedAt: t.page.publishedAt,
       blocks: await this.expandBlocks(t.publishedBlocks ?? [], locale, t.page.id),
       alternates: siblings.map((s) => ({ locale: s.locale, slug: t.page.isHome ? '' : s.slug })),
       updatedAt: t.page.updatedAt,
@@ -326,23 +362,36 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
   /** A block as visitors currently see it, e.g. to check a form submission against its fields. */
   async findPublishedBlock(pageId: string, locale: string, blockId: string): Promise<BlockNode | null> {
     const t = await this.translations.findOne({
-      where: { page: { id: pageId, status: 'published' }, locale },
+      where: { page: { id: pageId, status: 'published' }, locale, siteId: currentSiteId() },
       relations: { page: true },
     });
     return t?.publishedBlocks ? (findBlock(t.publishedBlocks, blockId)?.block ?? null) : null;
   }
 
-  /** Published pages for the sitemap. */
-  async listPublished() {
+  /**
+   * Everything search engines may index on this site, for the sitemap: each page and item with its address in every
+   * language and its pictures. Hidden (noindex) and unpublished content is left out.
+   */
+  async sitemap(): Promise<{ group: string; entries: SitemapEntry[] }[]> {
     const rows = await this.translations
       .createQueryBuilder('t')
-      .innerJoin('t.page', 'p')
-      .select(['t.locale AS locale', 't.slug AS slug', 'p.isHome AS "isHome"', 'p.updatedAt AS "updatedAt"'])
-      .where('p.status = :status', { status: 'published' })
+      .innerJoinAndSelect('t.page', 'p')
+      .where('t.siteId = :siteId', { siteId: currentSiteId() })
+      .andWhere('p.status = :status', { status: 'published' })
+      .andWhere('p.noindex = false')
       .andWhere('t.publishedBlocks IS NOT NULL')
-      .getRawMany<{ locale: string; slug: string; isHome: boolean; updatedAt: Date }>();
-    const pages = rows.map((r) => ({ locale: r.locale, slug: r.isHome ? '' : r.slug, updatedAt: r.updatedAt }));
-    return [...pages, ...(await this.collections.sitemapEntries())];
+      .getMany();
+    const byPage = new Map<string, PageTranslation[]>();
+    for (const t of rows) byPage.set(t.page.id, [...(byPage.get(t.page.id) ?? []), t]);
+    const pages: SitemapEntry[] = [...byPage.values()].map((list) => ({
+      updatedAt: list[0].page.updatedAt,
+      paths: list.map((t) => ({ locale: t.locale, path: t.page.isHome ? '' : t.slug })),
+      images: [...new Set(list.flatMap((t) => [t.ogImage, ...imagesIn(t.publishedBlocks)]).filter(Boolean))].slice(0, 50),
+    }));
+    return [
+      { group: 'pages', entries: pages },
+      ...(await this.collections.sitemapGroups((await this.settings.get()).seo?.collectionPages !== false)),
+    ];
   }
 
   /** Attaches data that blocks need at render time, such as a collection list's items (inside columns too). */
@@ -365,20 +414,23 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     );
   }
 
-  /** Appends -2, -3, … until the slug is unused in that locale. */
+  /** Appends -2, -3, … until the slug is unused in that locale on this site. */
   private async freeSlug(locale: string, base: string) {
+    const siteId = currentSiteId();
     let slug = base;
-    for (let n = 2; await this.translations.existsBy({ locale, slug }); n++) slug = `${base}-${n}`;
+    for (let n = 2; await this.translations.existsBy({ siteId, locale, slug }); n++) slug = `${base}-${n}`;
     return slug;
   }
 
   private toTranslation(t: TranslationDto | (Partial<TranslationDto> & { locale: string })) {
     return {
+      siteId: currentSite().id,
       locale: t.locale,
       title: t.title ?? '',
       slug: t.slug ?? '',
       seoTitle: t.seoTitle ?? '',
       seoDescription: t.seoDescription ?? '',
+      ogImage: t.ogImage ?? '',
       blocks: mapRichText((t.blocks ?? []) as BlockNode[], cleanHtml),
     };
   }

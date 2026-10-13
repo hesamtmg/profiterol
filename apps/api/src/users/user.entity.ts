@@ -1,13 +1,26 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
+import { Site } from '../sites/site.entity';
 
-export type Role = 'admin' | 'editor';
+/** Owners run every site (Admin → Sites) and are admins on each; admins and editors belong to one site. */
+export type Role = 'owner' | 'admin' | 'editor';
 
 @Entity('users')
+// An email can have one account per site, plus one owner account (which has no site).
+@Index(['siteId', 'email'], { unique: true })
+@Index(['email'], { unique: true, where: '"siteId" IS NULL' })
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
+  /** The site this account edits; null for owners. */
+  @ManyToOne(() => Site, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'siteId' })
+  site?: Site;
+
+  @Column({ type: 'uuid', nullable: true })
+  siteId: string | null;
+
+  @Column()
   email: string;
 
   @Column({ select: false })

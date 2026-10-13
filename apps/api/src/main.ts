@@ -10,6 +10,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { AppModule } from './app.module';
 import { PurgeOnChangeInterceptor } from './common/page-cache';
 import { config } from './config';
+import { SitesService } from './sites/sites.service';
 
 async function bootstrap() {
   mkdirSync(config.uploadDir, { recursive: true });
@@ -32,6 +33,9 @@ async function bootstrap() {
   // Pages with many blocks can be large, but nothing legitimate comes near 2 MB of JSON. Uploads use multer.
   app.useBodyParser('json', { limit: '2mb' });
   app.useBodyParser('urlencoded', { limit: '100kb', extended: false });
+  // Every request is for one site, picked by its address. After the body parsers, so the rest of the request
+  // (controllers, services, queries) runs with that site as its context.
+  app.use(app.get(SitesService).middleware());
   // Same-origin by default (the admin and site are served from the API's own domain). Set CORS_ORIGINS
   // (comma-separated) only for a separate front end; credentials are then allowed for those origins alone.
   if (config.corsOrigins.length) app.enableCors({ origin: config.corsOrigins, credentials: true });

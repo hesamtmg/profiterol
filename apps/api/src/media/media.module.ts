@@ -29,6 +29,7 @@ import { IsObject, IsOptional, IsString, Matches, MaxLength } from 'class-valida
 import { Repository } from 'typeorm';
 import { AuthGuard } from '../auth/auth.guard';
 import { config } from '../config';
+import { currentSiteId } from '../sites/site-context';
 import {
   hasAvifVariants,
   hasVariants,
@@ -137,7 +138,11 @@ export class MediaService implements OnApplicationBootstrap {
 
   /** The library, newest first, filtered by folder, kind and words in the name or description. */
   async list(filter: { folder?: string; kind?: string; q?: string } = {}) {
-    const qb = this.repo.createQueryBuilder('m').orderBy('m.createdAt', 'DESC').take(500);
+    const qb = this.repo
+      .createQueryBuilder('m')
+      .where('m.siteId = :siteId', { siteId: currentSiteId() })
+      .orderBy('m.createdAt', 'DESC')
+      .take(500);
     if (filter.folder !== undefined) qb.andWhere('m.folder = :folder', { folder: filter.folder });
     if (filter.kind === 'image') qb.andWhere("m.mime LIKE 'image/%'");
     else if (filter.kind === 'video') qb.andWhere("m.mime LIKE 'video/%'");
@@ -154,13 +159,14 @@ export class MediaService implements OnApplicationBootstrap {
       .createQueryBuilder('m')
       .select('DISTINCT m.folder', 'folder')
       .where("m.folder <> ''")
+      .andWhere('m.siteId = :siteId', { siteId: currentSiteId() })
       .orderBy('folder')
       .getRawMany<{ folder: string }>();
     return rows.map((r) => r.folder);
   }
 
   async update(id: string, changes: { alt?: Record<string, string>; folder?: string; originalName?: string }) {
-    const media = await this.repo.findOneBy({ id });
+    const media = await this.repo.findOneBy({ id, siteId: currentSiteId() });
     if (!media) throw new NotFoundException();
     if (changes.alt) media.alt = Object.fromEntries(Object.entries(changes.alt).map(([k, v]) => [k.slice(0, 8), String(v).slice(0, 300)]));
     if (changes.folder !== undefined) media.folder = changes.folder.trim();
@@ -169,18 +175,21 @@ export class MediaService implements OnApplicationBootstrap {
   }
 
   /**
-   * Where each file is used: pages (draft or live), collection items and the site settings. Builds a lookup from
-   * everything once, so the whole library can be checked in one go.
+   * Where each file is used on this site: pages (draft or live), collection items and the site settings. Builds a
+   * lookup from everything once, so the whole library can be checked in one go.
    */
   async usage(): Promise<(url: string) => { kind: 'page' | 'item' | 'settings'; id: string; name: string; parent?: string }[]> {
-    const q = (sql: string) => this.repo.manager.query(sql) as Promise<{ id: string; name: string; body: string; parent?: string }[]>;
+    const siteId = currentSiteId();
+    const q = (sql: string) =>
+      this.repo.manager.query(sql, [siteId]) as Promise<{ id: string; name: string; body: string; parent?: string }[]>;
     const [pages, items, settings] = await Promise.all([
       q(`SELECT p.id, p.name, string_agg(t.blocks::text || coalesce(t."publishedBlocks"::text, ''), ' ') AS body
-           FROM pages p JOIN page_translations t ON t."pageId" = p.id GROUP BY p.id, p.name`),
+           FROM pages p JOIN page_translations t ON t."pageId" = p.id WHERE p."siteId" = $1 GROUP BY p.id, p.name`),
       q(`SELECT i.id, i."collectionId" AS parent, coalesce(max(t.title), '') AS name,
                 i.cover || ' ' || string_agg(t.data::text || ' ' || t.body, ' ') AS body
-           FROM collection_items i JOIN collection_item_translations t ON t."itemId" = i.id GROUP BY i.id, i.cover, i."collectionId"`),
-      q(`SELECT '1' AS id, 'Site settings' AS name, to_jsonb(s)::text AS body FROM site_settings s`),
+           FROM collection_items i JOIN collection_item_translations t ON t."itemId" = i.id
+           JOIN collections c ON c.id = i."collectionId" WHERE c."siteId" = $1 GROUP BY i.id, i.cover, i."collectionId"`),
+      q(`SELECT '1' AS id, 'Site settings' AS name, to_jsonb(s)::text AS body FROM site_settings s WHERE s."siteId" = $1`),
     ]);
     const all = [
       ...pages.map((r) => ({ ...r, kind: 'page' as const })),
@@ -202,6 +211,7 @@ export class MediaService implements OnApplicationBootstrap {
       .createQueryBuilder('m')
       .select(['m.url', 'm.placeholder', 'm.alt'])
       .where('m.url IN (:...urls)', { urls })
+      .andWhere('m.siteId = :siteId', { siteId: currentSiteId() })
       .getMany();
     const hints: Record<string, { blur?: string; alt?: string }> = {};
     for (const m of rows) {
@@ -231,6 +241,7 @@ export class MediaService implements OnApplicationBootstrap {
     return this.repo
       .save(
         this.repo.create({
+          siteId: currentSiteId(),
           filename: file.filename,
           originalName: file.originalname.slice(0, 255),
           mime: FONTS[ext] ?? file.mimetype,
@@ -252,11 +263,22 @@ export class MediaService implements OnApplicationBootstrap {
   }
 
   async remove(id: string) {
-    const media = await this.repo.findOneBy({ id });
+    const media = await this.repo.findOneBy({ id, siteId: currentSiteId() });
     if (!media) throw new NotFoundException();
     await this.repo.remove(media);
-    await unlink(join(config.uploadDir, media.filename)).catch(() => undefined);
-    await removeVariants(config.uploadDir, media.filename);
+    await this.removeFiles(media.filename);
+  }
+
+  /** Deletes the files of every upload of a site, before the site itself is deleted. */
+  async removeSiteFiles(siteId: string) {
+    const all = await this.repo.find({ where: { siteId }, select: { id: true, filename: true } });
+    for (const m of all) await this.removeFiles(m.filename);
+    return all.length;
+  }
+
+  private async removeFiles(filename: string) {
+    await unlink(join(config.uploadDir, filename)).catch(() => undefined);
+    await removeVariants(config.uploadDir, filename);
   }
 }
 

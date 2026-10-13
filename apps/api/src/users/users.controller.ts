@@ -17,7 +17,7 @@ import type { Request } from 'express';
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { canSendMail, sendMail } from '../common/mail';
 import { RateLimiter } from '../common/rate-limit';
-import { config } from '../config';
+import { siteOrigin } from '../sites/site-context';
 import type { Role, User } from './user.entity';
 import { UsersService } from './users.service';
 
@@ -35,10 +35,10 @@ export const userView = (u: User) => ({
   createdAt: u.createdAt,
 });
 
-/** The site's address for links: SITE_URL when set, else the address the admin is using right now. */
-function origin(req: Request) {
-  return config.siteUrl || `${req.protocol}://${req.get('x-forwarded-host') ?? req.get('host')}`;
-}
+/**
+ * Links in emails point at the site's own main address, from its settings, never at the request's Host header:
+ * that would let someone send a victim a link to their own server.
+ */
 const resetLink = (base: string, secret: string) => `${base}/admin/reset?token=${secret}`;
 
 class InviteDto {
@@ -106,9 +106,9 @@ export class AdminUsersController {
 
   /** Creates the account and returns the invitation link (also emailed when email is set up). */
   @Post()
-  async invite(@Body() dto: InviteDto, @Req() req: Request) {
+  async invite(@Body() dto: InviteDto) {
     const { user, secret } = await this.users.invite(dto.email, dto.role, dto.name ?? '');
-    const link = resetLink(origin(req), secret);
+    const link = resetLink(siteOrigin(), secret);
     const emailed = await sendMail({
       to: user.email,
       subject: 'You are invited to edit the website',
@@ -127,8 +127,9 @@ export class AdminUsersController {
 
   /** A fresh password link for someone who forgot theirs, to pass on by hand. Valid for 2 hours. */
   @Post(':id/reset-link')
-  async resetLinkFor(@Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
-    return { link: resetLink(origin(req), await this.users.newResetSecret(id)) };
+  async resetLinkFor(@Param('id', ParseUUIDPipe) id: string) {
+    const user = await this.users.getSiteUser(id);
+    return { link: resetLink(siteOrigin(), await this.users.newResetSecret(user.id)) };
   }
 }
 
@@ -137,17 +138,16 @@ export class PasswordController {
   constructor(private readonly users: UsersService) {}
 
   /**
-   * Emails a reset link if the address belongs to an active user. The answer is the same either way, so it cannot
-   * be used to find out who has an account. Links are only emailed when SITE_URL is set: building them from the
-   * request's Host header would let someone send a victim a link to their own server.
+   * Emails a reset link if the address belongs to an active user of this site (or an owner). The answer is the same
+   * either way, so it cannot be used to find out who has an account.
    */
   @Post('forgot')
   @HttpCode(204)
   async forgot(@Body() dto: ForgotDto, @Req() req: Request) {
     forgotLimiter.check(req.ip ?? 'unknown');
     const user = await this.users.findByEmail(dto.email);
-    if (!user || !user.active || !config.siteUrl || !canSendMail()) return;
-    const link = resetLink(config.siteUrl, await this.users.newResetSecret(user.id));
+    if (!user || !user.active || !canSendMail()) return;
+    const link = resetLink(siteOrigin(), await this.users.newResetSecret(user.id));
     await sendMail({
       to: user.email,
       subject: 'Reset your password',
@@ -158,7 +158,7 @@ export class PasswordController {
   /** Whether "Forgot password?" can work on this installation. */
   @Get('forgot')
   forgotAvailable() {
-    return { available: !!config.siteUrl && canSendMail() };
+    return { available: canSendMail() };
   }
 
   @Post('reset')

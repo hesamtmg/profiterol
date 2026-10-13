@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { JwtService } from '@nestjs/jwt';
 import type { Request } from 'express';
 import type { Role } from '../users/user.entity';
+import { maybeSite } from '../sites/site-context';
 import { UsersService } from '../users/users.service';
 import { csrfOk, readToken } from './session';
 
@@ -15,7 +16,7 @@ export interface AuthUser {
 }
 
 export const ROLES_KEY = 'roles';
-/** Restricts a route to the given roles. Without it, any signed-in user may call the route. */
+/** Restricts a route to the given roles. Without it, any signed-in user may call the route. Owners pass 'admin' too. */
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
 
 @Injectable()
@@ -42,11 +43,14 @@ export class AuthGuard implements CanActivate {
     // Checked on every request, so deactivating a user or changing a password takes effect at once.
     const user = await this.users.findById(claims.sub);
     if (!user || !user.active || (claims.ver ?? 0) !== user.tokenVersion) throw new UnauthorizedException();
+    // A site's accounts only work on that site; owners work on every site.
+    if (user.siteId !== null && user.siteId !== maybeSite()?.id) throw new UnauthorizedException();
     // The role comes from the database, not the token, so a role change also applies at once.
     req.user = { sub: user.id, email: user.email, role: user.role, ver: user.tokenVersion };
 
     const roles = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES_KEY, [context.getHandler(), context.getClass()]);
-    if (roles && !roles.includes(req.user.role)) throw new ForbiddenException();
+    const allowed = roles?.includes(req.user.role) || (req.user.role === 'owner' && roles?.includes('admin'));
+    if (roles && !allowed) throw new ForbiddenException();
     return true;
   }
 }
