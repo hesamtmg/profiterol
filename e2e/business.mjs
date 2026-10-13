@@ -44,7 +44,13 @@ check('business: details are included', owner?.telephone === '+98 21 1234 5678' 
 check('business: unsafe profile links are dropped', JSON.stringify(owner?.sameAs) === '["https://instagram.com/beanthere"]');
 check('business: the site is described too', data?.['@graph']?.[1]?.['@type'] === 'WebSite');
 const inner = await (await fetch(`${BASE}/en/contact`)).text();
-check('business: other pages do not repeat it', !inner.includes('application/ld+json'));
+// Other pages have a breadcrumb trail, but the business details are only on the home page.
+const innerLd = [...inner.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g)].map((m) => JSON.parse(m[1]));
+check(
+  'business: other pages do not repeat it',
+  innerLd.every((d) => d['@type'] === 'BreadcrumbList'),
+  JSON.stringify(innerLd),
+);
 
 // Removing the choice removes the structured data.
 await ad.reload({ waitUntil: 'networkidle' });
