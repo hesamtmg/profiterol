@@ -136,7 +136,11 @@ export class UsersService {
   async update(id: string, changes: { name?: string; role?: Role; active?: boolean }) {
     const user = await this.getSiteUser(id);
     const losesAdmin = user.role === 'admin' && user.active && (changes.role === 'editor' || changes.active === false);
-    if (losesAdmin && (await this.users.countBy({ siteId: user.siteId!, role: 'admin', active: true })) <= 1) {
+    // Owners can always manage the site, so they count as its admins here.
+    const admins =
+      (await this.users.countBy({ siteId: user.siteId!, role: 'admin', active: true })) +
+      (await this.users.countBy({ siteId: IsNull(), role: 'owner', active: true }));
+    if (losesAdmin && admins <= 1) {
       throw new BadRequestException('There must always be at least one active admin');
     }
     await this.users.update(id, {

@@ -108,7 +108,8 @@ export class SitesService {
             res.status(404).json({ statusCode: 404, message: 'No site at this address' });
             return;
           }
-          runInSite(site, () => next());
+          const port = /:(\d+)$/.exec(host.trim())?.[1];
+          runInSite(port ? { ...site, port } : site, () => next());
         },
         (err) => next(err),
       );
