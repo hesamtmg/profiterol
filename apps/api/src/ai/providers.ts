@@ -322,9 +322,12 @@ export async function listModels(opts: Omit<ProviderOptions, 'model'>): Promise<
   const list = (data.data ?? []).flatMap((m) => {
     // Gemini lists "models/gemini-…"; requests use the bare name.
     const id = (m.id ?? '').replace(/^models\//, '');
-    if (!id || /embed|whisper|tts|moderation|dall-e|image-|guard/i.test(id)) return [];
+    if (!id || /embed|whisper|tts|moderation|dall-e|image-|guard|safety|lyria/i.test(id)) return [];
+    // Text in, text out only: music, picture and speech generators cannot write a block.
     const outputs = m.architecture?.output_modalities;
-    if (outputs && !outputs.includes('text')) return [];
+    if (outputs && (!outputs.includes('text') || outputs.some((o) => o !== 'text'))) return [];
+    // OpenRouter's "openrouter/free" picks a different model for every request, so a block's changes would not hold.
+    if (id === 'openrouter/free') return [];
     return [{ id, free: opts.provider === 'ollama' || id.endsWith(':free') }];
   });
   return list.sort((a, b) => Number(b.free) - Number(a.free) || a.id.localeCompare(b.id));

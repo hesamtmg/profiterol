@@ -83,6 +83,9 @@ before(async () => {
               { id: 'models/gemini-pro' },
               { id: 'meta/llama:free' },
               { id: 'image-maker', architecture: { output_modalities: ['image'] } },
+              { id: 'google/lyria-3-pro-preview', architecture: { output_modalities: ['text', 'audio'] } },
+              { id: 'nvidia/nemotron-3.5-content-safety:free' },
+              { id: 'openrouter/free' },
             ],
           }),
         );
@@ -228,6 +231,7 @@ describe('AI models (each admin their own, per site)', () => {
     assert.ok(listed.body.models[0].free);
     assert.ok(ids.includes('gemini-pro'), 'Gemini\'s "models/" prefix is dropped');
     assert.ok(!ids.includes('text-embedding-3-small') && !ids.includes('image-maker'), 'only text models');
+    assert.ok(!ids.some((id) => /lyria|safety|openrouter\/free/.test(id)), 'no music, safety or random-router models');
     assert.equal((await call('POST', '/admin/ai/connections/models', { provider: 'groq' })).status, 400, 'a key is needed to list');
 
     const meta = (await call('GET', '/admin/ai/connections')).body;
