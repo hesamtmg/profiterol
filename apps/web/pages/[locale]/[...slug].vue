@@ -29,6 +29,7 @@ import SiteCursor from '~/components/site/SiteCursor.vue';
 import SiteLoader from '~/components/site/SiteLoader.vue';
 import type { CollectionListData, PublicCollection, PublicItem } from '~/composables/useCollections';
 import type { MediaHints } from '~/composables/useMediaHints';
+import type { CustomBlockScript } from '~/composables/useCustomBlocks';
 
 interface PublicPage {
   id: string;
@@ -47,6 +48,8 @@ interface PublicPage {
   publishedAt?: string | null;
   updatedAt?: string;
   blocks: BlockNode[];
+  /** The page's custom blocks (made with the AI block builder): where their code is. */
+  customBlocks?: CustomBlockScript[];
   alternates: { locale: string; slug: string }[];
 }
 
@@ -128,6 +131,12 @@ watchEffect(() => {
       : r.kind === 'item'
         ? media(r.entry)
         : { ...media(r.collection), ...media(r.list) };
+});
+
+// Custom blocks on this page load their approved code in the browser (BlockView).
+watchEffect(() => {
+  const r = resolved.value;
+  setCustomBlockScripts(r?.kind === 'page' ? (r.page.customBlocks ?? []) : []);
 });
 
 const siteName = computed(() => settings.value?.siteName?.[locale] ?? settings.value?.siteName?.en ?? '');

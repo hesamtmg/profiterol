@@ -12,6 +12,7 @@ import {
   type SeoSettings,
   type ThemeTokens,
 } from '@profiterol/blocks';
+import AiSettings from '~/components/admin/AiSettings.vue';
 import BusinessPicker from '~/components/admin/BusinessPicker.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
 import FontManager from '~/components/admin/FontManager.vue';
@@ -344,6 +345,8 @@ onMounted(load);
           </div>
         </div>
       </section>
+
+      <AiSettings />
 
       <SiteTemplates @applied="load" />
     </div>

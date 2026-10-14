@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { imageVariant, withDefaults as mergeDefaults, type BlockNode } from '@profiterol/blocks';
+import { h } from 'vue';
 import { blockComponents } from './blocks';
 
 const props = defineProps<{
@@ -12,7 +13,14 @@ const emit = defineEmits<{ edit: [path: string, value: string] }>();
 
 if (props.editable) provide(blockEditKey, { update: (path, value) => emit('edit', path, value) });
 
-const merged = computed(() => mergeDefaults(props.block));
+// A custom block (made with the AI block builder) has no built-in component: its approved code is loaded in the browser.
+const scripts = useCustomBlockScripts();
+const custom = computed(() => (blockComponents[props.block.type] ? undefined : scripts.value[props.block.type]));
+const failed = () =>
+  props.editable ? h('p', { class: 'p-6 text-center text-sm text-slate-500' }, translate('This custom block could not be loaded.')) : null;
+const customComponent = computed(() => (custom.value ? customBlockComponent(custom.value.url, failed) : undefined));
+
+const merged = computed(() => ({ ...(custom.value?.defaults ?? {}), ...mergeDefaults(props.block) }));
 const anchor = computed(() => {
   const a = String(merged.value.anchor ?? '').trim();
   return /^[A-Za-z][\w-]*$/.test(a) ? a : undefined;
@@ -66,6 +74,10 @@ const isLayout = computed(() => Boolean(props.block.children));
         :locale="locale"
         v-bind="{ ...(block.data ? { data: block.data } : {}), ...(isLayout ? { node: block } : {}) }"
       />
+      <ClientOnly v-else-if="customComponent">
+        <component :is="customComponent" :p="merged" :locale="locale" />
+        <template #fallback><div class="min-h-48" aria-hidden="true" /></template>
+      </ClientOnly>
     </div>
   </div>
 </template>

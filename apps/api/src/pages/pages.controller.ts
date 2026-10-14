@@ -1,8 +1,9 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { blocks, getSiteTemplate, locales, pageTemplates, siteTemplates, siteTemplateTheme } from '@profiterol/blocks';
+import { blocks, getSiteTemplate, locales, pageTemplates, siteTemplates, siteTemplateTheme, withCommonFields } from '@profiterol/blocks';
 import { NotFoundException } from '@nestjs/common';
 import { Roles } from '../auth/auth.guard';
 import { MediaService } from '../media/media.module';
+import { CustomBlocksService, moduleUrl } from '../custom-blocks/custom-blocks.service';
 import { SettingsService } from '../settings/settings.controller';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard';
 
@@ -16,13 +17,18 @@ export class PublicPagesController {
   constructor(
     private readonly pages: PagesService,
     private readonly media: MediaService,
+    private readonly customBlocks: CustomBlocksService,
   ) {}
 
-  /** A published page, with blurred previews and descriptions of the photos in it. */
+  /** A published page, with blurred previews and descriptions of the photos in it, and its custom blocks' code. */
   @Get(':locale/page')
   async page(@Param('locale') locale: string, @Query('slug') slug = '') {
     const page = await this.pages.findPublished(locale, slug.replace(/^\/+|\/+$/g, ''));
-    return { ...page, media: await this.media.hintsFor(page.blocks, locale) };
+    return {
+      ...page,
+      media: await this.media.hintsFor(page.blocks, locale),
+      customBlocks: await this.customBlocks.scriptsFor(page.blocks),
+    };
   }
 
   @Get('sitemap')
@@ -34,12 +40,25 @@ export class PublicPagesController {
 @Controller('admin/pages')
 @UseGuards(AuthGuard)
 export class AdminPagesController {
-  constructor(private readonly pages: PagesService) {}
+  constructor(
+    private readonly pages: PagesService,
+    private readonly customBlocks: CustomBlocksService,
+  ) {}
 
-  /** Block registry and locales, so the editor always matches what the API accepts. */
+  /**
+   * Block registry and locales, so the editor always matches what the API accepts. `custom`: the site's approved
+   * custom blocks, with where to load each one's code.
+   */
   @Get('schema')
-  schema() {
-    return { blocks, locales };
+  async schema() {
+    const custom = await this.customBlocks.list();
+    return {
+      blocks,
+      locales,
+      custom: custom.flatMap((b) =>
+        b.live && b.status === 'live' ? [{ def: withCommonFields(b.live.def), url: moduleUrl(b.id, b.live.hash) }] : [],
+      ),
+    };
   }
 
   /** Starting points for new pages (names and descriptions; the blocks are made on the server). */

@@ -42,7 +42,8 @@ import {
 } from '@profiterol/blocks';
 import { randomBytes } from 'node:crypto';
 import { cleanHtml } from '../common/rich-text';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { liveCustomDefs } from '../custom-blocks/live-defs';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
 import { currentSite, currentSiteId, siteOrigin } from '../sites/site-context';
@@ -141,9 +142,17 @@ export class SettingsService {
     return this.repo.findOneByOrFail({ siteId });
   }
 
+  /** The settings without what must never reach a browser (the AI key and its usage). */
+  static withoutSecrets(settings: SiteSettings) {
+    const { ai: _ai, ...rest } = settings;
+    return rest;
+  }
+
   async update(dto: Partial<SiteSettings>) {
     const current = await this.get();
-    const next = { ...current, ...dto, siteId: current.siteId };
+    // The AI settings have their own route (AiSettingsService), which writes only that column.
+    const { ai: _ai, ...base } = current;
+    const next = { ...base, ...dto, siteId: current.siteId };
     // Fonts first: the themes may use the uploaded fonts' names.
     if (dto.fonts !== undefined) next.fonts = cleanFonts(dto.fonts);
     const custom = fontNames(next.fonts);
@@ -163,7 +172,12 @@ export class SettingsController {
   /** What the site renderer needs, plus the site's own address for canonical URLs, sitemaps and share links. */
   @Get('public/settings')
   async get() {
-    const { notifyEmail: _private, sections: _editorOnly, siteId: _id, ...rest } = await this.settings.get();
+    const {
+      notifyEmail: _private,
+      sections: _editorOnly,
+      siteId: _id,
+      ...rest
+    } = SettingsService.withoutSecrets(await this.settings.get());
     const site = currentSite();
     return { ...rest, origin: siteOrigin(site), domains: site.domains, adminLang: site.adminLang };
   }
@@ -171,15 +185,15 @@ export class SettingsController {
   @Get('admin/settings')
   @UseGuards(AuthGuard)
   @Roles('admin')
-  getPrivate() {
-    return this.settings.get();
+  async getPrivate() {
+    return SettingsService.withoutSecrets(await this.settings.get());
   }
 
   @Put('admin/settings')
   @UseGuards(AuthGuard)
   @Roles('admin')
-  update(@Body() dto: UpdateSettingsDto) {
-    return this.settings.update(dto as Partial<SiteSettings>);
+  async update(@Body() dto: UpdateSettingsDto) {
+    return SettingsService.withoutSecrets(await this.settings.update(dto as Partial<SiteSettings>));
   }
 }
 
@@ -200,6 +214,7 @@ export class SectionsController {
   constructor(
     private readonly settings: SettingsService,
     @InjectRepository(SiteSettings) private readonly repo: Repository<SiteSettings>,
+    private readonly dataSource: DataSource,
   ) {}
 
   @Get()
@@ -211,9 +226,10 @@ export class SectionsController {
   async save(@Body() dto: SaveSectionDto) {
     const name = dto.name.trim();
     if (!name) throw new BadRequestException('Give the section a name');
-    const errors = validateBlocks([dto.block]);
+    const custom = await liveCustomDefs(this.dataSource);
+    const errors = validateBlocks([dto.block], custom);
     if (errors.length) throw new BadRequestException({ message: 'This block cannot be saved', errors: errors.slice(0, 10) });
-    const { data: _data, ...block } = mapRichText([dto.block as unknown as BlockNode], cleanHtml)[0];
+    const { data: _data, ...block } = mapRichText([dto.block as unknown as BlockNode], cleanHtml, custom)[0];
     const current = await this.settings.get();
     const sections = current.sections ?? [];
     if (sections.length >= MAX_SECTIONS) throw new BadRequestException(`You can keep up to ${MAX_SECTIONS} saved sections`);

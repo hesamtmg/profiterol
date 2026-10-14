@@ -1,5 +1,5 @@
 import { getBlock } from './registry.js';
-import type { BlockNode, FieldDef, ValidationError } from './types.js';
+import type { BlockDef, BlockNode, FieldDef, ValidationError } from './types.js';
 
 const MAX_BLOCKS = 200;
 const MAX_STRING = 20000;
@@ -78,8 +78,9 @@ function checkProps(fields: FieldDef[], props: unknown, path: string, errors: Va
 /**
  * Validates a page's block list against the registry. Layout blocks may hold one level of other blocks, one list
  * per column; full-screen and layout blocks cannot be nested. Missing props fall back to defaults when rendered.
+ * `extra`: the site's own (custom) block types, besides the built-in ones.
  */
-export function validateBlocks(input: unknown): ValidationError[] {
+export function validateBlocks(input: unknown, extra?: BlockDef[]): ValidationError[] {
   const errors: ValidationError[] = [];
   if (!Array.isArray(input)) return [{ path: 'blocks', message: 'must be a list' }];
   const ids = new Set<string>();
@@ -98,7 +99,7 @@ export function validateBlocks(input: unknown): ValidationError[] {
       else if (ids.has(id)) errors.push({ path: `${path}.id`, message: 'is duplicated' });
       else ids.add(id);
 
-      const def = typeof type === 'string' ? getBlock(type) : undefined;
+      const def = typeof type === 'string' ? getBlock(type, extra) : undefined;
       if (!def) {
         errors.push({ path: `${path}.type`, message: `unknown block type "${String(type)}"` });
         return;
@@ -126,8 +127,8 @@ export function validateBlocks(input: unknown): ValidationError[] {
 }
 
 /** Returns props merged over the block's defaults, so renderers never see missing fields. */
-export function withDefaults(node: BlockNode): Record<string, unknown> {
-  const def = getBlock(node.type);
+export function withDefaults(node: BlockNode, extra?: BlockDef[]): Record<string, unknown> {
+  const def = getBlock(node.type, extra);
   return { ...(def?.defaults ?? {}), ...(node.props ?? {}) };
 }
 
@@ -151,10 +152,10 @@ function cleanRichText(fields: FieldDef[], props: Record<string, unknown>, clean
 }
 
 /** Runs `clean` over every formatted-text value (nested blocks included), e.g. to strip unsafe HTML before saving. */
-export function mapRichText(blocks: BlockNode[], clean: (html: string) => string): BlockNode[] {
+export function mapRichText(blocks: BlockNode[], clean: (html: string) => string, extra?: BlockDef[]): BlockNode[] {
   return blocks.map((b) => {
-    const def = getBlock(b.type);
+    const def = getBlock(b.type, extra);
     const out = def && isPlainObject(b.props) ? { ...b, props: cleanRichText(def.fields, b.props, clean) } : b;
-    return Array.isArray(b.children) ? { ...out, children: b.children.map((column) => mapRichText(column, clean)) } : out;
+    return Array.isArray(b.children) ? { ...out, children: b.children.map((column) => mapRichText(column, clean, extra)) } : out;
   });
 }

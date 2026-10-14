@@ -572,21 +572,38 @@ const showOnField: FieldDef = {
   ],
 };
 
-export const blocks: BlockDef[] = definitions.map((b) => ({
-  ...b,
-  topLevelOnly: b.topLevelOnly ?? topLevelOnlyTypes.includes(b.type),
-  fields: [
-    ...b.fields,
-    ...styleFields,
-    { ...animationField, group: 'advanced' },
-    { ...anchorField, group: 'advanced' },
-    { ...showOnField, group: 'advanced' },
-  ],
-  defaults: { animation: '', anchor: '', showOn: '', ...styleDefaults, ...b.defaults },
-}));
+/** Adds the fields every block shares (style, animation, anchor, "Show on") to a block's own fields and defaults. */
+export function withCommonFields(b: BlockDef): BlockDef {
+  return {
+    ...b,
+    topLevelOnly: b.topLevelOnly ?? topLevelOnlyTypes.includes(b.type),
+    fields: [
+      ...b.fields,
+      ...styleFields,
+      { ...animationField, group: 'advanced' },
+      { ...anchorField, group: 'advanced' },
+      { ...showOnField, group: 'advanced' },
+    ],
+    defaults: { animation: '', anchor: '', showOn: '', ...styleDefaults, ...b.defaults },
+  };
+}
 
-export function getBlock(type: string): BlockDef | undefined {
-  return blocks.find((b) => b.type === type);
+export const blocks: BlockDef[] = definitions.map(withCommonFields);
+
+/**
+ * A site's own blocks (made with the AI block builder), known to the admin in the browser. The API never sets this:
+ * it serves many sites, so it passes each site's blocks to the functions below as `extra` instead.
+ */
+let registeredCustom: BlockDef[] = [];
+
+/** Makes a site's custom blocks (already through withCommonFields) known to getBlock and createBlock. */
+export function registerCustomBlocks(defs: BlockDef[]): void {
+  registeredCustom = defs;
+}
+
+/** A built-in block, else one of `extra` (default: the registered custom blocks). */
+export function getBlock(type: string, extra: BlockDef[] = registeredCustom): BlockDef | undefined {
+  return blocks.find((b) => b.type === type) ?? extra.find((b) => b.type === type);
 }
 
 function randomId(): string {
@@ -596,8 +613,8 @@ function randomId(): string {
 export const newBlockId = randomId;
 
 /** Creates a new block instance with a deep copy of its defaults (and empty columns for layout blocks). */
-export function createBlock(type: string): BlockNode {
-  const def = getBlock(type);
+export function createBlock(type: string, extra?: BlockDef[]): BlockNode {
+  const def = getBlock(type, extra);
   if (!def) throw new Error(`Unknown block type "${type}"`);
   const props = JSON.parse(JSON.stringify(def.defaults));
   const node: BlockNode = { id: randomId(), type, props };

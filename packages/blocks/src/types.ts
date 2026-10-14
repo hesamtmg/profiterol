@@ -39,7 +39,8 @@ export interface FieldDef {
   group?: 'style' | 'advanced';
 }
 
-export type BlockCategory = 'layout' | 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic' | 'animated';
+/** `custom`: the site's own blocks, made with the AI block builder. */
+export type BlockCategory = 'layout' | 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic' | 'animated' | 'custom';
 
 export interface BlockDef {
   type: string;

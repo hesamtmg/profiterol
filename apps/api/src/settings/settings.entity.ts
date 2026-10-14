@@ -1,5 +1,6 @@
 import type { BlockNode, BusinessInfo, LoaderSettings, SavedTheme, SeoSettings, SiteFont, ThemeTokens } from '@profiterol/blocks';
 import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import type { AiSettings } from '../ai/ai-settings';
 import { Site } from '../sites/site.entity';
 
 /** A configured block (with its columns, if any) kept under a name. */
@@ -80,6 +81,13 @@ export class SiteSettings {
    */
   @Column({ type: 'varchar', length: 8, default: '' })
   defaultLocale: string;
+
+  /**
+   * The AI service the block builder uses (Settings → AI). Its key is stored encrypted and never leaves the API:
+   * see SettingsService.withoutSecrets.
+   */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  ai: Partial<AiSettings>;
 
   /** Where new form messages are emailed (needs SMTP_URL). Empty means inbox only. */
   @Column({ default: '' })

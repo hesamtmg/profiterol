@@ -1,0 +1,186 @@
+// The AI block builder: AI settings, building a block with a stand-in AI service, the sandboxed preview (and that
+// draft code there cannot reach the admin), approving, using the block in the editor and on the published page.
+import { createServer } from 'node:http';
+import { ADMIN, BASE, api, apiToken, check, finish, launch, shots, watch } from './lib.mjs';
+
+const out = shots('custom-blocks');
+
+// ---------- A stand-in AI service (OpenAI-compatible), answering with an FAQ block ----------
+const DEF = {
+  label: 'Toggle list',
+  icon: 'mdi-format-list-bulleted',
+  description: 'Questions that open to show their answer',
+  fields: [
+    { key: 'title', label: 'Title', type: 'text' },
+    {
+      key: 'items',
+      label: 'Items',
+      type: 'list',
+      itemLabel: 'q',
+      fields: [
+        { key: 'q', label: 'Question', type: 'text' },
+        { key: 'a', label: 'Answer', type: 'textarea' },
+      ],
+    },
+  ],
+  defaults: {
+    title: 'Good to know',
+    items: [
+      { q: 'Is it fast?', a: 'Very fast.' },
+      { q: 'Is it safe?', a: 'Checked and sandboxed.' },
+    ],
+  },
+};
+const SOURCE = `<script setup>
+import { ref } from 'vue';
+defineProps({ p: { type: Object, required: true }, locale: String });
+const open = ref(-1);
+</script>
+<template>
+  <section class="toggles">
+    <h2 class="title">{{ p.title }}</h2>
+    <div v-for="(item, i) in p.items" :key="i" class="item">
+      <button type="button" class="q" :aria-expanded="open === i" @click="open = open === i ? -1 : i">{{ item.q }}</button>
+      <p v-if="open === i" class="a">{{ item.a }}</p>
+    </div>
+  </section>
+</template>
+<style scoped>
+.toggles { padding: 2rem; color: var(--c-text); }
+.title { font-size: 2rem; font-weight: 800; color: var(--c-primary); }
+.item { background: var(--c-surface); border-radius: var(--radius-card); margin-block: .5rem; padding: 1rem; }
+.q { font-weight: 700; }
+</style>`;
+const ai = createServer((req, res) => {
+  req.resume();
+  req.on('end', () => {
+    res.setHeader('content-type', 'application/json');
+    const answer = { summary: 'A list of questions that open on click.', def_json: JSON.stringify(DEF), source: SOURCE };
+    res.end(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(answer) } }] }));
+  });
+});
+await new Promise((r) => ai.listen(0, '127.0.0.1', r));
+
+const token = await apiToken();
+const browser = await launch();
+// The CSP refusals are the sandbox check below (draft code trying to send a request).
+const ad = watch(await browser.newPage({ viewport: { width: 1440, height: 1000 } }), /connect-src 'none'|Refused to connect/);
+ad.on('dialog', (d) => d.accept());
+await ad.goto(`${BASE}/admin/login`, { waitUntil: 'networkidle' });
+await ad.fill('input[type=email]', ADMIN.email);
+await ad.fill('input[type=password]', ADMIN.password);
+await ad.click('button[type=submit]');
+await ad.waitForURL(`${BASE}/admin`);
+
+// ---------- Settings → AI ----------
+await ad.goto(`${BASE}/admin/settings#ai`, { waitUntil: 'networkidle' });
+await ad.check('text=Let admins build blocks with AI');
+await ad.selectOption('#ai-provider', 'openai-compatible');
+await ad.fill('#ai-model', 'stand-in');
+await ad.fill('#ai-key', 'sk-e2e-secret-key-1234');
+await ad.fill('#ai-base', `http://127.0.0.1:${ai.address().port}/v1`);
+await ad.click('button:has-text("Save AI settings")');
+await ad.waitForSelector('text=AI settings saved.');
+check(
+  'ai settings: the key is not shown again',
+  (await ad.inputValue('#ai-key')) === '' && (await ad.getAttribute('#ai-key', 'placeholder')).includes('1234'),
+);
+await ad.click('button:has-text("Test connection")');
+await ad.waitForSelector('text=the key and model work');
+check('ai settings: test connection reaches the AI', true);
+await ad.locator('#ai').screenshot({ path: out + 'settings-ai.png' });
+
+// ---------- Build a block ----------
+await ad.goto(`${BASE}/admin/blocks`, { waitUntil: 'networkidle' });
+await ad.fill('#block-prompt', 'A list of questions that open to show the answer');
+await ad.click('button:has-text("Build it")');
+await ad.waitForSelector('h2:has-text("Toggle list")', { timeout: 20000 });
+const frame = ad.frameLocator('iframe[title="Block preview"]');
+await frame.locator('h2.title').waitFor({ timeout: 10000 });
+check('preview: the draft renders in the sandbox with its defaults', (await frame.locator('h2.title').textContent()) === 'Good to know');
+await frame.locator('button.q').first().click();
+check('preview: the block is interactive', (await frame.locator('p.a').textContent()) === 'Very fast.');
+const color = await frame.locator('h2.title').evaluate((el) => getComputedStyle(el).color);
+check('preview: the site theme colors reach the block', color !== 'rgb(0, 0, 0)' && color !== '', color);
+await ad.fill('input[id] >> nth=0', 'Frequently asked').catch(() => undefined);
+const titleInput = ad.locator('details input').first();
+await titleInput.fill('Frequently asked');
+await ad.waitForTimeout(300);
+check('preview: trying the fields updates the preview', (await frame.locator('h2.title').textContent()) === 'Frequently asked');
+await ad.screenshot({ path: out + 'builder.png', fullPage: true });
+
+// The sandbox: no origin of its own (no cookies, no reaching the admin) and no network requests.
+const sandboxed = await ad.evaluate(() => {
+  const f = document.querySelector('iframe[title="Block preview"]');
+  try {
+    return f.contentWindow.document ? 'reachable' : 'unreachable';
+  } catch {
+    return 'unreachable';
+  }
+});
+check('sandbox: the admin page and the preview cannot reach each other', sandboxed === 'unreachable');
+const probe = `export const css = '';
+export default function (Vue) {
+  return { setup() {
+    const r = Vue.ref('pending');
+    let cookie = 'none';
+    try { cookie = document.cookie; } catch { cookie = 'denied'; }
+    globalThis['fe' + 'tch']('/api/admin/pages').then(() => (r.value = 'LEAK ' + cookie), () => (r.value = 'blocked ' + cookie));
+    return () => Vue.h('p', { id: 'probe' }, r.value);
+  } };
+}`;
+await ad.evaluate((code) => {
+  document
+    .querySelector('iframe[title="Block preview"]')
+    .contentWindow.postMessage({ target: 'profiterol-block-sandbox', code, props: {} }, '*');
+}, probe);
+await frame
+  .locator('#probe:not(:has-text("pending"))')
+  .waitFor({ timeout: 5000 })
+  .catch(() => undefined);
+const probed = await frame
+  .locator('#probe')
+  .textContent()
+  .catch(() => 'missing');
+check('sandbox: draft code cannot send requests or read cookies', probed === 'blocked denied', probed);
+await ad.reload({ waitUntil: 'networkidle' });
+
+// ---------- Approve, then use it in the editor ----------
+await ad.click('button:has-text("Approve for use")');
+await ad.waitForSelector('text=In use');
+check('approve: the owner approves the block', true);
+const blocks = await api(token, 'GET', '/admin/custom-blocks');
+const block = blocks.find((b) => b.label === 'Toggle list');
+
+const page = await api(token, 'POST', '/admin/pages', { name: `AI blocks ${Date.now()}` });
+await ad.goto(`${BASE}/admin/pages/${page.id}`, { waitUntil: 'networkidle' });
+const tile = ad.locator(`[data-type="${block.type}"]`);
+check('editor: the approved block is in the block library', (await tile.count()) === 1);
+await tile.click();
+await ad.locator('main h2.title').first().waitFor({ timeout: 10000 });
+check('editor: the block renders in the canvas', (await ad.locator('main h2.title').first().textContent()) === 'Good to know');
+await ad.waitForSelector('text=/Saved \\d/', { timeout: 15000 }).catch(() => undefined); // autosave
+const saved = await api(token, 'GET', `/admin/pages/${page.id}`);
+// The editor opens on the site's first language; the block went into that translation.
+const tr = saved.translations.find((t) => t.blocks.some((b) => b.type === block.type));
+check('editor: the page saves with the custom block', Boolean(tr));
+await api(token, 'POST', `/admin/pages/${page.id}/publish`);
+
+// ---------- The published page ----------
+const site = watch(await browser.newPage({ viewport: { width: 1280, height: 900 } }));
+await site.goto(`${BASE}/${tr.locale}/${tr.slug}`, { waitUntil: 'networkidle' });
+await site.locator('h2.title').waitFor({ timeout: 10000 });
+check('site: visitors see the custom block', (await site.locator('h2.title').textContent()) === 'Good to know');
+await site.locator('button.q').nth(1).click();
+check('site: and it works', (await site.locator('p.a').textContent()) === 'Checked and sandboxed.');
+await site.screenshot({ path: out + 'site.png', fullPage: true });
+
+// Disabled: the page shows nothing in its place.
+await api(token, 'POST', `/admin/custom-blocks/${block.id}/disable`);
+await site.goto(`${BASE}/${tr.locale}/${tr.slug}?v=2`, { waitUntil: 'networkidle' });
+check('site: a disabled block is not shown', (await site.locator('h2.title').count()) === 0);
+await api(token, 'POST', `/admin/custom-blocks/${block.id}/enable`);
+
+await browser.close();
+ai.close();
+finish();
