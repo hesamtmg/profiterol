@@ -135,26 +135,33 @@ class OpenAiProvider implements AiProvider {
       response_format: official
         ? { type: 'json_schema', json_schema: { name: 'answer', strict: true, schema: req.schema } }
         : { type: 'json_object' },
-      ...(official ? { max_completion_tokens: req.maxTokens } : { max_tokens: req.maxTokens }),
     };
-    let res: Response;
-    try {
-      res = await fetch(`${base}/chat/completions`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${this.opts.apiKey}` },
-        body: JSON.stringify(body),
-        signal: AbortSignal.timeout(TIMEOUT_MS),
-      });
-    } catch {
-      throw new AiError('Could not reach the AI provider. Check the base URL and the server’s internet access.');
-    }
-    const data = (await res.json().catch(() => null)) as {
-      error?: { message?: string };
-      choices?: { message?: { content?: string; refusal?: string }; finish_reason?: string }[];
-    } | null;
+    const send = async (maxTokens: number) => {
+      const sized = { ...body, ...(official ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens }) };
+      let res: Response;
+      try {
+        res = await fetch(`${base}/chat/completions`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', authorization: `Bearer ${this.opts.apiKey}` },
+          body: JSON.stringify(sized),
+          signal: AbortSignal.timeout(TIMEOUT_MS),
+        });
+      } catch {
+        throw new AiError('Could not reach the AI provider. Check the base URL and the server’s internet access.');
+      }
+      const data = (await res.json().catch(() => null)) as {
+        error?: { message?: string };
+        choices?: { message?: { content?: string; refusal?: string }; finish_reason?: string }[];
+      } | null;
+      return { res, data };
+    };
+    let { res, data } = await send(req.maxTokens);
+    // Some models allow shorter answers than asked for; the error says how long ("…supports at most 16384…"), so ask again within it.
+    const allowed = res.status === 400 ? Number(/at most (\d+)/i.exec(data?.error?.message ?? '')?.[1]) : NaN;
+    if (allowed > 0 && allowed < req.maxTokens) ({ res, data } = await send(allowed));
     if (!res.ok) {
       if (res.status === 401) throw new AiError('The AI provider refused the API key. Check it in your AI models.');
-      if (res.status === 404) throw new AiError('The AI provider does not know this model (or the base URL is wrong).');
+      if (res.status === 404) throw new AiError(await this.notFound(base, data?.error?.message));
       if (res.status === 429) throw new AiError('The AI provider is rate limiting this key. Wait a minute and try again.');
       throw new AiError(`The AI provider answered with an error (${res.status})${data?.error?.message ? `: ${data.error.message}` : ''}`);
     }
@@ -162,6 +169,38 @@ class OpenAiProvider implements AiProvider {
     if (choice?.message?.refusal) throw new AiError('The AI declined this request. Try describing the block differently.');
     if (choice?.finish_reason === 'length') throw new AiError('The answer was cut off because it got too long. Ask for a simpler block.');
     return parseAnswer(choice?.message?.content ?? '');
+  }
+
+  /**
+   * Explains a 404. Usually the model name is wrong (OpenAI's are lowercase, e.g. "gpt-5"), so the key's own model
+   * list is fetched to suggest the right ones; it only blames the address when even that list is missing.
+   */
+  private async notFound(base: string, providerMessage?: string): Promise<string> {
+    const said = providerMessage ? ` The provider said: “${providerMessage}”` : '';
+    let ids: string[] | null = null;
+    try {
+      const res = await fetch(`${base}/models`, {
+        headers: { authorization: `Bearer ${this.opts.apiKey}` },
+        signal: AbortSignal.timeout(15_000),
+      });
+      if (res.ok) ids = (((await res.json()) as { data?: { id?: string }[] }).data ?? []).flatMap((m) => (m.id ? [m.id] : []));
+    } catch {
+      // Unreachable: reported below as a likely wrong address.
+    }
+    if (ids === null) {
+      return this.opts.baseUrl
+        ? `The AI service was not found at ${base}. Check the base URL (for OpenAI leave it empty).${said}`
+        : `The AI provider does not know the model "${this.opts.model}".${said}`;
+    }
+    const wanted = this.opts.model.toLowerCase();
+    const close = ids.filter((id) => id.toLowerCase() === wanted);
+    if (close.length) return `Use the model name exactly as "${close[0]}" (names are case-sensitive).`;
+    const chat = ids
+      .filter((id) => /^(gpt|o\d|chatgpt)/i.test(id))
+      .sort()
+      .reverse();
+    const suggestions = (chat.length ? chat : ids).slice(0, 8).join(', ');
+    return `This key cannot use a model called "${this.opts.model}".${said}${suggestions ? ` Models this key can use include: ${suggestions}.` : ''}`;
   }
 }
 

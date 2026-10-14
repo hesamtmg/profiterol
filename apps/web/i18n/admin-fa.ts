@@ -1032,4 +1032,6 @@ export const adminFa: Record<string, string> = {
   "Attach pictures or files": "پیوست تصویر یا فایل",
   "Attach a design, screenshot, logo, PDF or text file. You can also paste or drop them here.": "طرح، اسکرین‌شات، لوگو، PDF یا فایل متنی پیوست کنید. می‌توانید آن‌ها را اینجا بچسبانید یا رها کنید.",
   "Remove {name}": "حذف {name}",
+  "Exactly as your provider writes it (OpenAI names are lowercase, e.g. gpt-5).": "دقیقاً همان‌طور که ارائه‌دهنده می‌نویسد (نام‌های OpenAI با حروف کوچک‌اند، مثلاً gpt-5).",
+  "Leave empty for OpenAI itself.": "برای خود OpenAI خالی بگذارید.",
 };

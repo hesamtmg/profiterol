@@ -70,10 +70,27 @@ before(async () => {
     let raw = '';
     req.on('data', (c) => (raw += c));
     req.on('end', () => {
+      res.setHeader('content-type', 'application/json');
+      // Like OpenAI: the key's model list, unknown models (names are case-sensitive) and per-model answer limits.
+      if (req.method === 'GET' && req.url === '/v1/models') {
+        res.end(JSON.stringify({ data: [{ id: 'gpt-6' }, { id: 'gpt-5' }, { id: 'small-model' }, { id: 'text-embedding-3-small' }] }));
+        return;
+      }
       const body = JSON.parse(raw);
       requests.push({ auth: req.headers.authorization, body });
+      if (body.model === 'GPT-6' || body.model === 'gpt-7') {
+        res.statusCode = 404;
+        res.end(JSON.stringify({ error: { message: `The model \`${body.model}\` does not exist or you do not have access to it.` } }));
+        return;
+      }
+      if (body.model === 'small-model' && body.max_completion_tokens > 16384) {
+        res.statusCode = 400;
+        res.end(
+          JSON.stringify({ error: { message: 'max_tokens is too large: 32000. This model supports at most 16384 completion tokens.' } }),
+        );
+        return;
+      }
       const answer = answers.shift() ?? { summary: 'ok', def_json: JSON.stringify(DEF), source: SOURCE };
-      res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(answer) } }] }));
     });
   });
@@ -151,6 +168,44 @@ describe('AI models (each admin their own, per site)', () => {
     const last = requests.at(-1);
     assert.equal(last.auth, `Bearer ${KEY}`);
     assert.equal(last.body.model, 'test-model');
+  });
+
+  test('OpenAI: a wrong model name is explained, with the names the key can use', async () => {
+    const add = async (model) =>
+      (await call('POST', '/admin/ai/connections', { provider: 'openai', model, apiKey: 'sk-proj-openai-1234', baseUrl: aiUrl })).body;
+    const test = async (c) => (await call('POST', `/admin/ai/connections/${c.id}/test`)).body;
+
+    const caps = await add('GPT-6');
+    assert.equal((await test(caps)).message, 'Use the model name exactly as "gpt-6" (names are case-sensitive).');
+    const unknown = await add('gpt-7');
+    const said = (await test(unknown)).message;
+    assert.match(said, /cannot use a model called "gpt-7"/);
+    assert.match(said, /gpt-6, gpt-5/);
+    assert.doesNotMatch(said, /embedding/, 'only chat models are suggested');
+
+    // A model with a smaller answer limit: asked again within it.
+    const small = await add('small-model');
+    assert.equal((await test(small)).ok, true);
+    const tries = requests.filter((r) => r.body.model === 'small-model').map((r) => r.body.max_completion_tokens);
+    assert.deepEqual(tries.slice(-1), [2000], 'the test asks for a short answer anyway');
+    for (const c of [caps, unknown, small]) await call('DELETE', `/admin/ai/connections/${c.id}`);
+  });
+
+  test("OpenAI: answers are asked again within a model's smaller limit", async () => {
+    const small = (
+      await call('POST', '/admin/ai/connections', {
+        provider: 'openai',
+        model: 'small-model',
+        apiKey: 'sk-proj-openai-1234',
+        baseUrl: aiUrl,
+      })
+    ).body;
+    const res = await call('POST', '/admin/custom-blocks', { prompt: 'A pricing table', connectionId: small.id });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    const tries = requests.filter((r) => r.body.model === 'small-model').map((r) => r.body.max_completion_tokens);
+    assert.deepEqual(tries.slice(-2), [32000, 16384]);
+    await call('DELETE', `/admin/custom-blocks/${res.body.id}`);
+    await call('DELETE', `/admin/ai/connections/${small.id}`);
   });
 
   test("another admin has their own models and cannot use someone else's", async () => {
