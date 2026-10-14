@@ -77,7 +77,7 @@ describe('adding sites', () => {
     ids.a = a.body.site.id;
 
     const b = await call('POST', '/admin/sites', {
-      body: { name: 'Site B', domain: B, ssl: true, demo: false, adminEmail: `boss@${B}`, adminLang: 'fa' },
+      body: { name: 'Site B', domain: B, ssl: true, demo: false, adminEmail: `boss@${B}`, adminLang: 'fa', defaultLocale: 'en' },
     });
     assert.equal(b.status, 201, JSON.stringify(b.body));
     assert.equal(b.body.site.ssl, 'queued');
@@ -110,6 +110,21 @@ describe('adding sites', () => {
     assert.equal(changed.body.adminLang, 'en');
     assert.equal((await call('GET', '/public/settings', { host: A, token: '' })).body.adminLang, 'en');
     assert.equal((await call('PATCH', `/admin/sites/${ids.a}`, { body: { adminLang: 'xx' } })).status, 400);
+  });
+
+  test("each site's language for visitors: set when adding it, changed in its settings", async () => {
+    assert.equal((await call('GET', '/public/settings', { host: A, token: '' })).body.defaultLocale, '', 'unset: the browser decides');
+    assert.equal((await call('GET', '/public/settings', { host: B, token: '' })).body.defaultLocale, 'en');
+
+    assert.equal((await call('PUT', '/admin/settings', { host: A, body: { defaultLocale: 'fa' } })).status, 200);
+    assert.equal((await call('GET', '/public/settings', { host: A, token: '' })).body.defaultLocale, 'fa');
+    assert.equal((await call('GET', '/public/settings', { host: B, token: '' })).body.defaultLocale, 'en', 'other sites keep theirs');
+    assert.equal(
+      (await call('PUT', '/admin/settings', { host: A, body: { defaultLocale: 'de' } })).status,
+      400,
+      'only the site’s languages',
+    );
+    assert.equal((await call('POST', '/admin/sites', { body: { domain: `d-${run}.test`, defaultLocale: 'xx' } })).status, 400);
   });
 
   test('an alias is the same site', async () => {

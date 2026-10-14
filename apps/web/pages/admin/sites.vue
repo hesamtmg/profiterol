@@ -3,6 +3,8 @@
  * The owner's control panel: every site in this installation, its addresses and its certificate. Adding a site
  * only needs its address; the certificate is asked for when the owner chooses, and its progress shows here.
  */
+import { locales } from '@profiterol/blocks';
+
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 type SslState = 'none' | 'queued' | 'running' | 'active' | 'failed';
@@ -55,7 +57,16 @@ const error = ref('');
 const busy = ref(false);
 const showAdd = ref(false);
 // A new site's panel opens in the owner's own admin language unless they pick another.
-const form = reactive({ domain: '', www: true, name: '', adminEmail: '', ssl: true, demo: true, adminLang: lang.value as SiteAdminLang });
+const form = reactive({
+  domain: '',
+  www: true,
+  name: '',
+  adminEmail: '',
+  ssl: true,
+  demo: true,
+  adminLang: lang.value as SiteAdminLang,
+  defaultLocale: '',
+});
 const adminLangs: { code: SiteAdminLang; label: string }[] = [
   { code: 'en', label: 'English' },
   { code: 'fa', label: 'فارسی' },
@@ -127,6 +138,7 @@ const addSite = () =>
         ssl: form.ssl,
         demo: form.demo,
         adminLang: form.adminLang,
+        defaultLocale: form.defaultLocale,
         ...(form.adminEmail ? { adminEmail: form.adminEmail } : {}),
       },
     });
@@ -317,6 +329,14 @@ onBeforeUnmount(() => clearInterval(timer));
             <option v-for="l in adminLangs" :key="l.code" :value="l.code">{{ $t(l.label) }}</option>
           </select>
           <p class="mt-1 text-xs text-slate-500">{{ $t('The site’s admin opens in it until a person picks another language there.') }}</p>
+        </div>
+        <div>
+          <label class="field-label" for="site-default-locale">{{ $t('Site language') }}</label>
+          <select id="site-default-locale" v-model="form.defaultLocale" class="input" data-testid="site-default-locale">
+            <option v-for="l in locales" :key="l.code" :value="l.code">{{ l.label }}</option>
+            <option value="">{{ $t('Each visitor’s browser language') }}</option>
+          </select>
+          <p class="mt-1 text-xs text-slate-500">{{ $t('What visitors see first. The site’s admin can change it in Settings.') }}</p>
         </div>
         <div class="space-y-2 self-end pb-1 text-sm">
           <label class="flex items-center gap-2">

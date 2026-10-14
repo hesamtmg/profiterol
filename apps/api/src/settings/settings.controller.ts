@@ -18,6 +18,7 @@ import {
   IsArray,
   IsBoolean,
   IsEmail,
+  IsIn,
   IsObject,
   IsOptional,
   IsString,
@@ -35,6 +36,7 @@ import {
   cleanSeo,
   cleanTheme,
   fontNames,
+  locales,
   mapRichText,
   validateBlocks,
 } from '@profiterol/blocks';
@@ -47,6 +49,8 @@ import { currentSite, currentSiteId, siteOrigin } from '../sites/site-context';
 import { Localized, SavedSection, SiteSettings } from './settings.entity';
 
 const MAX_SECTIONS = 60;
+/** A site's default language for visitors: one of its languages, or '' to follow each visitor's browser. */
+export const SITE_LOCALES = ['', ...locales.map((l) => l.code)];
 
 class MenuItemDto {
   @IsObject()
@@ -112,6 +116,10 @@ class UpdateSettingsDto {
   @IsOptional()
   @IsObject()
   business?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsIn(SITE_LOCALES)
+  defaultLocale?: string;
 
   @IsOptional()
   @ValidateIf((o: UpdateSettingsDto) => o.notifyEmail !== '')

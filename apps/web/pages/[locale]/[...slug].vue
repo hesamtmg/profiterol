@@ -7,7 +7,6 @@ import {
   articleJsonLd,
   breadcrumbJsonLd,
   cleanLoader,
-  defaultLocale,
   fontFaceCss,
   fontNames,
   getLocale,
@@ -15,6 +14,7 @@ import {
   publicOrigin,
   resolveTheme,
   seoTitle,
+  siteDefaultLocale,
   siteJsonLd,
   themeToCss,
   verificationMeta,
@@ -269,7 +269,7 @@ useHead({
       ? [
           ...alternates.value.map((a) => ({ rel: 'alternate', hreflang: a.locale, href: pageUrl(a.locale, a.slug) })),
           ...alternates.value
-            .filter((a) => a.locale === defaultLocale)
+            .filter((a) => a.locale === siteDefaultLocale(settings.value?.defaultLocale))
             .map((a) => ({ rel: 'alternate', hreflang: 'x-default', href: pageUrl(a.locale, a.slug) })),
         ]
       : []),

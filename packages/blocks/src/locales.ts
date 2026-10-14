@@ -19,3 +19,8 @@ export function getLocale(code: string): LocaleDef | undefined {
 export function isLocale(code: string): boolean {
   return locales.some((l) => l.code === code);
 }
+
+/** A site's default language: the one set in its settings (Admin → Settings), else the built-in default. */
+export function siteDefaultLocale(chosen?: string | null): string {
+  return chosen && isLocale(chosen) ? chosen : defaultLocale;
+}
