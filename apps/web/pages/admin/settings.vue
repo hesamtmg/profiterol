@@ -44,6 +44,7 @@ async function load() {
     s.maintenanceText[l.code] ??= '';
     loader.text[l.code] ??= '';
   }
+  s.defaultLocale ??= '';
   const seo = cleanSeo(s.seo);
   for (const l of locales) {
     seo.titleTemplate[l.code] ??= '';
@@ -77,11 +78,40 @@ async function save() {
   saving.value = true;
   message.value = null;
   try {
-    const { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business, seo } =
-      settings.value;
+    const {
+      siteName,
+      logo,
+      favicon,
+      theme,
+      menu,
+      maintenance,
+      maintenanceText,
+      notifyEmail,
+      fonts,
+      savedThemes,
+      loader,
+      business,
+      seo,
+      defaultLocale,
+    } = settings.value;
     await api('/admin/settings', {
       method: 'PUT',
-      body: { siteName, logo, favicon, theme, menu, maintenance, maintenanceText, notifyEmail, fonts, savedThemes, loader, business, seo },
+      body: {
+        siteName,
+        logo,
+        favicon,
+        theme,
+        menu,
+        maintenance,
+        maintenanceText,
+        notifyEmail,
+        fonts,
+        savedThemes,
+        loader,
+        business,
+        seo,
+        defaultLocale,
+      },
     });
     message.value = { kind: 'ok', text: translate('Settings saved') };
   } catch (err) {
@@ -122,6 +152,21 @@ onMounted(load);
           <FieldInput v-model="settings.logo" :field="imageField('logo', $t('Logo'))" />
           <FieldInput v-model="settings.favicon" :field="imageField('favicon', $t('Favicon'))" />
         </div>
+      </section>
+
+      <section class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">{{ $t('Site language') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">
+          {{
+            $t(
+              'The language visitors see the first time they open the site’s address. If they switch languages on the site, their choice is remembered for next time.',
+            )
+          }}
+        </p>
+        <select v-model="settings.defaultLocale" class="input mt-4 max-w-sm" data-testid="site-default-locale">
+          <option v-for="l in locales" :key="l.code" :value="l.code">{{ l.label }}</option>
+          <option value="">{{ $t('Each visitor’s browser language') }}</option>
+        </select>
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">

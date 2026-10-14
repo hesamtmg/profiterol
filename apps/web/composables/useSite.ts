@@ -18,6 +18,8 @@ export interface SiteSettings {
   loader: Partial<LoaderSettings>;
   business: Partial<BusinessInfo>;
   seo: Partial<SeoSettings>;
+  /** The language visitors land on at the root address; '' follows each visitor's browser. */
+  defaultLocale: string;
   /** The site's main address, e.g. https://example.com: canonical links and share links use it. */
   origin: string;
   /** Every address of the site, the main one first. */

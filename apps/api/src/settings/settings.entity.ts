@@ -74,6 +74,13 @@ export class SiteSettings {
   @Column({ type: 'jsonb', default: () => "'{}'" })
   seo: Partial<SeoSettings>;
 
+  /**
+   * The language visitors land on at the site's root address. Empty: their browser's language when the site has it,
+   * else the built-in default. Also the hreflang x-default.
+   */
+  @Column({ type: 'varchar', length: 8, default: '' })
+  defaultLocale: string;
+
   /** Where new form messages are emailed (needs SMTP_URL). Empty means inbox only. */
   @Column({ default: '' })
   notifyEmail: string;

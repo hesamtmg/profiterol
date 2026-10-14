@@ -42,7 +42,7 @@ import { CollectionsService } from '../collections/collections.service';
 import { MediaService } from '../media/media.module';
 import { imagesIn, PagesService } from '../pages/pages.service';
 import { SeedService } from '../seed.service';
-import { SettingsService } from '../settings/settings.controller';
+import { SettingsService, SITE_LOCALES } from '../settings/settings.controller';
 import { UsersService } from '../users/users.service';
 import { currentSiteId, runInSite, siteOrigin, type SiteContext } from './site-context';
 import { ADMIN_LANGS, type AdminLang, type Site, type SslStep, type SslStepState } from './site.entity';
@@ -89,6 +89,11 @@ class CreateSiteDto {
   @IsOptional()
   @IsIn(ADMIN_LANGS)
   adminLang?: AdminLang;
+
+  /** The language visitors land on; '' follows each visitor's browser. */
+  @IsOptional()
+  @IsIn(SITE_LOCALES)
+  defaultLocale?: string;
 }
 
 class UpdateSiteDto {
@@ -198,6 +203,7 @@ export class AdminSitesController {
     await runInSite(ctx, async () => {
       if (dto.demo !== false) await this.seed.seedSite(site.name);
       else await this.settings.update({ siteName: { fa: site.name, en: site.name } });
+      if (dto.defaultLocale) await this.settings.update({ defaultLocale: dto.defaultLocale });
       if (dto.adminEmail) {
         const { user, secret } = await this.users.invite(dto.adminEmail, 'admin', '');
         const link = `${siteOrigin(ctx)}/admin/reset?token=${secret}`;
