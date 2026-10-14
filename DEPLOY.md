@@ -167,6 +167,7 @@ The script stops with an error if any picture is left unused. Put the kasra repo
 ```sh
 cd /opt && git clone https://github.com/hesamtmg/kasra
 cd /opt/profiterol && git pull
+C="docker compose -f docker-compose.prod.yml"   # behind Oblivion: C="docker compose"
 $C run --rm backup backup
 $C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -v /opt/kasra/kasra-app/public/image:/kasra:ro \
   -e API_URL=http://api:3001/api -e SITE=kasradesignstudio.com api node /seed/seed-kasra.mjs --images /kasra --home
