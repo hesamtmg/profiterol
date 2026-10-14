@@ -157,7 +157,11 @@ onMounted(load);
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
         <h2 class="font-black">{{ $t('Site language') }}</h2>
         <p class="mt-1 text-xs text-slate-400">
-          {{ $t('The language visitors see first when they open the site’s address. They can still switch languages on the site.') }}
+          {{
+            $t(
+              'The language visitors see the first time they open the site’s address. If they switch languages on the site, their choice is remembered for next time.',
+            )
+          }}
         </p>
         <select v-model="settings.defaultLocale" class="input mt-4 max-w-sm" data-testid="site-default-locale">
           <option v-for="l in locales" :key="l.code" :value="l.code">{{ l.label }}</option>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { locales } from '@profiterol/blocks';
+import { LOCALE_COOKIE, locales } from '@profiterol/blocks';
 import type { MenuItem } from '~/composables/useSite';
 
 const props = defineProps<{
@@ -22,6 +22,14 @@ const open = ref(false);
 function localeHref(code: string) {
   const alt = props.alternates?.find((a) => a.locale === code);
   return alt?.slug ? `/${code}/${alt.slug}` : `/${code}`;
+}
+
+/**
+ * The visitor's own choice wins over the site's first-visit language next time they open the root address. Set in the
+ * browser, so cached pages never carry it.
+ */
+function rememberLocale(code: string) {
+  document.cookie = `${LOCALE_COOKIE}=${code}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
 }
 </script>
 
@@ -59,6 +67,7 @@ function localeHref(code: string) {
           class="rounded-full border px-3 py-1 text-xs font-medium"
           :class="isGlass ? 'border-white/40 hover:bg-white/15' : 'border-slate-200 hover:border-primary hover:text-primary'"
           :lang="l.code"
+          @click="rememberLocale(l.code)"
         >
           {{ l.label }}
         </a>

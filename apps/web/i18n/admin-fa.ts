@@ -871,7 +871,7 @@ export const adminFa: Record<string, string> = {
   "Admin panel language": "زبان پنل مدیریت",
   "Site language": "زبان سایت",
   "Each visitor’s browser language": "زبان مرورگر هر بازدیدکننده",
-  "The language visitors see first when they open the site’s address. They can still switch languages on the site.": "زبانی که بازدیدکنندگان با باز کردن نشانی سایت اول می‌بینند. همچنان می‌توانند در سایت زبان را عوض کنند.",
+  "The language visitors see the first time they open the site’s address. If they switch languages on the site, their choice is remembered for next time.": "زبانی که بازدیدکنندگان بار اول با باز کردن نشانی سایت می‌بینند. اگر در سایت زبان را عوض کنند، انتخابشان برای دفعه‌های بعد به خاطر سپرده می‌شود.",
   "What visitors see first. The site’s admin can change it in Settings.": "زبانی که بازدیدکنندگان اول می‌بینند. مدیر سایت می‌تواند آن را در تنظیمات عوض کند.",
   "Each person’s browser language": "زبان مرورگر هر شخص",
   "The site’s admin opens in it until a person picks another language there.": "پنل مدیریت سایت با این زبان باز می‌شود، تا وقتی که هر شخص زبان دیگری را در آن انتخاب کند.",
