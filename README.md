@@ -50,6 +50,32 @@ npm run dev:web
 
 The API validation and the editor's property form come from the definition automatically.
 
+## Custom blocks built by AI
+
+Admins can have an AI build a block the editor does not have ("a pricing table with three plans…"), without a
+developer or a deploy:
+
+1. Each admin connects **their own AI models** in the block builder (**Site settings → Open the block builder**, or
+   **Build with AI** in the editor's block library). A model is a provider (Anthropic, OpenAI, or any
+   OpenAI-compatible service such as OpenRouter or Ollama), any model name, the admin's own API key and a daily
+   limit. An admin can add as many as they like and pick one per request. Connections belong to one admin on one
+   site: other admins, and the same admin on another site, never see or use them. Keys are stored encrypted
+   (AES-GCM, keyed from `JWT_SECRET`) and never sent back to the browser.
+2. Describe the block, and attach pictures (a design, a screenshot, a logo), PDFs or text files if that helps: they
+   are paste-able and drag-and-droppable, go to the AI with that request only, and the conversation keeps just their
+   names and small previews. The AI writes its definition (fields + defaults, as above) and a Vue component. The API checks
+   both and compiles the component (`apps/api/src/custom-blocks/compile.ts`). When a check fails, the problems go
+   back to the AI to fix.
+3. Try it in the sandboxed preview, ask for changes, or edit the code by hand. Drafts run only in that frame. It has
+   no origin of its own and cannot make requests, so unapproved code never touches the admin.
+4. The **owner** approves it. It then appears in the editor under **Custom blocks (AI)** and works like any block.
+   Later changes stay in the draft until approved again. A block can be disabled, and it can be deleted once no page
+   uses it.
+
+The component can only import a few functions from `vue` and may not use `v-html`, `fetch`, `document`, cookies,
+storage or `eval`. The page's Content-Security-Policy still applies on top of that. Approved blocks render in the
+browser only, never on the server.
+
 ## Collections
 
 Collections hold content that repeats: projects, blog posts, team members. Each has its own fields (set in **Admin → Collections → Fields & settings**) and every item has a version per language.

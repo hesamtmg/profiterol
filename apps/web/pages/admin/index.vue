@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { getBlock } from '@profiterol/blocks';
+import { CUSTOM_BLOCK_PREFIX, getBlock } from '@profiterol/blocks';
 import TemplatePicker from '~/components/admin/TemplatePicker.vue';
 import type { AdminPage } from '~/composables/useAdminTypes';
 
@@ -66,7 +66,9 @@ function liveUrl(page: AdminPage, locale = 'fa') {
 /** The first few block types of the page, shown as a mini preview on the card. */
 function outline(page: AdminPage) {
   const t = page.translations.find((x) => x.locale === 'en') ?? page.translations[0];
-  return (t?.blocks ?? []).slice(0, 5).map((b) => getBlock(b.type));
+  // Custom blocks (made with the AI block builder) are only known in the editor.
+  const custom = { icon: 'mdi-creation', label: 'Custom block' };
+  return (t?.blocks ?? []).slice(0, 5).map((b) => getBlock(b.type) ?? (b.type.startsWith(CUSTOM_BLOCK_PREFIX) ? custom : undefined));
 }
 
 onMounted(load);

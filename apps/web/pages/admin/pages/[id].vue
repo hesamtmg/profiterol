@@ -10,6 +10,7 @@ import {
   findBlock,
   isTopLevelOnly,
   newBlockId,
+  registerCustomBlocks,
   resizeColumns,
   styleFields,
   getBlock,
@@ -105,7 +106,25 @@ const categories: { key: BlockCategory; label: string }[] = [
   { key: 'media', label: 'Media' },
   { key: 'contact', label: 'Contact' },
   { key: 'classic', label: 'Classic sections (minicms)' },
+  { key: 'custom', label: 'Custom blocks (AI)' },
 ];
+
+/** The site's approved custom blocks (made with the AI block builder), from the API. */
+const customDefs = ref<BlockDef[]>([]);
+const libraryFor = (category: BlockCategory) =>
+  category === 'custom' ? customDefs.value : blockDefs.filter((b) => b.category === category);
+
+/** Makes the site's custom blocks known to the editor (getBlock, createBlock) and to BlockView, which loads their code. */
+async function loadCustomBlocks() {
+  try {
+    const schema = await api<{ custom: { def: BlockDef; url: string }[] }>('/admin/pages/schema');
+    registerCustomBlocks(schema.custom.map((c) => c.def));
+    setCustomBlockScripts(schema.custom.map((c) => ({ type: c.def.type, url: c.url, defaults: c.def.defaults })));
+    customDefs.value = schema.custom.map((c) => c.def);
+  } catch {
+    // The built-in blocks still work; custom ones on the page show as unknown.
+  }
+}
 
 // ---------- Loading & saving ----------
 
@@ -565,10 +584,12 @@ onBeforeRouteLeave(() => (dirty.value ? confirm(translate('You have unsaved chan
 
 watch(locale, () => (selectedId.value = null));
 
-onMounted(() => {
-  load();
+onMounted(async () => {
   window.addEventListener('keydown', onKey);
   window.addEventListener('beforeunload', beforeUnload);
+  // First, so the page's custom blocks are known when it renders.
+  await loadCustomBlocks();
+  load();
 });
 onBeforeUnmount(() => {
   window.removeEventListener('keydown', onKey);
@@ -741,10 +762,24 @@ function deleteTheme(key: string) {
               </template>
             </draggable>
           </div>
-          <div v-for="cat in categories" :key="cat.key" class="mt-3">
-            <h3 class="px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">{{ $t(cat.label) }}</h3>
+          <div
+            v-for="cat in categories"
+            v-show="libraryFor(cat.key).length || (cat.key === 'custom' && isAdmin)"
+            :key="cat.key"
+            class="mt-3"
+          >
+            <h3 class="flex items-center justify-between px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+              {{ $t(cat.label) }}
+              <NuxtLink
+                v-if="cat.key === 'custom' && isAdmin"
+                to="/admin/blocks"
+                class="normal-case tracking-normal text-[#00a998] hover:underline"
+              >
+                {{ $t('Build with AI') }}
+              </NuxtLink>
+            </h3>
             <draggable
-              :list="blockDefs.filter((b) => b.category === cat.key)"
+              :list="libraryFor(cat.key)"
               :group="{ name: 'blocks', pull: 'clone', put: false }"
               :clone="cloneFromLibrary"
               :sort="false"

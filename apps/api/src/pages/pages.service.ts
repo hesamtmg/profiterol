@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
+  type BlockDef,
   BlockNode,
   cleanTheme,
   findBlock,
@@ -22,6 +23,7 @@ import {
 } from '@profiterol/blocks';
 import { DataSource, EntityManager, IsNull, LessThanOrEqual, Not, QueryFailedError, Repository } from 'typeorm';
 import { CollectionsService } from '../collections/collections.service';
+import { CustomBlocksService } from '../custom-blocks/custom-blocks.service';
 import { SettingsService } from '../settings/settings.controller';
 import { cleanHtml } from '../common/rich-text';
 import { purgePageCache } from '../common/page-cache';
@@ -60,6 +62,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     private readonly collections: CollectionsService,
     private readonly settings: SettingsService,
     private readonly sites: SitesService,
+    private readonly customBlocks: CustomBlocksService,
   ) {}
 
   /** Scheduled publishing: checks every 30 seconds for pages due to go online or offline. */
@@ -132,7 +135,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
         );
       }),
     );
-    translations.forEach((t) => this.assertBlocks(t.blocks, t.locale));
+    const custom = await this.customBlocks.liveDefs();
+    translations.forEach((t) => this.assertBlocks(t.blocks, t.locale, custom));
 
     const siteId = currentSiteId();
     return this.save(async (manager) => {
@@ -142,7 +146,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
         name: dto.name,
         isHome: dto.isHome ?? false,
         noindex: dto.noindex ?? false,
-        translations: translations.map((t) => manager.create(PageTranslation, this.toTranslation(t))),
+        translations: translations.map((t) => manager.create(PageTranslation, this.toTranslation(t, custom))),
       });
       return manager.save(page);
     });
@@ -150,7 +154,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
 
   async update(id: string, dto: UpdatePageDto, author = '') {
     const page = await this.get(id);
-    dto.translations?.forEach((t) => this.assertBlocks(t.blocks, t.locale));
+    const custom = dto.translations ? await this.customBlocks.liveDefs() : [];
+    dto.translations?.forEach((t) => this.assertBlocks(t.blocks, t.locale, custom));
     const customFonts = dto.theme ? fontNames((await this.settings.get()).fonts) : [];
 
     return this.save(async (manager) => {
@@ -167,8 +172,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
 
       for (const t of dto.translations ?? []) {
         const existing = page.translations.find((x) => x.locale === t.locale);
-        if (existing) Object.assign(existing, this.toTranslation(t));
-        else page.translations.push(manager.create(PageTranslation, this.toTranslation(t)));
+        if (existing) Object.assign(existing, this.toTranslation(t, custom));
+        else page.translations.push(manager.create(PageTranslation, this.toTranslation(t, custom)));
       }
       const saved = await manager.save(page);
       if (dto.translations || dto.theme !== undefined || dto.name !== undefined) await this.record(manager, saved, 'save', author);
@@ -422,7 +427,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     return slug;
   }
 
-  private toTranslation(t: TranslationDto | (Partial<TranslationDto> & { locale: string })) {
+  private toTranslation(t: TranslationDto | (Partial<TranslationDto> & { locale: string }), custom: BlockDef[]) {
     return {
       siteId: currentSite().id,
       locale: t.locale,
@@ -431,12 +436,13 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       seoTitle: t.seoTitle ?? '',
       seoDescription: t.seoDescription ?? '',
       ogImage: t.ogImage ?? '',
-      blocks: mapRichText((t.blocks ?? []) as BlockNode[], cleanHtml),
+      blocks: mapRichText((t.blocks ?? []) as BlockNode[], cleanHtml, custom),
     };
   }
 
-  private assertBlocks(blocks: unknown, locale: string) {
-    const errors = validateBlocks(blocks);
+  /** `custom`: the site's approved custom blocks, which pages may use besides the built-in ones. */
+  private assertBlocks(blocks: unknown, locale: string, custom: BlockDef[]) {
+    const errors = validateBlocks(blocks, custom);
     if (errors.length) {
       throw new BadRequestException({
         message: `Invalid blocks for "${locale}"`,

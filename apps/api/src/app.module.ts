@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AiModule } from './ai/ai.module';
 import { AuthModule } from './auth/auth.module';
 import { CollectionsModule } from './collections/collections.module';
 import { config } from './config';
+import { CustomBlocksModule } from './custom-blocks/custom-blocks.module';
 import { dataSourceOptions } from './data-source';
 import { FormsModule } from './forms/forms.module';
 import { HealthController } from './health.controller';
@@ -33,6 +35,8 @@ import { UsersModule } from './users/users.module';
     SettingsModule,
     MediaModule,
     FormsModule,
+    AiModule,
+    CustomBlocksModule,
   ],
   controllers: [HealthController, AdminSitesController, InternalSitesController],
   providers: [SeedService],

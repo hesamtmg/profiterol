@@ -23,6 +23,7 @@ const SUITES = [
   'import',
   'business',
   'sites',
+  'custom-blocks',
 ];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;

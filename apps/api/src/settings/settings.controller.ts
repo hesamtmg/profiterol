@@ -42,7 +42,8 @@ import {
 } from '@profiterol/blocks';
 import { randomBytes } from 'node:crypto';
 import { cleanHtml } from '../common/rich-text';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { liveCustomDefs } from '../custom-blocks/live-defs';
 import { AuthGuard, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
 import { currentSite, currentSiteId, siteOrigin } from '../sites/site-context';
@@ -200,6 +201,7 @@ export class SectionsController {
   constructor(
     private readonly settings: SettingsService,
     @InjectRepository(SiteSettings) private readonly repo: Repository<SiteSettings>,
+    private readonly dataSource: DataSource,
   ) {}
 
   @Get()
@@ -211,9 +213,10 @@ export class SectionsController {
   async save(@Body() dto: SaveSectionDto) {
     const name = dto.name.trim();
     if (!name) throw new BadRequestException('Give the section a name');
-    const errors = validateBlocks([dto.block]);
+    const custom = await liveCustomDefs(this.dataSource);
+    const errors = validateBlocks([dto.block], custom);
     if (errors.length) throw new BadRequestException({ message: 'This block cannot be saved', errors: errors.slice(0, 10) });
-    const { data: _data, ...block } = mapRichText([dto.block as unknown as BlockNode], cleanHtml)[0];
+    const { data: _data, ...block } = mapRichText([dto.block as unknown as BlockNode], cleanHtml, custom)[0];
     const current = await this.settings.get();
     const sections = current.sections ?? [];
     if (sections.length >= MAX_SECTIONS) throw new BadRequestException(`You can keep up to ${MAX_SECTIONS} saved sections`);

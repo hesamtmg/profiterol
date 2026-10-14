@@ -17,7 +17,8 @@ export function contentSecurityPolicy(nonce: string) {
     // Editors may use pictures and videos hosted elsewhere, so any HTTPS address is allowed for media.
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob: https:",
-    `frame-src ${FRAMES.join(' ')}`,
+    // 'self': the AI block builder's sandboxed preview (server/routes/admin/block-sandbox.get.ts).
+    `frame-src 'self' ${FRAMES.join(' ')}`,
     "connect-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
