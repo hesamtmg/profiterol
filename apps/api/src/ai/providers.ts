@@ -1,15 +1,93 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AiPart } from './attachments';
 
-export type AiProviderName = 'anthropic' | 'openai' | 'openai-compatible';
-export const AI_PROVIDERS: AiProviderName[] = ['anthropic', 'openai', 'openai-compatible'];
+export type AiProviderName = 'anthropic' | 'openai' | 'openrouter' | 'gemini' | 'groq' | 'ollama' | 'openai-compatible';
 
-/** Models offered in the settings form for each provider; any other model name can be typed in. */
-export const SUGGESTED_MODELS: Record<AiProviderName, string[]> = {
-  anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'],
-  openai: [],
-  'openai-compatible': [],
+/**
+ * What the AI models form needs to know about each provider. Everything but Anthropic speaks OpenAI's Chat
+ * Completions API, so the presets differ only in their address, whether a key is needed, and where to get one.
+ */
+export interface AiPreset {
+  label: string;
+  /** Used when the admin leaves the base URL empty ('' = they must enter one). */
+  baseUrl: string;
+  keyRequired: boolean;
+  /** Where to get a key (shown in the form). */
+  keyUrl: string;
+  /** Has a free tier or runs for free; the form says so, with its limits. */
+  free: boolean;
+  /** A short note for the form. */
+  note: string;
+}
+
+export const AI_PRESETS: Record<AiProviderName, AiPreset> = {
+  anthropic: {
+    label: 'Anthropic (Claude)',
+    baseUrl: '',
+    keyRequired: true,
+    keyUrl: 'https://console.anthropic.com/settings/keys',
+    free: false,
+    note: '',
+  },
+  openai: {
+    label: 'OpenAI',
+    baseUrl: 'https://api.openai.com/v1',
+    keyRequired: true,
+    keyUrl: 'https://platform.openai.com/api-keys',
+    free: false,
+    note: '',
+  },
+  openrouter: {
+    label: 'OpenRouter (many models, some free)',
+    baseUrl: 'https://openrouter.ai/api/v1',
+    keyRequired: true,
+    keyUrl: 'https://openrouter.ai/keys',
+    free: true,
+    note: 'Models ending in ":free" cost nothing, with a daily request limit.',
+  },
+  gemini: {
+    label: 'Google Gemini (free tier)',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai',
+    keyRequired: true,
+    keyUrl: 'https://aistudio.google.com/apikey',
+    free: true,
+    note: 'The free tier has daily limits, and Google may use free-tier requests to improve its products.',
+  },
+  groq: {
+    label: 'Groq (free tier)',
+    baseUrl: 'https://api.groq.com/openai/v1',
+    keyRequired: true,
+    keyUrl: 'https://console.groq.com/keys',
+    free: true,
+    note: 'The free tier has per-minute and daily limits.',
+  },
+  ollama: {
+    label: 'Ollama (your own server, free)',
+    baseUrl: 'http://localhost:11434/v1',
+    keyRequired: false,
+    keyUrl: '',
+    free: true,
+    note: 'Runs models on your own machine. When Profiterol runs in Docker, use the Ollama container’s name (e.g. http://ollama:11434/v1) or http://host.docker.internal:11434/v1 as the base URL.',
+  },
+  'openai-compatible': {
+    label: 'Other OpenAI-compatible service',
+    baseUrl: '',
+    keyRequired: false,
+    keyUrl: '',
+    free: false,
+    note: 'Any service that speaks OpenAI’s Chat Completions API (LM Studio, vLLM, Together, …).',
+  },
 };
+
+export const AI_PROVIDERS = Object.keys(AI_PRESETS) as AiProviderName[];
+
+/** Models offered in the form before the provider's own list is loaded; any other model name can be typed in. */
+export const SUGGESTED_MODELS: Partial<Record<AiProviderName, string[]>> = {
+  anthropic: ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-fable-5-1'],
+};
+
+/** The address requests go to: the admin's own, else the provider's. */
+export const baseUrlOf = (provider: AiProviderName, baseUrl?: string) => (baseUrl || AI_PRESETS[provider].baseUrl).replace(/\/+$/, '');
 
 export interface AiMessage {
   role: 'user' | 'assistant';
@@ -124,7 +202,7 @@ class OpenAiProvider implements AiProvider {
 
   async generateJson(req: AiRequest) {
     const official = this.opts.provider === 'openai';
-    const base = (this.opts.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
+    const base = baseUrlOf(this.opts.provider, this.opts.baseUrl);
     const body = {
       model: this.opts.model,
       messages: [
@@ -142,7 +220,7 @@ class OpenAiProvider implements AiProvider {
       try {
         res = await fetch(`${base}/chat/completions`, {
           method: 'POST',
-          headers: { 'content-type': 'application/json', authorization: `Bearer ${this.opts.apiKey}` },
+          headers: { 'content-type': 'application/json', ...authHeader(this.opts.apiKey) },
           body: JSON.stringify(sized),
           signal: AbortSignal.timeout(TIMEOUT_MS),
         });
@@ -180,7 +258,7 @@ class OpenAiProvider implements AiProvider {
     let ids: string[] | null = null;
     try {
       const res = await fetch(`${base}/models`, {
-        headers: { authorization: `Bearer ${this.opts.apiKey}` },
+        headers: authHeader(this.opts.apiKey),
         signal: AbortSignal.timeout(15_000),
       });
       if (res.ok) ids = (((await res.json()) as { data?: { id?: string }[] }).data ?? []).flatMap((m) => (m.id ? [m.id] : []));
@@ -196,12 +274,60 @@ class OpenAiProvider implements AiProvider {
     const close = ids.filter((id) => id.toLowerCase() === wanted);
     if (close.length) return `Use the model name exactly as "${close[0]}" (names are case-sensitive).`;
     const chat = ids
-      .filter((id) => /^(gpt|o\d|chatgpt)/i.test(id))
+      .filter((id) => this.opts.provider !== 'openai' || /^(gpt|o\d|chatgpt)/i.test(id))
       .sort()
       .reverse();
     const suggestions = (chat.length ? chat : ids).slice(0, 8).join(', ');
     return `This key cannot use a model called "${this.opts.model}".${said}${suggestions ? ` Models this key can use include: ${suggestions}.` : ''}`;
   }
+}
+
+/** Keyless local servers (Ollama) get no Authorization header at all. */
+const authHeader = (key: string): Record<string, string> => (key ? { authorization: `Bearer ${key}` } : {});
+
+export interface ListedModel {
+  id: string;
+  /** Costs nothing to use (OpenRouter's ":free" models, and everything on a local Ollama). */
+  free: boolean;
+}
+
+/**
+ * The models a key can use, straight from the provider, so admins pick a real name instead of guessing one. Text
+ * models only where the provider says which are which.
+ */
+export async function listModels(opts: Omit<ProviderOptions, 'model'>): Promise<ListedModel[]> {
+  if (opts.provider === 'anthropic') {
+    const client = new Anthropic({ apiKey: opts.apiKey, baseURL: opts.baseUrl || undefined, timeout: 20_000, maxRetries: 1 });
+    try {
+      const out: ListedModel[] = [];
+      for await (const m of client.models.list()) out.push({ id: m.id, free: false });
+      return out;
+    } catch (err) {
+      throw anthropicError(err);
+    }
+  }
+  const base = baseUrlOf(opts.provider, opts.baseUrl);
+  if (!base) throw new AiError('Enter the base URL of the AI service.');
+  let res: Response;
+  try {
+    res = await fetch(`${base}/models`, { headers: authHeader(opts.apiKey), signal: AbortSignal.timeout(20_000) });
+  } catch {
+    throw new AiError(`Could not reach ${base}. Check the base URL, and that the server can reach it.`);
+  }
+  if (res.status === 401 || res.status === 403) throw new AiError('The AI provider refused the API key.');
+  if (!res.ok) throw new AiError(`The AI provider did not list its models (${res.status}). Type the model name instead.`);
+  const data = ((await res.json().catch(() => null)) ?? {}) as {
+    data?: { id?: string; architecture?: { output_modalities?: string[] } }[];
+  };
+  const list = (data.data ?? []).flatMap((m) => {
+    // Gemini lists "models/gemini-…"; requests use the bare name.
+    const id = (m.id ?? '').replace(/^models\//, '');
+    if (!id || /embed|whisper|tts|moderation|dall-e|image-|guard/i.test(id)) return [];
+    const outputs = m.architecture?.output_modalities;
+    if (outputs && !outputs.includes('text')) return [];
+    return [{ id, free: opts.provider === 'ollama' || id.endsWith(':free') }];
+  });
+  return list.sort((a, b) => Number(b.free) - Number(a.free) || a.id.localeCompare(b.id));
 }
 
 export function createProvider(opts: ProviderOptions): AiProvider {

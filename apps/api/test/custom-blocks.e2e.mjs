@@ -73,7 +73,19 @@ before(async () => {
       res.setHeader('content-type', 'application/json');
       // Like OpenAI: the key's model list, unknown models (names are case-sensitive) and per-model answer limits.
       if (req.method === 'GET' && req.url === '/v1/models') {
-        res.end(JSON.stringify({ data: [{ id: 'gpt-6' }, { id: 'gpt-5' }, { id: 'small-model' }, { id: 'text-embedding-3-small' }] }));
+        res.end(
+          JSON.stringify({
+            data: [
+              { id: 'gpt-6' },
+              { id: 'gpt-5' },
+              { id: 'small-model' },
+              { id: 'text-embedding-3-small' },
+              { id: 'models/gemini-pro' },
+              { id: 'meta/llama:free' },
+              { id: 'image-maker', architecture: { output_modalities: ['image'] } },
+            ],
+          }),
+        );
         return;
       }
       const body = JSON.parse(raw);
@@ -206,6 +218,34 @@ describe('AI models (each admin their own, per site)', () => {
     assert.deepEqual(tries.slice(-2), [32000, 16384]);
     await call('DELETE', `/admin/custom-blocks/${res.body.id}`);
     await call('DELETE', `/admin/ai/connections/${small.id}`);
+  });
+
+  test('presets: model lists (free first), and Ollama without a key', async () => {
+    const listed = await call('POST', '/admin/ai/connections/models', { provider: 'openrouter', apiKey: 'sk-or-1234', baseUrl: aiUrl });
+    assert.equal(listed.status, 200, JSON.stringify(listed.body));
+    const ids = listed.body.models.map((m) => m.id);
+    assert.equal(ids[0], 'meta/llama:free', 'free models first');
+    assert.ok(listed.body.models[0].free);
+    assert.ok(ids.includes('gemini-pro'), 'Gemini\'s "models/" prefix is dropped');
+    assert.ok(!ids.includes('text-embedding-3-small') && !ids.includes('image-maker'), 'only text models');
+    assert.equal((await call('POST', '/admin/ai/connections/models', { provider: 'groq' })).status, 400, 'a key is needed to list');
+
+    const meta = (await call('GET', '/admin/ai/connections')).body;
+    assert.deepEqual(meta.providers, ['anthropic', 'openai', 'openrouter', 'gemini', 'groq', 'ollama', 'openai-compatible']);
+    assert.equal(meta.presets.groq.baseUrl, 'https://api.groq.com/openai/v1');
+
+    const local = await call('POST', '/admin/ai/connections', { provider: 'ollama', model: 'qwen-coder', baseUrl: aiUrl });
+    assert.equal(local.status, 201, 'Ollama needs no key');
+    const before = requests.length;
+    assert.equal((await call('POST', `/admin/ai/connections/${local.body.id}/test`)).body.ok, true);
+    assert.equal(requests.length, before + 1);
+    assert.equal(requests.at(-1).auth, undefined, 'no Authorization header without a key');
+    assert.equal(
+      (await call('POST', '/admin/ai/connections', { provider: 'openai-compatible', model: 'x', apiKey: 'k' })).status,
+      400,
+      'a custom service needs its address',
+    );
+    await call('DELETE', `/admin/ai/connections/${local.body.id}`);
   });
 
   test("another admin has their own models and cannot use someone else's", async () => {

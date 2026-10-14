@@ -56,8 +56,12 @@ const ai = createServer((req, res) => {
   let raw = '';
   req.on('data', (c) => (raw += c));
   req.on('end', () => {
-    aiRequests.push(JSON.parse(raw));
     res.setHeader('content-type', 'application/json');
+    if (req.method === 'GET') {
+      res.end(JSON.stringify({ data: [{ id: 'big-model' }, { id: 'meta/llama:free' }, { id: 'qwen/coder:free' }] }));
+      return;
+    }
+    aiRequests.push(JSON.parse(raw));
     const answer = { summary: 'A list of questions that open on click.', def_json: JSON.stringify(DEF), source: SOURCE };
     res.end(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(answer) } }] }));
   });
@@ -79,6 +83,23 @@ await ad.waitForURL(`${BASE}/admin`);
 await ad.goto(`${BASE}/admin/blocks`, { waitUntil: 'networkidle' });
 await ad.waitForSelector('[data-testid="ai-connections"] form');
 check('ai models: with none yet, the builder asks to connect one', (await ad.locator('text=Connect an AI model first').count()) === 1);
+// A preset: its note, a link for the key, and the provider's own model list (free ones first).
+await ad.selectOption('#ai-provider', 'openrouter');
+check('presets: OpenRouter says which models are free', (await ad.locator('text=cost nothing').count()) === 1);
+check('presets: and where to get a key', (await ad.locator('a[href="https://openrouter.ai/keys"]').count()) === 1);
+await ad.fill('#ai-key', 'sk-or-e2e-0000');
+await ad.fill('#ai-base', `http://127.0.0.1:${ai.address().port}/v1`);
+await ad.click('button:has-text("Load models")');
+await ad.waitForSelector('text=3 models found');
+const offered = await ad.$$eval('#ai-models option', (os) => os.map((o) => o.value));
+check(
+  'presets: loaded models, only the free ones while "Free models only" is ticked',
+  offered.join() === 'meta/llama:free,qwen/coder:free',
+  offered.join(),
+);
+await ad.selectOption('#ai-provider', 'ollama');
+check('presets: Ollama needs no key', (await ad.getAttribute('#ai-key', 'required')) === null);
+
 await ad.selectOption('#ai-provider', 'openai-compatible');
 await ad.fill('#ai-model', 'stand-in');
 await ad.fill('#ai-name', 'Stand-in');

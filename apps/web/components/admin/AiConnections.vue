@@ -4,7 +4,17 @@
  * provider, model, API key and daily limit; other admins never see or use them. Keys are sent once and never come
  * back: the API keeps them encrypted and shows only their last characters.
  */
-export type AiProvider = 'anthropic' | 'openai' | 'openai-compatible';
+export type AiProvider = 'anthropic' | 'openai' | 'openrouter' | 'gemini' | 'groq' | 'ollama' | 'openai-compatible';
+
+/** What the API says about each provider (apps/api/src/ai/providers.ts AI_PRESETS). */
+interface AiPreset {
+  label: string;
+  baseUrl: string;
+  keyRequired: boolean;
+  keyUrl: string;
+  free: boolean;
+  note: string;
+}
 
 export interface AiConnectionView {
   id: string;
@@ -22,8 +32,10 @@ const emit = defineEmits<{ change: [list: AiConnectionView[]] }>();
 
 const api = useApi();
 const list = ref<AiConnectionView[]>([]);
-const providers = ref<AiProvider[]>(['anthropic', 'openai', 'openai-compatible']);
-const suggested = ref<Record<AiProvider, string[]>>({ anthropic: [], openai: [], 'openai-compatible': [] });
+const providers = ref<AiProvider[]>([]);
+const presets = ref<Partial<Record<AiProvider, AiPreset>>>({});
+const suggested = ref<Partial<Record<AiProvider, string[]>>>({});
+const preset = computed(() => presets.value[form.provider]);
 const busy = ref(false);
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -41,19 +53,56 @@ const empty = () => ({
 const form = reactive(empty());
 const editing = ref(false);
 
-const providerLabels: Record<AiProvider, string> = {
-  anthropic: 'Anthropic (Claude)',
-  openai: 'OpenAI',
-  'openai-compatible': 'OpenAI-compatible (OpenRouter, Ollama, …)',
-};
+const providerLabel = (p: AiProvider) => presets.value[p]?.label ?? p;
+
+/** The provider's own model list, from "Load models". */
+const loaded = ref<{ provider: AiProvider; models: { id: string; free: boolean }[] } | null>(null);
+const freeOnly = ref(false);
+const loadedModels = computed(() => (loaded.value?.provider === form.provider ? loaded.value.models : null));
+const hasFree = computed(() => Boolean(loadedModels.value?.some((m) => m.free)));
+
+async function loadModels() {
+  await run(async () => {
+    const res = await api<{ models: { id: string; free: boolean }[] }>('/admin/ai/connections/models', {
+      method: 'POST',
+      body: {
+        provider: form.provider,
+        apiKey: form.apiKey || undefined,
+        baseUrl: form.baseUrl || undefined,
+        connectionId: form.id || undefined,
+      },
+    });
+    loaded.value = { provider: form.provider, models: res.models };
+    freeOnly.value = res.models.some((m) => m.free) && presets.value[form.provider]?.free === true && form.provider !== 'ollama';
+    message.value = {
+      kind: res.models.length ? 'ok' : 'error',
+      text: res.models.length
+        ? translate('{n} models found. Pick one in the Model field.', { n: res.models.length })
+        : translate('The provider listed no models. Type the model name instead.'),
+    };
+  });
+}
+
+// Another provider: its models, not the last one's.
+watch(
+  () => form.provider,
+  (p, old) => {
+    if (!editing.value || !old || form.id) return;
+    form.model = suggested.value[p]?.[0] ?? '';
+  },
+);
 
 async function load() {
   try {
-    const res = await api<{ connections: AiConnectionView[]; providers: AiProvider[]; suggestedModels: Record<AiProvider, string[]> }>(
-      '/admin/ai/connections',
-    );
+    const res = await api<{
+      connections: AiConnectionView[];
+      providers: AiProvider[];
+      presets: Record<AiProvider, AiPreset>;
+      suggestedModels: Partial<Record<AiProvider, string[]>>;
+    }>('/admin/ai/connections');
     list.value = res.connections;
     providers.value = res.providers;
+    presets.value = res.presets;
     suggested.value = res.suggestedModels;
     emit('change', list.value);
     // Nothing connected yet: open the form straight away.
@@ -64,7 +113,7 @@ async function load() {
 }
 
 function startAdd() {
-  Object.assign(form, empty(), { model: suggested.value.anthropic[0] ?? '' });
+  Object.assign(form, empty(), { model: suggested.value.anthropic?.[0] ?? '' });
   editing.value = true;
   message.value = null;
 }
@@ -120,7 +169,11 @@ async function test(c: AiConnectionView) {
   });
 }
 
-const suggestions = computed(() => suggested.value[form.provider] ?? []);
+const suggestions = computed(() =>
+  loadedModels.value
+    ? loadedModels.value.filter((m) => !freeOnly.value || m.free).map((m) => m.id)
+    : (suggested.value[form.provider] ?? []),
+);
 defineExpose({ load });
 onMounted(load);
 </script>
@@ -143,7 +196,7 @@ onMounted(load);
         <div class="min-w-0 flex-1">
           <p class="truncate font-medium">{{ c.name }}</p>
           <p class="truncate text-xs text-slate-500" dir="ltr">
-            {{ $t(providerLabels[c.provider]) }} · {{ c.model }}{{ c.keyHint ? ` · …${c.keyHint}` : '' }}
+            {{ $t(providerLabel(c.provider)) }} · {{ c.model }}{{ c.keyHint ? ` · …${c.keyHint}` : '' }}
           </p>
         </div>
         <span class="text-xs text-slate-400">{{ $t('{used} of {limit} today', { used: c.usedToday, limit: c.dailyLimit }) }}</span>
@@ -165,15 +218,36 @@ onMounted(load);
         <div>
           <label class="field-label" for="ai-provider">{{ $t('Provider') }}</label>
           <select id="ai-provider" v-model="form.provider" class="input">
-            <option v-for="p in providers" :key="p" :value="p">{{ $t(providerLabels[p]) }}</option>
+            <option v-for="p in providers" :key="p" :value="p">{{ $t(providerLabel(p)) }}</option>
           </select>
+          <p v-if="preset?.note" class="mt-1 text-xs text-slate-500">{{ $t(preset.note) }}</p>
+          <p v-if="preset?.keyUrl" class="mt-1 text-xs text-slate-400">
+            {{ $t('Get a key at') }}
+            <a :href="preset.keyUrl" target="_blank" rel="noopener noreferrer" class="text-[#00a998] underline" dir="ltr">{{
+              preset.keyUrl.replace(/^https:\/\//, '')
+            }}</a>
+          </p>
         </div>
         <div>
           <label class="field-label" for="ai-model">{{ $t('Model') }}</label>
-          <input id="ai-model" v-model="form.model" class="input" dir="ltr" list="ai-models" placeholder="claude-opus-5-5" required />
+          <div class="flex gap-2">
+            <input id="ai-model" v-model="form.model" class="input" dir="ltr" list="ai-models" required />
+            <button
+              type="button"
+              class="btn-pill shrink-0 text-xs"
+              :disabled="busy || (preset?.keyRequired && !form.apiKey && !form.id)"
+              :title="$t('Ask the provider which models your key can use')"
+              @click="loadModels"
+            >
+              <i class="mdi mdi-download-outline" /> {{ $t('Load models') }}
+            </button>
+          </div>
           <datalist id="ai-models">
             <option v-for="m in suggestions" :key="m" :value="m" />
           </datalist>
+          <label v-if="hasFree" class="mt-1 flex items-center gap-1.5 text-xs">
+            <input v-model="freeOnly" type="checkbox" class="h-3.5 w-3.5 rounded" /> {{ $t('Free models only') }}
+          </label>
           <p class="mt-1 text-xs text-slate-400">
             {{ $t('Exactly as your provider writes it (OpenAI names are lowercase, e.g. gpt-5).') }}
           </p>
@@ -197,8 +271,14 @@ onMounted(load);
             class="input"
             dir="ltr"
             autocomplete="off"
-            :required="!form.id"
-            :placeholder="form.id ? $t('Saved. Type a new key to replace it.') : $t('Paste the key from your provider')"
+            :required="!form.id && preset?.keyRequired !== false"
+            :placeholder="
+              form.id
+                ? $t('Saved. Type a new key to replace it.')
+                : preset?.keyRequired === false
+                  ? $t('Not needed for this provider')
+                  : $t('Paste the key from your provider')
+            "
           />
         </div>
         <div v-if="form.provider !== 'anthropic' || form.baseUrl">
@@ -208,10 +288,12 @@ onMounted(load);
             v-model="form.baseUrl"
             class="input"
             dir="ltr"
-            :placeholder="form.provider === 'openai' ? 'https://api.openai.com/v1' : 'https://openrouter.ai/api/v1'"
-            :required="form.provider === 'openai-compatible'"
+            :placeholder="preset?.baseUrl || 'https://example.com/v1'"
+            :required="!preset?.baseUrl"
           />
-          <p v-if="form.provider === 'openai'" class="mt-1 text-xs text-slate-400">{{ $t('Leave empty for OpenAI itself.') }}</p>
+          <p v-if="preset?.baseUrl" class="mt-1 text-xs text-slate-400" dir="auto">
+            {{ $t('Leave empty to use {url}.', { url: preset.baseUrl }) }}
+          </p>
         </div>
         <div>
           <label class="field-label" for="ai-limit">{{ $t('Requests per day') }}</label>
