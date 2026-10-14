@@ -10,6 +10,18 @@
 # Create the network once on the server: docker network create oblivion
 
 services:
+  # Unique names for the containers that nginx and the domains agent reach. Both are also on the shared "oblivion"
+  # network, where another project's service may be called "api" or "web" too, and Docker would answer with that one.
+  api:
+    networks:
+      default:
+        aliases: [profiterol-api]
+
+  web:
+    networks:
+      default:
+        aliases: [profiterol-web]
+
   nginx:
     ports: !reset []
     volumes: !override
@@ -38,7 +50,7 @@ services:
       dockerfile: docker/domains/Dockerfile
     restart: unless-stopped
     environment:
-      API_URL: http://api:3001/api
+      API_URL: http://profiterol-api:3001/api
       INTERNAL_TOKEN: ${INTERNAL_TOKEN:-${JWT_SECRET}}
       OBLIVION_DIR: ${OBLIVION_DIR:-/root/Oblivion}
       OBLIVION_NGINX: ${OBLIVION_NGINX:-oblivion-nginx}
