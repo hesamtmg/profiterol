@@ -174,6 +174,9 @@ onMounted(load);
           <datalist id="ai-models">
             <option v-for="m in suggestions" :key="m" :value="m" />
           </datalist>
+          <p class="mt-1 text-xs text-slate-400">
+            {{ $t('Exactly as your provider writes it (OpenAI names are lowercase, e.g. gpt-5).') }}
+          </p>
         </div>
         <div>
           <label class="field-label" for="ai-name">{{ $t('Name (optional)') }}</label>
@@ -208,6 +211,7 @@ onMounted(load);
             :placeholder="form.provider === 'openai' ? 'https://api.openai.com/v1' : 'https://openrouter.ai/api/v1'"
             :required="form.provider === 'openai-compatible'"
           />
+          <p v-if="form.provider === 'openai'" class="mt-1 text-xs text-slate-400">{{ $t('Leave empty for OpenAI itself.') }}</p>
         </div>
         <div>
           <label class="field-label" for="ai-limit">{{ $t('Requests per day') }}</label>
