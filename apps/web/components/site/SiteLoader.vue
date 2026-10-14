@@ -87,6 +87,8 @@ const shownPercent = computed(() => Math.round(percent.value));
 const digits = computed(() =>
   props.locale === 'fa' ? new Intl.NumberFormat('fa-IR').format(shownPercent.value) : String(shownPercent.value),
 );
+// The color fills in reading direction: from the left, or from the right in Persian.
+const fillClip = computed(() => (props.locale === 'fa' ? `inset(0 0 0 ${100 - percent.value}%)` : `inset(0 ${100 - percent.value}% 0 0)`));
 const line = computed(() => props.loader.text?.[props.locale] ?? '');
 </script>
 
@@ -122,15 +124,14 @@ const line = computed(() => props.loader.text?.[props.locale] ?? '');
       <div class="absolute inset-0 bg-gradient-to-b from-black/30 to-black/60" aria-hidden="true" />
 
       <div class="relative px-6 text-center">
-        <!-- Name filling with color -->
-        <div v-if="loader.style === 'name'" class="relative text-5xl font-black tracking-tight @3xl:text-8xl" dir="auto">
-          <span class="text-transparent [-webkit-text-stroke:1px_rgb(255_255_255/0.35)]">{{ siteName }}</span>
-          <span
-            class="absolute inset-0 overflow-hidden whitespace-nowrap text-primary"
-            :style="{ clipPath: `inset(0 ${100 - percent}% 0 0)` }"
-            aria-hidden="true"
-            >{{ siteName }}</span
-          >
+        <!-- Name filling with color: both copies share one grid cell, so they wrap and sit exactly on top of each other -->
+        <div
+          v-if="loader.style === 'name'"
+          class="grid text-5xl font-black leading-tight tracking-tight @3xl:text-8xl"
+          :dir="locale === 'fa' ? 'rtl' : 'ltr'"
+        >
+          <span class="[grid-area:1/1] text-transparent [-webkit-text-stroke:1px_rgb(255_255_255/0.35)]">{{ siteName }}</span>
+          <span class="[grid-area:1/1] text-primary" :style="{ clipPath: fillClip }" aria-hidden="true">{{ siteName }}</span>
         </div>
 
         <!-- Percentage, then the name -->
