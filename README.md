@@ -56,9 +56,10 @@ Admins can have an AI build a block the editor does not have ("a pricing table w
 developer or a deploy:
 
 1. Each admin connects **their own AI models** in the block builder (**Site settings → Open the block builder**, or
-   **Build with AI** in the editor's block library). A model is a provider (Anthropic, OpenAI, or any
-   OpenAI-compatible service such as OpenRouter or Ollama), any model name, the admin's own API key and a daily
-   limit. An admin can add as many as they like and pick one per request. Connections belong to one admin on one
+   **Build with AI** in the editor's block library). A model is a provider, any model name, the admin's own API key
+   and a daily limit. Providers: Anthropic, OpenAI, OpenRouter (some models free), Google Gemini and Groq (free
+   tiers), Ollama (free, on your own server, no key) or any other OpenAI-compatible service. **Load models** asks the
+   provider which models the key can use (free ones first). An admin can add as many as they like and pick one per request. Connections belong to one admin on one
    site: other admins, and the same admin on another site, never see or use them. Keys are stored encrypted
    (AES-GCM, keyed from `JWT_SECRET`) and never sent back to the browser.
 2. Describe the block, and attach pictures (a design, a screenshot, a logo), PDFs or text files if that helps: they

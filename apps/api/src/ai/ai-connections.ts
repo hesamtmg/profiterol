@@ -16,13 +16,22 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { Repository } from 'typeorm';
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { currentSiteId } from '../sites/site-context';
 import { AiConnection } from './ai-connection.entity';
 import { decryptSecret, encryptSecret } from './crypto';
-import { AI_PROVIDERS, AiError, type AiProvider, type AiProviderName, createProvider, SUGGESTED_MODELS } from './providers';
+import {
+  AI_PRESETS,
+  AI_PROVIDERS,
+  AiError,
+  type AiProvider,
+  type AiProviderName,
+  createProvider,
+  listModels,
+  SUGGESTED_MODELS,
+} from './providers';
 
 type Authed = { user: AuthUser };
 
@@ -66,6 +75,25 @@ class ConnectionDto {
   dailyLimit?: number;
 }
 
+class ListModelsDto {
+  @IsIn(AI_PROVIDERS)
+  provider: AiProviderName;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  apiKey?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  baseUrl?: string;
+
+  @IsOptional()
+  @IsUUID()
+  connectionId?: string;
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 const usedToday = (c: AiConnection) => (c.usage?.day === today() ? (c.usage.count ?? 0) : 0);
 
@@ -106,7 +134,10 @@ export class AiConnectionsService {
   private check(c: Partial<AiConnection>) {
     if (c.baseUrl && !/^https?:\/\/[^\s]+$/i.test(c.baseUrl))
       throw new BadRequestException('The base URL must start with http:// or https://');
-    if (c.provider === 'openai-compatible' && !c.baseUrl) throw new BadRequestException('Enter the base URL of the AI service');
+    // Presets know their address; a custom service has none to fall back on.
+    if (c.provider && c.provider !== 'anthropic' && !AI_PRESETS[c.provider].baseUrl && !c.baseUrl) {
+      throw new BadRequestException('Enter the base URL of the AI service');
+    }
   }
 
   /** Makes `id` the default and every other connection of this admin on this site not. */
@@ -119,8 +150,8 @@ export class AiConnectionsService {
     const siteId = currentSiteId();
     const existing = await this.repo.countBy({ siteId, userId });
     if (existing >= MAX_CONNECTIONS) throw new BadRequestException(`You can connect up to ${MAX_CONNECTIONS} AI models`);
-    const key = dto.apiKey?.trim();
-    if (!key) throw new BadRequestException('Enter the API key');
+    const key = dto.apiKey?.trim() ?? '';
+    if (!key && AI_PRESETS[dto.provider ?? 'anthropic'].keyRequired) throw new BadRequestException('Enter the API key');
     if (!dto.model?.trim()) throw new BadRequestException('Enter the model name');
     const c = this.repo.create({
       siteId,
@@ -177,7 +208,9 @@ export class AiConnectionsService {
     const connection = id ? await this.get(userId, id) : (await this.list(userId))[0];
     if (!connection) throw new BadRequestException('Connect an AI model first: add your provider, model and API key.');
     const apiKey = decryptSecret(connection.apiKeyEnc);
-    if (!apiKey) throw new BadRequestException('The saved API key can no longer be read. Enter it again.');
+    if (!apiKey && AI_PRESETS[connection.provider].keyRequired) {
+      throw new BadRequestException('The saved API key can no longer be read. Enter it again.');
+    }
     return {
       connection,
       provider: createProvider({ provider: connection.provider, model: connection.model, apiKey, baseUrl: connection.baseUrl }),
@@ -213,6 +246,7 @@ export class AiConnectionsController {
     return {
       connections: (await this.ai.list(req.user.sub)).map(connectionView),
       providers: AI_PROVIDERS,
+      presets: AI_PRESETS,
       suggestedModels: SUGGESTED_MODELS,
     };
   }
@@ -231,6 +265,26 @@ export class AiConnectionsController {
   @HttpCode(204)
   async remove(@Param('id', ParseUUIDPipe) id: string, @Req() req: Authed) {
     await this.ai.remove(req.user.sub, id);
+  }
+
+  /**
+   * The models a provider offers this key, for the form's "Load models". Uses the key typed in the form, or the saved
+   * key of the model being edited (`connectionId`) when the key field was left empty.
+   */
+  @Post('models')
+  @HttpCode(200)
+  async models(@Body() dto: ListModelsDto, @Req() req: Authed) {
+    let apiKey = dto.apiKey?.trim() ?? '';
+    if (!apiKey && dto.connectionId) apiKey = decryptSecret((await this.ai.get(req.user.sub, dto.connectionId)).apiKeyEnc);
+    if (!apiKey && AI_PRESETS[dto.provider].keyRequired) throw new BadRequestException('Enter the API key first');
+    const baseUrl = dto.baseUrl?.trim();
+    if (baseUrl && !/^https?:\/\/[^\s]+$/i.test(baseUrl)) throw new BadRequestException('The base URL must start with http:// or https://');
+    try {
+      return { models: await listModels({ provider: dto.provider, apiKey, baseUrl }) };
+    } catch (err) {
+      if (err instanceof AiError) throw new BadRequestException(err.message);
+      throw err;
+    }
   }
 
   /** A tiny request with the saved settings, so the admin knows the key and model work before building anything. */
