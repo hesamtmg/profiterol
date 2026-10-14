@@ -6,6 +6,8 @@
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 type SslState = 'none' | 'queued' | 'running' | 'active' | 'failed';
+/** The language a site's admin panel opens in, for people who have not picked one; '' follows their browser. */
+type SiteAdminLang = '' | 'en' | 'fa';
 
 interface SiteRow {
   id: string;
@@ -13,6 +15,7 @@ interface SiteRow {
   primary: string;
   aliases: string[];
   url: string;
+  adminLang: SiteAdminLang;
   sslMode: 'off' | 'requested';
   ssl: SslState;
   sslMessage: string;
@@ -46,17 +49,24 @@ interface Overview {
 
 const api = useApi();
 const { isOwner, user } = useAuth();
-const { numberLocale } = useAdminI18n();
+const { numberLocale, lang } = useAdminI18n();
 const data = ref<Overview | null>(null);
 const error = ref('');
 const busy = ref(false);
 const showAdd = ref(false);
-const form = reactive({ domain: '', www: true, name: '', adminEmail: '', ssl: true, demo: true });
+// A new site's panel opens in the owner's own admin language unless they pick another.
+const form = reactive({ domain: '', www: true, name: '', adminEmail: '', ssl: true, demo: true, adminLang: lang.value as SiteAdminLang });
+const adminLangs: { code: SiteAdminLang; label: string }[] = [
+  { code: 'en', label: 'English' },
+  { code: 'fa', label: 'فارسی' },
+  { code: '', label: 'Each person’s browser language' },
+];
+const adminLangLabel = (code: SiteAdminLang) => adminLangs.find((l) => l.code === code)?.label ?? code;
 const added = ref<{ site: SiteRow; invite: { email: string; link: string; emailed: boolean } | null } | null>(null);
 const events = reactive<Record<string, SslEvent[]>>({});
 const openTimeline = reactive<Record<string, boolean>>({});
 const seo = reactive<Record<string, SeoCheck | 'loading'>>({});
-const editing = reactive<Record<string, { name: string; primary: string; aliases: string } | undefined>>({});
+const editing = reactive<Record<string, { name: string; primary: string; aliases: string; adminLang: SiteAdminLang } | undefined>>({});
 const ownerInvite = reactive({ email: '', open: false, link: '' });
 
 /** example.com from whatever was typed (https://Example.com/path → example.com). */
@@ -116,6 +126,7 @@ const addSite = () =>
         name: form.name || domain.value,
         ssl: form.ssl,
         demo: form.demo,
+        adminLang: form.adminLang,
         ...(form.adminEmail ? { adminEmail: form.adminEmail } : {}),
       },
     });
@@ -158,7 +169,7 @@ const openAdmin = (s: SiteRow) =>
   });
 
 function startEdit(s: SiteRow) {
-  editing[s.id] = { name: s.name, primary: s.primary, aliases: s.aliases.join('\n') };
+  editing[s.id] = { name: s.name, primary: s.primary, aliases: s.aliases.join('\n'), adminLang: s.adminLang };
 }
 
 const saveEdit = (s: SiteRow) =>
@@ -168,6 +179,7 @@ const saveEdit = (s: SiteRow) =>
       method: 'PATCH',
       body: {
         name: e.name,
+        adminLang: e.adminLang,
         domain: cleanDomain(e.primary),
         aliases: e.aliases
           .split(/[\s,]+/)
@@ -299,6 +311,13 @@ onBeforeUnmount(() => clearInterval(timer));
           <label class="field-label" for="site-admin">{{ $t('Invite an admin for this site (optional)') }}</label>
           <input id="site-admin" v-model="form.adminEmail" type="email" class="input" dir="ltr" placeholder="owner@another.com" />
         </div>
+        <div>
+          <label class="field-label" for="site-admin-lang">{{ $t('Admin panel language') }}</label>
+          <select id="site-admin-lang" v-model="form.adminLang" class="input" data-testid="site-admin-lang">
+            <option v-for="l in adminLangs" :key="l.code" :value="l.code">{{ $t(l.label) }}</option>
+          </select>
+          <p class="mt-1 text-xs text-slate-500">{{ $t('The site’s admin opens in it until a person picks another language there.') }}</p>
+        </div>
         <div class="space-y-2 self-end pb-1 text-sm">
           <label class="flex items-center gap-2">
             <input v-model="form.ssl" type="checkbox" class="h-4 w-4 rounded" data-testid="issue-ssl" />
@@ -365,6 +384,9 @@ onBeforeUnmount(() => clearInterval(timer));
             <p v-if="s.aliases.length" class="mt-1 text-xs text-slate-400" dir="ltr">
               <i class="mdi mdi-arrow-right-bottom" /> {{ s.aliases.join(', ') }}
             </p>
+            <p class="mt-1 text-xs text-slate-400" data-testid="site-admin-lang">
+              <i class="mdi mdi-translate" /> {{ $t('Admin panel language') }}: {{ $t(adminLangLabel(s.adminLang)) }}
+            </p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button type="button" class="btn-light" :disabled="busy" @click="openAdmin(s)">
@@ -373,7 +395,7 @@ onBeforeUnmount(() => clearInterval(timer));
             <button type="button" class="btn-light" :disabled="busy" @click="checkSeo(s)">
               <i class="mdi mdi-magnify" /> {{ $t('SEO check') }}
             </button>
-            <button type="button" class="btn-light !px-3" :title="$t('Edit name and addresses')" @click="startEdit(s)">
+            <button type="button" class="btn-light !px-3" :title="$t('Edit name, addresses and admin language')" @click="startEdit(s)">
               <i class="mdi mdi-cog-outline" />
             </button>
             <button
@@ -458,7 +480,7 @@ onBeforeUnmount(() => clearInterval(timer));
           </ol>
         </div>
 
-        <!-- Name and addresses -->
+        <!-- Name, addresses and admin language -->
         <form v-if="editing[s.id]" class="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 md:grid-cols-3" @submit.prevent="saveEdit(s)">
           <div>
             <label class="field-label">{{ $t('Name') }}</label>
@@ -472,7 +494,13 @@ onBeforeUnmount(() => clearInterval(timer));
             <label class="field-label">{{ $t('Other addresses (one per line)') }}</label>
             <textarea v-model="editing[s.id]!.aliases" rows="2" class="input" dir="ltr" />
           </div>
-          <p class="text-xs text-slate-500 md:col-span-2">
+          <div>
+            <label class="field-label">{{ $t('Admin panel language') }}</label>
+            <select v-model="editing[s.id]!.adminLang" class="input">
+              <option v-for="l in adminLangs" :key="l.code" :value="l.code">{{ $t(l.label) }}</option>
+            </select>
+          </div>
+          <p class="self-end text-xs text-slate-500">
             {{ $t('With SSL on, changing the addresses asks for a new certificate covering them.') }}
           </p>
           <div class="flex justify-end gap-2">

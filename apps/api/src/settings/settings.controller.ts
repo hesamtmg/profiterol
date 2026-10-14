@@ -157,7 +157,7 @@ export class SettingsController {
   async get() {
     const { notifyEmail: _private, sections: _editorOnly, siteId: _id, ...rest } = await this.settings.get();
     const site = currentSite();
-    return { ...rest, origin: siteOrigin(site), domains: site.domains };
+    return { ...rest, origin: siteOrigin(site), domains: site.domains, adminLang: site.adminLang };
   }
 
   @Get('admin/settings')

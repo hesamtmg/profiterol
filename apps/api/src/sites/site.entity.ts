@@ -26,6 +26,10 @@ export type SslMode = 'off' | 'requested';
  */
 export type SslState = 'none' | 'queued' | 'running' | 'active' | 'failed';
 
+/** The admin panel's language when the person has not picked one in their browser. Empty: follow the browser. */
+export type AdminLang = '' | 'en' | 'fa';
+export const ADMIN_LANGS: AdminLang[] = ['', 'en', 'fa'];
+
 /** One website: its own pages, collections, media, settings, inbox, redirects and users. */
 @Entity('sites')
 export class Site {
@@ -38,6 +42,10 @@ export class Site {
 
   @OneToMany(() => SiteDomain, (d) => d.site, { cascade: true, eager: true })
   domains: SiteDomain[];
+
+  /** The language the site's admin panel opens in, chosen by the owner (see AdminLang). */
+  @Column({ type: 'varchar', length: 8, default: '' })
+  adminLang: AdminLang;
 
   @Column({ type: 'varchar', length: 16, default: 'off' })
   sslMode: SslMode;
