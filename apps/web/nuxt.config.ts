@@ -69,6 +69,9 @@ export default defineNuxtConfig({
   routeRules: {
     '/admin': { ssr: false },
     '/admin/**': { ssr: false },
+    // The built app's public files (fonts, icons). Fonts are fetched with CORS, and the AI block builder's sandboxed
+    // preview frame has no origin of its own, so it needs this to show the site's icons and fonts.
+    '/_nuxt/**': { headers: { 'Access-Control-Allow-Origin': '*' } },
   },
 
   // Without nginx (local `nuxt dev`), forward API and upload requests to Nest.
