@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { SettingsModule } from '../settings/settings.module';
-import { SiteSettings } from '../settings/settings.entity';
-import { AiSettingsController, AiSettingsService } from './ai-settings';
+import { AiConnection } from './ai-connection.entity';
+import { AiConnectionsController, AiConnectionsService } from './ai-connections';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([SiteSettings]), SettingsModule],
-  controllers: [AiSettingsController],
-  providers: [AiSettingsService],
-  exports: [AiSettingsService],
+  imports: [TypeOrmModule.forFeature([AiConnection])],
+  controllers: [AiConnectionsController],
+  providers: [AiConnectionsService],
+  exports: [AiConnectionsService],
 })
 export class AiModule {}

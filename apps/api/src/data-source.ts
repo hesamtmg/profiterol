@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { DataSource, DataSourceOptions } from 'typeorm';
 import { Collection, CollectionItem, ItemTranslation } from './collections/collection.entity';
+import { AiConnection } from './ai/ai-connection.entity';
 import { config } from './config';
 import { CustomBlock } from './custom-blocks/custom-block.entity';
 import { FormSubmission } from './forms/form-submission.entity';
@@ -31,6 +32,7 @@ export const dataSourceOptions: DataSourceOptions = {
     ItemTranslation,
     FormSubmission,
     CustomBlock,
+    AiConnection,
   ],
   migrations: [join(__dirname, 'migrations', '*.js')],
   migrationsTableName: 'migrations',

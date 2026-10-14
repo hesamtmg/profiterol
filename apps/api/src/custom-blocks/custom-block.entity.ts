@@ -49,7 +49,8 @@ export class CustomBlock {
 
   /** The conversation with the AI, so later requests ("make the title bigger") build on the earlier ones. */
   @Column({ type: 'jsonb', default: () => "'[]'" })
-  conversation: (AiMessage & { at: string; author?: string })[];
+  /** `model`: which of the admin's AI models answered (its name and model). */
+  conversation: (AiMessage & { at: string; author?: string; model?: string })[];
 
   @Column({ default: '' })
   createdBy: string;

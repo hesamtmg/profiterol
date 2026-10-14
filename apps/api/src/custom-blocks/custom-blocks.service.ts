@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { allBlocks, type BlockDef, type BlockNode, CUSTOM_BLOCK_PREFIX, validateBlockDef, withCommonFields } from '@profiterol/blocks';
 import { randomBytes } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
-import { AiSettingsService } from '../ai/ai-settings';
+import { AiConnectionsService, connectionLabel } from '../ai/ai-connections';
 import { AiError, type AiMessage } from '../ai/providers';
 import { currentSiteId } from '../sites/site-context';
 import { BlockCompileError, compileBlock } from './compile';
@@ -17,6 +17,12 @@ const HISTORY = 8;
 const FIX_ROUNDS = 2;
 const MAX_BLOCKS = 100;
 
+/** Who asks: their id picks their own AI models, their email is shown in the conversation. */
+export interface Author {
+  id: string;
+  email: string;
+}
+
 export interface DraftInput {
   def: unknown;
   source: string;
@@ -26,7 +32,7 @@ export interface DraftInput {
 export class CustomBlocksService {
   constructor(
     @InjectRepository(CustomBlock) private readonly repo: Repository<CustomBlock>,
-    private readonly ai: AiSettingsService,
+    private readonly ai: AiConnectionsService,
     private readonly dataSource: DataSource,
   ) {}
 
@@ -67,12 +73,12 @@ export class CustomBlocksService {
     return block.live.compiled;
   }
 
-  /** Asks the AI for a new block. */
-  async generate(prompt: string, author: string) {
+  /** Asks the AI for a new block, with the admin's own model (`connectionId`, else their default). */
+  async generate(prompt: string, author: Author, connectionId?: string) {
     if ((await this.repo.countBy({ siteId: currentSiteId() })) >= MAX_BLOCKS) {
       throw new BadRequestException(`A site can have up to ${MAX_BLOCKS} custom blocks`);
     }
-    const { version, messages } = await this.askAi([], prompt, author);
+    const { version, messages } = await this.askAi([], prompt, author, connectionId);
     // ASCII only (a Persian label gives just "block"), with a random end so two blocks never share a type.
     const name = version.def.label
       .toLowerCase()
@@ -89,15 +95,15 @@ export class CustomBlocksService {
         draft: version,
         live: null,
         conversation: messages,
-        createdBy: author,
+        createdBy: author.email,
       }),
     );
   }
 
   /** Asks the AI to change a block's draft ("make the cards rounder"). */
-  async refine(id: string, prompt: string, author: string) {
+  async refine(id: string, prompt: string, author: Author, connectionId?: string) {
     const block = await this.get(id);
-    const { version, messages } = await this.askAi(block.conversation, prompt, author, block.type);
+    const { version, messages } = await this.askAi(block.conversation, prompt, author, connectionId, block.type);
     block.draft = version;
     block.conversation = messages;
     return this.repo.save(block);
@@ -166,16 +172,22 @@ export class CustomBlocksService {
    * One request to the AI. When its block does not pass the checks, the problems are sent back for it to fix, a few
    * times at most; every round counts towards the site's daily limit.
    */
-  private async askAi(history: CustomBlock['conversation'], prompt: string, author: string, type = `${CUSTOM_BLOCK_PREFIX}new`) {
-    const provider = await this.ai.provider();
-    const asked = { role: 'user' as const, content: prompt, at: new Date().toISOString(), author };
+  private async askAi(
+    history: CustomBlock['conversation'],
+    prompt: string,
+    author: Author,
+    connectionId?: string,
+    type = `${CUSTOM_BLOCK_PREFIX}new`,
+  ) {
+    const { connection, provider } = await this.ai.pick(author.id, connectionId);
+    const asked = { role: 'user' as const, content: prompt, at: new Date().toISOString(), author: author.email };
     const messages: AiMessage[] = [
       ...history.slice(-HISTORY).map(({ role, content }) => ({ role, content })),
       { role: 'user', content: prompt },
     ];
     let problems: string[] = [];
     for (let round = 0; round <= FIX_ROUNDS; round++) {
-      await this.ai.useOne();
+      await this.ai.useOne(connection);
       let answer: Record<string, unknown>;
       try {
         answer = await provider.generateJson({ system: SYSTEM_PROMPT, messages, schema: ANSWER_SCHEMA, maxTokens: 32000 });
@@ -193,7 +205,7 @@ export class CustomBlocksService {
       const version = def ? this.build(def, String(answer.source ?? ''), type, problems) : null;
       const reply = { role: 'assistant' as const, content: JSON.stringify(answer) };
       if (version) {
-        return { version, messages: [...history, asked, { ...reply, at: new Date().toISOString() }] };
+        return { version, messages: [...history, asked, { ...reply, at: new Date().toISOString(), model: connectionLabel(connection) }] };
       }
       messages.push(reply, {
         role: 'user',

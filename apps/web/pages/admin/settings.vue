@@ -12,7 +12,6 @@ import {
   type SeoSettings,
   type ThemeTokens,
 } from '@profiterol/blocks';
-import AiSettings from '~/components/admin/AiSettings.vue';
 import BusinessPicker from '~/components/admin/BusinessPicker.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
 import FontManager from '~/components/admin/FontManager.vue';
@@ -346,7 +345,15 @@ onMounted(load);
         </div>
       </section>
 
-      <AiSettings />
+      <section class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">{{ $t('Custom blocks (AI)') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">
+          {{ $t('Each admin connects their own AI models (provider, model and API key) in the block builder, for this site.') }}
+        </p>
+        <NuxtLink to="/admin/blocks" class="btn-light mt-4 inline-flex"
+          ><i class="mdi mdi-creation" /> {{ $t('Open the block builder') }}</NuxtLink
+        >
+      </section>
 
       <SiteTemplates @applied="load" />
     </div>

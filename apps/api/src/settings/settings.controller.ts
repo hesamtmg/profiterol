@@ -142,17 +142,9 @@ export class SettingsService {
     return this.repo.findOneByOrFail({ siteId });
   }
 
-  /** The settings without what must never reach a browser (the AI key and its usage). */
-  static withoutSecrets(settings: SiteSettings) {
-    const { ai: _ai, ...rest } = settings;
-    return rest;
-  }
-
   async update(dto: Partial<SiteSettings>) {
     const current = await this.get();
-    // The AI settings have their own route (AiSettingsService), which writes only that column.
-    const { ai: _ai, ...base } = current;
-    const next = { ...base, ...dto, siteId: current.siteId };
+    const next = { ...current, ...dto, siteId: current.siteId };
     // Fonts first: the themes may use the uploaded fonts' names.
     if (dto.fonts !== undefined) next.fonts = cleanFonts(dto.fonts);
     const custom = fontNames(next.fonts);
@@ -172,12 +164,7 @@ export class SettingsController {
   /** What the site renderer needs, plus the site's own address for canonical URLs, sitemaps and share links. */
   @Get('public/settings')
   async get() {
-    const {
-      notifyEmail: _private,
-      sections: _editorOnly,
-      siteId: _id,
-      ...rest
-    } = SettingsService.withoutSecrets(await this.settings.get());
+    const { notifyEmail: _private, sections: _editorOnly, siteId: _id, ...rest } = await this.settings.get();
     const site = currentSite();
     return { ...rest, origin: siteOrigin(site), domains: site.domains, adminLang: site.adminLang };
   }
@@ -185,15 +172,15 @@ export class SettingsController {
   @Get('admin/settings')
   @UseGuards(AuthGuard)
   @Roles('admin')
-  async getPrivate() {
-    return SettingsService.withoutSecrets(await this.settings.get());
+  getPrivate() {
+    return this.settings.get();
   }
 
   @Put('admin/settings')
   @UseGuards(AuthGuard)
   @Roles('admin')
-  async update(@Body() dto: UpdateSettingsDto) {
-    return SettingsService.withoutSecrets(await this.settings.update(dto as Partial<SiteSettings>));
+  update(@Body() dto: UpdateSettingsDto) {
+    return this.settings.update(dto as Partial<SiteSettings>);
   }
 }
 

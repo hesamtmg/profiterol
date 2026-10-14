@@ -5,6 +5,7 @@
  * the page editor under "Custom blocks (AI)". Further requests and code edits stay in the draft until approved again.
  */
 import { fontNames, resolveTheme, type BlockDef, type ThemeTokens } from '@profiterol/blocks';
+import AiConnections, { type AiConnectionView } from '~/components/admin/AiConnections.vue';
 import CustomBlockPreview from '~/components/admin/CustomBlockPreview.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
 
@@ -26,16 +27,10 @@ interface CustomBlockView {
   draft: Version;
   live: { hash: string; url: string } | null;
   changed: boolean;
-  conversation: { role: 'user' | 'assistant'; text: string; at: string; author?: string }[];
+  conversation: { role: 'user' | 'assistant'; text: string; at: string; author?: string; model?: string }[];
   createdBy: string;
   approvedBy: string;
   updatedAt: string;
-}
-
-interface AiStatus {
-  ready: boolean;
-  usedToday: number;
-  dailyLimit: number;
 }
 
 const api = useApi();
@@ -45,7 +40,18 @@ const { isAdmin, isOwner } = useAuth();
 const { t } = useAdminI18n();
 
 const list = ref<CustomBlockView[]>([]);
-const ai = ref<AiStatus | null>(null);
+/** The signed-in admin's own AI models on this site, and the one the next request goes to. */
+const connections = ref<AiConnectionView[] | null>(null);
+const connectionId = ref('');
+const ready = computed(() => Boolean(connections.value?.length));
+const showModels = ref(false);
+function onConnections(list: AiConnectionView[]) {
+  // Starting with none: keep the panel open after the first one is added, so its confirmation shows.
+  if (!list.length) showModels.value = true;
+  connections.value = list;
+  if (!list.some((c) => c.id === connectionId.value)) connectionId.value = list.find((c) => c.isDefault)?.id ?? list[0]?.id ?? '';
+}
+const modelsPanel = ref<InstanceType<typeof AiConnections>>();
 const theme = ref<ThemeTokens>(resolveTheme(undefined, null, []));
 const selected = computed(() => list.value.find((b) => b.id === route.query.id) ?? null);
 // With nothing picked, the page opens on a new request.
@@ -84,13 +90,11 @@ watch(selected, (b, old) => {
 
 async function load() {
   try {
-    const [blocks, status, settings] = await Promise.all([
+    const [blocks, settings] = await Promise.all([
       api<CustomBlockView[]>('/admin/custom-blocks'),
-      api<AiStatus>('/admin/settings/ai'),
       api<{ theme: Partial<ThemeTokens>; fonts: { name: string }[] }>('/admin/settings'),
     ]);
     list.value = blocks;
-    ai.value = status;
     theme.value = resolveTheme(settings.theme, null, fontNames(settings.fonts));
     resetEditors(selected.value);
   } catch (err) {
@@ -115,9 +119,8 @@ async function run(work: () => Promise<void>) {
     error.value = [apiErrorMessage(err), ...(problems ?? []).map((p) => `• ${p}`)].join('\n');
   } finally {
     busy.value = false;
-    api<AiStatus>('/admin/settings/ai')
-      .then((s) => (ai.value = s))
-      .catch(() => {});
+    // Today's request counts changed.
+    modelsPanel.value?.load();
   }
 }
 
@@ -125,9 +128,10 @@ const ask = () =>
   run(async () => {
     const text = prompt.value.trim();
     if (!text) return;
+    const body = { prompt: text, connectionId: connectionId.value || undefined };
     const block = selected.value
-      ? await api<CustomBlockView>(`/admin/custom-blocks/${selected.value.id}/refine`, { method: 'POST', body: { prompt: text } })
-      : await api<CustomBlockView>('/admin/custom-blocks', { method: 'POST', body: { prompt: text } });
+      ? await api<CustomBlockView>(`/admin/custom-blocks/${selected.value.id}/refine`, { method: 'POST', body })
+      : await api<CustomBlockView>('/admin/custom-blocks', { method: 'POST', body });
     replace(block);
     prompt.value = '';
     tab.value = 'preview';
@@ -198,10 +202,14 @@ onMounted(load);
     <p v-if="!isAdmin" class="mt-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
       {{ $t('Only admins can build custom blocks.') }}
     </p>
-    <p v-else-if="ai && !ai.ready" class="mt-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-      {{ $t('Connect an AI service first: choose a provider and model and enter its API key.') }}
-      <NuxtLink to="/admin/settings#ai" class="font-semibold underline">{{ $t('Open Settings → AI') }}</NuxtLink>
-    </p>
+    <template v-else>
+      <p v-if="connections && !ready" class="mt-6 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        {{ $t('Connect an AI model first: your provider, the model and your API key.') }}
+      </p>
+      <div class="mt-6" :class="{ hidden: ready && !showModels }">
+        <AiConnections ref="modelsPanel" @change="onConnections" />
+      </div>
+    </template>
 
     <div class="mt-6 grid gap-6 lg:grid-cols-[16rem_1fr]">
       <aside class="space-y-2">
@@ -227,9 +235,9 @@ onMounted(load);
             }}</span>
           </span>
         </NuxtLink>
-        <p v-if="ai" class="px-2 pt-2 text-xs text-slate-400">
-          {{ $t('AI requests today: {used} of {limit}', { used: ai.usedToday, limit: ai.dailyLimit }) }}
-        </p>
+        <button v-if="isAdmin && ready" type="button" class="btn-pill mt-2 w-full justify-center text-xs" @click="showModels = !showModels">
+          <i class="mdi mdi-key-chain-variant" /> {{ showModels ? $t('Hide your AI models') : $t('Your AI models') }}
+        </button>
       </aside>
 
       <section class="min-w-0">
@@ -245,10 +253,16 @@ onMounted(load);
             </button>
           </div>
           <div class="mt-4 flex items-center gap-3">
-            <button type="submit" class="btn-dark" :disabled="busy || !ai?.ready || !isAdmin || prompt.trim().length < 3">
+            <button type="submit" class="btn-dark" :disabled="busy || !ready || !isAdmin || prompt.trim().length < 3">
               <i class="mdi" :class="busy ? 'mdi-loading mdi-spin' : 'mdi-creation'" />
               {{ busy ? $t('Building… this can take a minute') : $t('Build it') }}
             </button>
+            <select v-if="connections && connections.length > 1" v-model="connectionId" class="input !w-auto" :aria-label="$t('AI model')">
+              <option v-for="c in connections" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+            <span v-else-if="connections?.length" class="text-xs text-slate-500">{{
+              $t('With {name}', { name: connections[0].name })
+            }}</span>
           </div>
         </form>
 
@@ -381,7 +395,7 @@ onMounted(load);
                   :class="m.role === 'user' ? 'ms-6 bg-slate-100' : 'me-6 bg-[#00a998]/10'"
                 >
                   <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    {{ m.role === 'user' ? (m.author ?? $t('You')) : $t('AI') }}
+                    {{ m.role === 'user' ? (m.author ?? $t('You')) : m.model ? `${$t('AI')} · ${m.model}` : $t('AI') }}
                   </span>
                   {{ m.text }}
                 </li>
@@ -394,10 +408,18 @@ onMounted(load);
                   :aria-label="$t('Ask for changes')"
                   @keydown.enter.exact.prevent="ask"
                 />
+                <select
+                  v-if="connections && connections.length > 1"
+                  v-model="connectionId"
+                  class="input mt-2 text-xs"
+                  :aria-label="$t('AI model')"
+                >
+                  <option v-for="c in connections" :key="c.id" :value="c.id">{{ c.name }}</option>
+                </select>
                 <button
                   type="submit"
                   class="btn-dark mt-2 w-full justify-center"
-                  :disabled="busy || !ai?.ready || !isAdmin || prompt.trim().length < 3"
+                  :disabled="busy || !ready || !isAdmin || prompt.trim().length < 3"
                 >
                   <i class="mdi" :class="busy ? 'mdi-loading mdi-spin' : 'mdi-send'" /> {{ busy ? $t('Working…') : $t('Send') }}
                 </button>

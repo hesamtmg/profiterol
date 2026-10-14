@@ -84,38 +84,84 @@ before(async () => {
 
 after(() => server?.close());
 
-describe('AI settings', () => {
+/** The admin's own AI model for these tests. */
+let conn;
+
+/** Invites another admin to the site and signs them in. */
+async function otherAdmin() {
+  const email = `ai-admin-${Date.now()}@example.com`;
+  const invited = await call('POST', '/admin/users', { email, name: 'Other admin', role: 'admin' });
+  assert.equal(invited.status, 201);
+  const secret = new URL(invited.body.link).searchParams.get('token');
+  assert.equal((await call('POST', '/auth/reset', { token: secret, password: 'another-good-password' }, '')).status, 204);
+  const res = await call('POST', '/auth/login', { email, password: 'another-good-password' }, '');
+  return res.body.token;
+}
+
+describe('AI models (each admin their own, per site)', () => {
   test('the key is stored but never sent back', async () => {
-    const saved = await call('PUT', '/admin/settings/ai', {
-      enabled: true,
+    const saved = await call('POST', '/admin/ai/connections', {
+      name: 'Stand-in',
       provider: 'openai-compatible',
       model: 'test-model',
       apiKey: KEY,
       baseUrl: aiUrl,
       dailyLimit: 100,
     });
-    assert.equal(saved.status, 200);
-    assert.equal(saved.body.hasKey, true);
-    assert.equal(saved.body.keyHint, 'cdef');
-    assert.equal(saved.body.ready, true);
-    for (const path of ['/admin/settings/ai', '/admin/settings', '/public/settings']) {
+    assert.equal(saved.status, 201, JSON.stringify(saved.body));
+    conn = saved.body;
+    assert.equal(conn.keyHint, 'cdef');
+    assert.equal(conn.isDefault, true, 'the first model is the default');
+    for (const path of ['/admin/ai/connections', '/admin/settings', '/public/settings']) {
       const res = await call('GET', path);
       assert.ok(!JSON.stringify(res.body).includes(KEY), `${path} does not reveal the key`);
       assert.ok(!JSON.stringify(res.body).includes('apiKeyEnc'), `${path} does not include the encrypted key`);
     }
-    // Saving other settings keeps the AI settings.
-    assert.equal((await call('PUT', '/admin/settings', { maintenance: false })).status, 200);
-    const again = await call('PUT', '/admin/settings/ai', { model: 'test-model' });
-    assert.equal(again.body.hasKey, true, 'an empty key field keeps the saved key');
+    const again = await call('PUT', `/admin/ai/connections/${conn.id}`, { model: 'test-model' });
+    assert.equal(again.body.keyHint, 'cdef', 'an empty key field keeps the saved key');
+    assert.equal((await call('POST', '/admin/ai/connections', { model: 'x', provider: 'anthropic' })).status, 400, 'a key is required');
+  });
+
+  test('an admin can add any model, and choose the default', async () => {
+    const second = await call('POST', '/admin/ai/connections', {
+      provider: 'anthropic',
+      model: 'claude-sonnet-5-5',
+      apiKey: 'sk-ant-other-key-9999',
+    });
+    assert.equal(second.status, 201);
+    assert.equal(second.body.name, 'claude-sonnet-5-5', 'named after the model when no name is given');
+    assert.equal(second.body.isDefault, false);
+    await call('PUT', `/admin/ai/connections/${second.body.id}`, { isDefault: true });
+    let list = (await call('GET', '/admin/ai/connections')).body.connections;
+    assert.deepEqual(
+      list.filter((c) => c.isDefault).map((c) => c.id),
+      [second.body.id],
+    );
+    assert.equal((await call('DELETE', `/admin/ai/connections/${second.body.id}`)).status, 204);
+    list = (await call('GET', '/admin/ai/connections')).body.connections;
+    assert.equal(list.find((c) => c.id === conn.id).isDefault, true, 'the other one takes over as default');
   });
 
   test('test connection uses the saved key and model', async () => {
-    const res = await call('POST', '/admin/settings/ai/test');
+    const res = await call('POST', `/admin/ai/connections/${conn.id}/test`);
     assert.equal(res.status, 200);
     assert.equal(res.body.ok, true);
     const last = requests.at(-1);
     assert.equal(last.auth, `Bearer ${KEY}`);
     assert.equal(last.body.model, 'test-model');
+  });
+
+  test("another admin has their own models and cannot use someone else's", async () => {
+    const other = await otherAdmin();
+    const list = await call('GET', '/admin/ai/connections', undefined, other);
+    assert.deepEqual(list.body.connections, [], 'they start with none');
+    assert.equal((await call('POST', `/admin/ai/connections/${conn.id}/test`, undefined, other)).status, 404);
+    assert.equal((await call('PUT', `/admin/ai/connections/${conn.id}`, { model: 'mine' }, other)).status, 404);
+    const res = await call('POST', '/admin/custom-blocks', { prompt: 'A pricing table', connectionId: conn.id }, other);
+    assert.equal(res.status, 404, "another admin's model cannot be used");
+    const none = await call('POST', '/admin/custom-blocks', { prompt: 'A pricing table' }, other);
+    assert.equal(none.status, 400);
+    assert.match(none.body.message, /Connect an AI model/);
   });
 });
 
@@ -138,6 +184,7 @@ describe('custom blocks', () => {
     const fix = requests.at(-1).body.messages.at(-1).content;
     assert.match(fix, /"fetch" is not allowed/);
     assert.equal(block.conversation.at(-1).text, 'ok', 'the builder shows the summary');
+    assert.equal(block.conversation.at(-1).model, 'Stand-in (test-model)', 'and which model answered');
     assert.match(block.draft.compiled, /export default function \(Vue\)/);
   });
 
@@ -236,19 +283,12 @@ describe('custom blocks', () => {
     );
   });
 
-  test('the daily limit is kept', async () => {
-    const view = await call('GET', '/admin/settings/ai');
-    await call('PUT', '/admin/settings/ai', { dailyLimit: view.body.usedToday });
-    const res = await call('POST', `/admin/custom-blocks/${block.id}/refine`, { prompt: 'Again' });
+  test('the daily limit is kept, per model', async () => {
+    const used = (await call('GET', '/admin/ai/connections')).body.connections.find((c) => c.id === conn.id).usedToday;
+    assert.ok(used > 0);
+    await call('PUT', `/admin/ai/connections/${conn.id}`, { dailyLimit: used });
+    const res = await call('POST', `/admin/custom-blocks/${block.id}/refine`, { prompt: 'Again', connectionId: conn.id });
     assert.equal(res.status, 429);
-    await call('PUT', '/admin/settings/ai', { dailyLimit: 100 });
-  });
-
-  test('without a key the builder explains what to do', async () => {
-    await call('PUT', '/admin/settings/ai', { clearKey: true });
-    const res = await call('POST', '/admin/custom-blocks', { prompt: 'Anything at all' });
-    assert.equal(res.status, 400);
-    assert.match(res.body.message, /Settings → AI/);
-    await call('PUT', '/admin/settings/ai', { apiKey: KEY });
+    await call('PUT', `/admin/ai/connections/${conn.id}`, { dailyLimit: 100 });
   });
 });

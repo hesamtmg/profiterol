@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseUUIDPipe, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
-import { IsObject, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import type { Response } from 'express';
 import { readFileSync } from 'node:fs';
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
@@ -14,6 +14,11 @@ class PromptDto {
   @MinLength(3)
   @MaxLength(4000)
   prompt: string;
+
+  /** Which of the admin's own AI models to ask; their default when left out. */
+  @IsOptional()
+  @IsUUID()
+  connectionId?: string;
 }
 
 class DraftDto {
@@ -36,10 +41,11 @@ function view(b: CustomBlock) {
     draft: b.draft,
     live: b.live ? { hash: b.live.hash, url: moduleUrl(b.id, b.live.hash) } : null,
     changed: !b.live || b.live.hash !== b.draft.hash || JSON.stringify(b.live.def) !== JSON.stringify(b.draft.def),
-    conversation: b.conversation.map(({ role, content, at, author }) => ({
+    conversation: b.conversation.map(({ role, content, at, author, model }) => ({
       role,
       at,
       author,
+      model,
       // The AI's turns are stored as its whole JSON answer; the builder shows its summary.
       text: role === 'assistant' ? summaryOf(content) : content,
     })),
@@ -80,13 +86,13 @@ export class AdminCustomBlocksController {
 
   @Post()
   async generate(@Body() dto: PromptDto, @Req() req: Authed) {
-    return view(await this.blocks.generate(dto.prompt.trim(), req.user.email));
+    return view(await this.blocks.generate(dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId));
   }
 
   @Post(':id/refine')
   @HttpCode(200)
   async refine(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PromptDto, @Req() req: Authed) {
-    return view(await this.blocks.refine(id, dto.prompt.trim(), req.user.email));
+    return view(await this.blocks.refine(id, dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId));
   }
 
   @Put(':id/draft')

@@ -72,26 +72,30 @@ await ad.fill('input[type=password]', ADMIN.password);
 await ad.click('button[type=submit]');
 await ad.waitForURL(`${BASE}/admin`);
 
-// ---------- Settings → AI ----------
-await ad.goto(`${BASE}/admin/settings#ai`, { waitUntil: 'networkidle' });
-await ad.check('text=Let admins build blocks with AI');
+// ---------- Your AI models (each admin their own, on this site) ----------
+await ad.goto(`${BASE}/admin/blocks`, { waitUntil: 'networkidle' });
+await ad.waitForSelector('[data-testid="ai-connections"] form');
+check('ai models: with none yet, the builder asks to connect one', (await ad.locator('text=Connect an AI model first').count()) === 1);
 await ad.selectOption('#ai-provider', 'openai-compatible');
 await ad.fill('#ai-model', 'stand-in');
+await ad.fill('#ai-name', 'Stand-in');
 await ad.fill('#ai-key', 'sk-e2e-secret-key-1234');
 await ad.fill('#ai-base', `http://127.0.0.1:${ai.address().port}/v1`);
-await ad.click('button:has-text("Save AI settings")');
-await ad.waitForSelector('text=AI settings saved.');
+await ad.locator('[data-testid="ai-connections"]').screenshot({ path: out + 'ai-models-form.png' });
+await ad.click('button:has-text("Save model")');
+await ad.waitForSelector('text=AI model saved.');
+const row = ad.locator('[data-connection="Stand-in"]');
 check(
-  'ai settings: the key is not shown again',
-  (await ad.inputValue('#ai-key')) === '' && (await ad.getAttribute('#ai-key', 'placeholder')).includes('1234'),
+  'ai models: the key is not shown again, only its end',
+  (await row.textContent()).includes('…1234') && !(await ad.content()).includes('sk-e2e-secret'),
 );
-await ad.click('button:has-text("Test connection")');
+await row.locator('button:has-text("Test")').click();
 await ad.waitForSelector('text=the key and model work');
-check('ai settings: test connection reaches the AI', true);
-await ad.locator('#ai').screenshot({ path: out + 'settings-ai.png' });
+check('ai models: test reaches the AI', true);
+await ad.locator('[data-testid="ai-connections"]').screenshot({ path: out + 'ai-models.png' });
+await ad.click('button:has-text("Hide your AI models")');
 
 // ---------- Build a block ----------
-await ad.goto(`${BASE}/admin/blocks`, { waitUntil: 'networkidle' });
 await ad.fill('#block-prompt', 'A list of questions that open to show the answer');
 await ad.click('button:has-text("Build it")');
 await ad.waitForSelector('h2:has-text("Toggle list")', { timeout: 20000 });
