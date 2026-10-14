@@ -21,7 +21,7 @@
 # SKIP_DNS_CHECK=1 (when a CDN sits in front, so the domain does not point at this server).
 set -u
 
-API_URL=${API_URL:-http://api:3001/api}
+API_URL=${API_URL:-http://profiterol-api:3001/api}
 INTERNAL_TOKEN=${INTERNAL_TOKEN:-}
 OBLIVION_DIR=${OBLIVION_DIR:-/root/Oblivion}
 OBLIVION_NGINX=${OBLIVION_NGINX:-oblivion-nginx}
