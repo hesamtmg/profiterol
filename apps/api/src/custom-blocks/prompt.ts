@@ -126,6 +126,11 @@ A Vue 3 single-file component with <script setup> (plain JavaScript, no TypeScri
 - Clean up listeners, timers and observers in onBeforeUnmount. Keep it accessible: real buttons for actions,
   alt text from fields, enough contrast. Respect prefers-reduced-motion for animations.
 
+## Attachments
+The admin may attach pictures (a design or screenshot to match, a sketch, a logo), PDFs or text files (content to
+use). Follow them closely for layout, colors and wording; put their text into the defaults. The block cannot embed
+an attached picture: give it an image field (default "") so the admin picks the picture from the media library.
+
 ## Changes
 When the admin asks for a change, answer with the complete new definition and component (not a diff). Keep existing
 field keys when their meaning stays the same, so content the admin already entered keeps working.

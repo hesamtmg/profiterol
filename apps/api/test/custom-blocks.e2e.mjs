@@ -3,11 +3,13 @@
 // The API must be able to reach this machine's 127.0.0.1 (true when both run on the same host).
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
 import { after, before, describe, test } from 'node:test';
 
 const API = process.env.API_URL ?? 'http://localhost:3001/api';
 const ADMIN = { email: process.env.ADMIN_EMAIL ?? 'admin@example.com', password: process.env.ADMIN_PASSWORD ?? 'admin12345' };
 const KEY = 'sk-test-0123456789abcdef';
+const sharp = createRequire(import.meta.url)('sharp');
 let token = '';
 
 async function call(method, path, body, bearer = token) {
@@ -281,6 +283,65 @@ describe('custom blocks', () => {
       sent.some((m) => m.content === 'A pricing table'),
       'earlier requests are sent along',
     );
+  });
+
+  test('pictures and files go to the AI with the request; later requests only mention them', async () => {
+    const png = await sharp({ create: { width: 2400, height: 1200, channels: 3, background: '#00a998' } })
+      .png()
+      .toBuffer();
+    const form = new FormData();
+    form.append('prompt', 'Match this design');
+    form.append('connectionId', conn.id);
+    form.append('files', new Blob([png], { type: 'image/png' }), 'design.png');
+    form.append('files', new Blob(['Plans: Basic $5, Pro $19'], { type: 'text/plain' }), 'prices.txt');
+    const res = await fetch(`${API}/admin/custom-blocks/${block.id}/refine`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+      body: form,
+    });
+    assert.equal(res.status, 200, await res.clone().text());
+    const view = await res.json();
+    const sent = requests.at(-1).body.messages.at(-1).content;
+    assert.ok(Array.isArray(sent), 'the request carries its files');
+    const image = sent.find((p) => p.type === 'image_url');
+    assert.match(image.image_url.url, /^data:image\/jpeg;base64,/);
+    const { width } = await sharp(Buffer.from(image.image_url.url.split(',')[1], 'base64')).metadata();
+    assert.ok(width <= 1568, 'large pictures are scaled down');
+    assert.ok(
+      sent.some((p) => p.type === 'text' && p.text.includes('Plans: Basic $5')),
+      'text files are read',
+    );
+    assert.ok(sent.some((p) => p.type === 'text' && p.text === 'Match this design'));
+    const asked = view.conversation.findLast((m) => m.role === 'user');
+    assert.deepEqual(
+      asked.attachments.map((a) => [a.name, a.kind]),
+      [
+        ['design.png', 'image'],
+        ['prices.txt', 'text'],
+      ],
+    );
+    assert.match(asked.attachments[0].thumb, /^data:image\/webp;base64,/, 'with a small preview');
+
+    await call('POST', `/admin/custom-blocks/${block.id}/refine`, { prompt: 'Now darker' });
+    const history = requests.at(-1).body.messages;
+    assert.ok(history.some((m) => typeof m.content === 'string' && m.content.includes('(Attached earlier: design.png, prices.txt.)')));
+    assert.ok(
+      history.every((m) => typeof m.content === 'string'),
+      'earlier files are not sent again',
+    );
+  });
+
+  test('other files are refused', async () => {
+    const form = new FormData();
+    form.append('prompt', 'Use this');
+    form.append('files', new Blob([Buffer.from('MZ\x90\x00binary')], { type: 'application/octet-stream' }), 'tool.exe');
+    const res = await fetch(`${API}/admin/custom-blocks/${block.id}/refine`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}` },
+      body: form,
+    });
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).message, /cannot be attached/);
   });
 
   test('the daily limit is kept, per model', async () => {

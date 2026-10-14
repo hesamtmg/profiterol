@@ -1,7 +1,25 @@
-import { Body, Controller, Delete, Get, Header, HttpCode, Param, ParseUUIDPipe, Post, Put, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Header,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Post,
+  Put,
+  Req,
+  Res,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 import type { Response } from 'express';
 import { readFileSync } from 'node:fs';
+import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS, readAttachments } from '../ai/attachments';
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { MAX_SOURCE } from './compile';
 import type { CustomBlock } from './custom-block.entity';
@@ -30,6 +48,9 @@ class DraftDto {
   source: string;
 }
 
+/** Files attached to a builder request, kept in memory only while it is answered. */
+const attachments = FilesInterceptor('files', MAX_ATTACHMENTS, { limits: { fileSize: MAX_ATTACHMENT_BYTES, files: MAX_ATTACHMENTS } });
+
 /** What the builder shows. The compiled draft is included for the sandboxed preview. */
 function view(b: CustomBlock) {
   return {
@@ -41,11 +62,12 @@ function view(b: CustomBlock) {
     draft: b.draft,
     live: b.live ? { hash: b.live.hash, url: moduleUrl(b.id, b.live.hash) } : null,
     changed: !b.live || b.live.hash !== b.draft.hash || JSON.stringify(b.live.def) !== JSON.stringify(b.draft.def),
-    conversation: b.conversation.map(({ role, content, at, author, model }) => ({
+    conversation: b.conversation.map(({ role, content, at, author, model, attachments }) => ({
       role,
       at,
       author,
       model,
+      attachments,
       // The AI's turns are stored as its whole JSON answer; the builder shows its summary.
       text: role === 'assistant' ? summaryOf(content) : content,
     })),
@@ -84,15 +106,25 @@ export class AdminCustomBlocksController {
     return view(await this.blocks.get(id));
   }
 
+  /** JSON, or multipart with up to 5 attached pictures, PDFs or text files under "files". */
   @Post()
-  async generate(@Body() dto: PromptDto, @Req() req: Authed) {
-    return view(await this.blocks.generate(dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId));
+  @UseInterceptors(attachments)
+  async generate(@Body() dto: PromptDto, @Req() req: Authed, @UploadedFiles() files?: Express.Multer.File[]) {
+    const attached = await readAttachments(files);
+    return view(await this.blocks.generate(dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId, attached));
   }
 
   @Post(':id/refine')
   @HttpCode(200)
-  async refine(@Param('id', ParseUUIDPipe) id: string, @Body() dto: PromptDto, @Req() req: Authed) {
-    return view(await this.blocks.refine(id, dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId));
+  @UseInterceptors(attachments)
+  async refine(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PromptDto,
+    @Req() req: Authed,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    const attached = await readAttachments(files);
+    return view(await this.blocks.refine(id, dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId, attached));
   }
 
   @Put(':id/draft')

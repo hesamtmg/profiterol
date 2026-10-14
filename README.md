@@ -61,7 +61,9 @@ developer or a deploy:
    limit. An admin can add as many as they like and pick one per request. Connections belong to one admin on one
    site: other admins, and the same admin on another site, never see or use them. Keys are stored encrypted
    (AES-GCM, keyed from `JWT_SECRET`) and never sent back to the browser.
-2. Describe the block. The AI writes its definition (fields + defaults, as above) and a Vue component. The API checks
+2. Describe the block, and attach pictures (a design, a screenshot, a logo), PDFs or text files if that helps: they
+   are paste-able and drag-and-droppable, go to the AI with that request only, and the conversation keeps just their
+   names and small previews. The AI writes its definition (fields + defaults, as above) and a Vue component. The API checks
    both and compiles the component (`apps/api/src/custom-blocks/compile.ts`). When a check fails, the problems go
    back to the AI to fix.
 3. Try it in the sandboxed preview, ask for changes, or edit the code by hand. Drafts run only in that frame. It has

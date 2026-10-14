@@ -1025,4 +1025,11 @@ export const adminFa: Record<string, string> = {
   "The saved API key can no longer be read. Enter it again.": "کلید API ذخیره‌شده دیگر خوانده نمی‌شود. دوباره واردش کنید.",
   "Enter the base URL of the AI service": "نشانی پایه‌ی سرویس هوش مصنوعی را وارد کنید",
   "The base URL must start with http:// or https://": "نشانی پایه باید با http:// یا https:// شروع شود",
+  "Attach": "پیوست",
+  "Attach up to {n} files": "حداکثر {n} فایل پیوست کنید",
+  "“{name}” cannot be attached. Attach pictures, PDFs or text files.": "«{name}» را نمی‌توان پیوست کرد. تصویر، PDF یا فایل متنی پیوست کنید.",
+  "“{name}” is larger than 10 MB.": "«{name}» بزرگ‌تر از ۱۰ مگابایت است.",
+  "Attach pictures or files": "پیوست تصویر یا فایل",
+  "Attach a design, screenshot, logo, PDF or text file. You can also paste or drop them here.": "طرح، اسکرین‌شات، لوگو، PDF یا فایل متنی پیوست کنید. می‌توانید آن‌ها را اینجا بچسبانید یا رها کنید.",
+  "Remove {name}": "حذف {name}",
 };

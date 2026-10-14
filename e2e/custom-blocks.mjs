@@ -1,7 +1,7 @@
 // The AI block builder: AI settings, building a block with a stand-in AI service, the sandboxed preview (and that
 // draft code there cannot reach the admin), approving, using the block in the editor and on the published page.
 import { createServer } from 'node:http';
-import { ADMIN, BASE, api, apiToken, check, finish, launch, shots, watch } from './lib.mjs';
+import { ADMIN, BASE, api, apiToken, check, finish, fixtures, launch, shots, watch } from './lib.mjs';
 
 const out = shots('custom-blocks');
 
@@ -51,9 +51,12 @@ const open = ref(-1);
 .item { background: var(--c-surface); border-radius: var(--radius-card); margin-block: .5rem; padding: 1rem; }
 .q { font-weight: 700; }
 </style>`;
+const aiRequests = [];
 const ai = createServer((req, res) => {
-  req.resume();
+  let raw = '';
+  req.on('data', (c) => (raw += c));
   req.on('end', () => {
+    aiRequests.push(JSON.parse(raw));
     res.setHeader('content-type', 'application/json');
     const answer = { summary: 'A list of questions that open on click.', def_json: JSON.stringify(DEF), source: SOURCE };
     res.end(JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content: JSON.stringify(answer) } }] }));
@@ -148,6 +151,18 @@ const probed = await frame
   .catch(() => 'missing');
 check('sandbox: draft code cannot send requests or read cookies', probed === 'blocked denied', probed);
 await ad.reload({ waitUntil: 'networkidle' });
+
+// ---------- Attach a picture to a request ----------
+await ad.setInputFiles('[data-testid="ai-attach-input"]', fixtures.cover);
+check('attach: the picture waits as a chip with a preview', (await ad.locator('[data-testid="ai-attachment"] img').count()) === 1);
+await ad.fill('textarea[aria-label="Ask for changes"]', 'Use the colors of this picture');
+await ad.click('aside button:has-text("Send")');
+await ad.waitForSelector('aside li img[src^="data:image/webp"]', { timeout: 20000 });
+check('attach: the conversation shows what was attached', (await ad.locator('aside li >> text=cover-harbor.png').count()) === 1);
+check('attach: the chip is cleared after sending', (await ad.locator('[data-testid="ai-attachment"]').count()) === 0);
+const aiSaw = aiRequests.at(-1).messages.at(-1).content;
+check('attach: the picture reaches the AI', Array.isArray(aiSaw) && aiSaw.some((p) => p.type === 'image_url'));
+await ad.locator('aside:has-text("Ask for changes")').screenshot({ path: out + 'conversation-with-picture.png' });
 
 // ---------- Approve, then use it in the editor ----------
 await ad.click('button:has-text("Approve for use")');

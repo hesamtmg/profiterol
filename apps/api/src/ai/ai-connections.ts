@@ -85,7 +85,8 @@ export function connectionView(c: AiConnection) {
 }
 
 /** A connection's label in the builder's conversation, e.g. "Claude (claude-opus-5-5)". */
-export const connectionLabel = (c: AiConnection) => (c.name && c.name !== c.model ? `${c.name} (${c.model})` : c.model);
+export const connectionLabel = (c: AiConnection) =>
+  c.name && c.name.toLowerCase() !== c.model.toLowerCase() ? `${c.name} (${c.model})` : c.model;
 
 @Injectable()
 export class AiConnectionsService {

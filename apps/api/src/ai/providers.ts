@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import type { AiPart } from './attachments';
 
 export type AiProviderName = 'anthropic' | 'openai' | 'openai-compatible';
 export const AI_PROVIDERS: AiProviderName[] = ['anthropic', 'openai', 'openai-compatible'];
@@ -12,7 +13,8 @@ export const SUGGESTED_MODELS: Record<AiProviderName, string[]> = {
 
 export interface AiMessage {
   role: 'user' | 'assistant';
-  content: string;
+  /** Text, or text with attached pictures and files. */
+  content: string | AiPart[];
 }
 
 export interface AiRequest {
@@ -23,7 +25,7 @@ export interface AiRequest {
   maxTokens: number;
 }
 
-/** One AI service, set up with the key and model the site's admin chose in Settings → AI. */
+/** One AI service, set up with an admin's own key and model (see AiConnection). */
 export interface AiProvider {
   /** Sends the conversation and returns the answer parsed as JSON. Throws AiError with a message fit for the admin. */
   generateJson(req: AiRequest): Promise<Record<string, unknown>>;
@@ -69,7 +71,7 @@ class AnthropicProvider implements AiProvider {
           model: this.opts.model,
           max_tokens: req.maxTokens,
           system: req.system,
-          messages: req.messages,
+          messages: req.messages.map((m) => ({ role: m.role, content: anthropicContent(m.content) })),
           output_config: { format: { type: 'json_schema', schema: req.schema } },
         })
         .finalMessage();
@@ -83,11 +85,21 @@ class AnthropicProvider implements AiProvider {
   }
 }
 
+function anthropicContent(content: AiMessage['content']): string | Anthropic.ContentBlockParam[] {
+  if (typeof content === 'string') return content;
+  return content.map((p): Anthropic.ContentBlockParam => {
+    if (p.type === 'image') return { type: 'image', source: { type: 'base64', media_type: p.mediaType, data: p.data } };
+    if (p.type === 'pdf')
+      return { type: 'document', title: p.name, source: { type: 'base64', media_type: 'application/pdf', data: p.data } };
+    return { type: 'text', text: p.text };
+  });
+}
+
 function anthropicError(err: unknown): AiError {
-  if (err instanceof Anthropic.AuthenticationError) return new AiError('The AI provider refused the API key. Check it in Settings → AI.');
+  if (err instanceof Anthropic.AuthenticationError) return new AiError('The AI provider refused the API key. Check it in your AI models.');
   if (err instanceof Anthropic.PermissionDeniedError) return new AiError('This API key may not use the chosen model.');
   if (err instanceof Anthropic.NotFoundError)
-    return new AiError('The AI provider does not know this model. Check its name in Settings → AI.');
+    return new AiError('The AI provider does not know this model. Check its name in your AI models.');
   if (err instanceof Anthropic.RateLimitError)
     return new AiError('The AI provider is rate limiting this key. Wait a minute and try again.');
   if (err instanceof Anthropic.BadRequestError) return new AiError(`The AI provider rejected the request: ${err.message}`);
@@ -95,6 +107,15 @@ function anthropicError(err: unknown): AiError {
     return new AiError('Could not reach the AI provider. Check the server’s internet access.');
   if (err instanceof Anthropic.APIError) return new AiError(`The AI provider answered with an error (${err.status ?? 'no status'}).`);
   return new AiError('The AI request failed.');
+}
+
+function openAiContent(content: AiMessage['content']) {
+  if (typeof content === 'string') return content;
+  return content.map((p) => {
+    if (p.type === 'image') return { type: 'image_url', image_url: { url: `data:${p.mediaType};base64,${p.data}` } };
+    if (p.type === 'pdf') return { type: 'file', file: { filename: p.name, file_data: `data:application/pdf;base64,${p.data}` } };
+    return { type: 'text', text: p.text };
+  });
 }
 
 /** OpenAI's Chat Completions API, which many other services (OpenRouter, Ollama, LM Studio…) also speak. */
@@ -106,7 +127,10 @@ class OpenAiProvider implements AiProvider {
     const base = (this.opts.baseUrl || 'https://api.openai.com/v1').replace(/\/+$/, '');
     const body = {
       model: this.opts.model,
-      messages: [{ role: 'system', content: req.system }, ...req.messages],
+      messages: [
+        { role: 'system', content: req.system },
+        ...req.messages.map((m) => ({ role: m.role, content: openAiContent(m.content) })),
+      ],
       // Strict JSON schemas are an OpenAI feature; other servers usually only understand "some JSON object".
       response_format: official
         ? { type: 'json_schema', json_schema: { name: 'answer', strict: true, schema: req.schema } }
@@ -129,7 +153,7 @@ class OpenAiProvider implements AiProvider {
       choices?: { message?: { content?: string; refusal?: string }; finish_reason?: string }[];
     } | null;
     if (!res.ok) {
-      if (res.status === 401) throw new AiError('The AI provider refused the API key. Check it in Settings → AI.');
+      if (res.status === 401) throw new AiError('The AI provider refused the API key. Check it in your AI models.');
       if (res.status === 404) throw new AiError('The AI provider does not know this model (or the base URL is wrong).');
       if (res.status === 429) throw new AiError('The AI provider is rate limiting this key. Wait a minute and try again.');
       throw new AiError(`The AI provider answered with an error (${res.status})${data?.error?.message ? `: ${data.error.message}` : ''}`);

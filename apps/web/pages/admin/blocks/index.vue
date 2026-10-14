@@ -5,6 +5,7 @@
  * the page editor under "Custom blocks (AI)". Further requests and code edits stay in the draft until approved again.
  */
 import { fontNames, resolveTheme, type BlockDef, type ThemeTokens } from '@profiterol/blocks';
+import AiAttachments from '~/components/admin/AiAttachments.vue';
 import AiConnections, { type AiConnectionView } from '~/components/admin/AiConnections.vue';
 import CustomBlockPreview from '~/components/admin/CustomBlockPreview.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
@@ -27,7 +28,14 @@ interface CustomBlockView {
   draft: Version;
   live: { hash: string; url: string } | null;
   changed: boolean;
-  conversation: { role: 'user' | 'assistant'; text: string; at: string; author?: string; model?: string }[];
+  conversation: {
+    role: 'user' | 'assistant';
+    text: string;
+    at: string;
+    author?: string;
+    model?: string;
+    attachments?: { name: string; kind: 'image' | 'pdf' | 'text'; thumb?: string }[];
+  }[];
   createdBy: string;
   approvedBy: string;
   updatedAt: string;
@@ -124,16 +132,40 @@ async function run(work: () => Promise<void>) {
   }
 }
 
+/** Pictures and files going with the next request. */
+const files = ref<File[]>([]);
+const attach = ref<InstanceType<typeof AiAttachments>>();
+/** Pasting a picture (e.g. a screenshot) attaches it; pasting text works as usual. */
+function onPaste(e: ClipboardEvent) {
+  if (e.clipboardData?.files.length) {
+    e.preventDefault();
+    attach.value?.add(e.clipboardData.files);
+  }
+}
+const dropping = ref(false);
+function onDrop(e: DragEvent) {
+  dropping.value = false;
+  attach.value?.add(e.dataTransfer?.files);
+}
+
 const ask = () =>
   run(async () => {
     const text = prompt.value.trim();
     if (!text) return;
-    const body = { prompt: text, connectionId: connectionId.value || undefined };
+    let body: FormData | { prompt: string; connectionId?: string } = { prompt: text, connectionId: connectionId.value || undefined };
+    if (files.value.length) {
+      const form = new FormData();
+      form.append('prompt', text);
+      if (connectionId.value) form.append('connectionId', connectionId.value);
+      for (const f of files.value) form.append('files', f);
+      body = form;
+    }
     const block = selected.value
       ? await api<CustomBlockView>(`/admin/custom-blocks/${selected.value.id}/refine`, { method: 'POST', body })
       : await api<CustomBlockView>('/admin/custom-blocks', { method: 'POST', body });
     replace(block);
     prompt.value = '';
+    files.value = [];
     tab.value = 'preview';
     if (!selected.value) router.replace({ query: { id: block.id } });
   });
@@ -244,9 +276,24 @@ onMounted(load);
         <p v-if="error" class="mb-4 whitespace-pre-line rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{{ error }}</p>
 
         <!-- A new block: just the request. -->
-        <form v-if="creating" class="rounded-[2rem] bg-white p-6 shadow-sm" @submit.prevent="ask">
+        <form
+          v-if="creating"
+          class="rounded-[2rem] bg-white p-6 shadow-sm"
+          :class="{ 'ring-2 ring-[#00a998]': dropping }"
+          @submit.prevent="ask"
+          @dragover.prevent="dropping = true"
+          @dragleave="dropping = false"
+          @drop.prevent="onDrop"
+        >
           <label class="field-label" for="block-prompt">{{ $t('What should the block show and do?') }}</label>
-          <textarea id="block-prompt" v-model="prompt" class="input min-h-32" :placeholder="$t('E.g. a pricing table with three plans…')" />
+          <textarea
+            id="block-prompt"
+            v-model="prompt"
+            class="input min-h-32"
+            :placeholder="$t('E.g. a pricing table with three plans…')"
+            @paste="onPaste"
+          />
+          <AiAttachments ref="attach" v-model="files" class="mt-2" :disabled="busy" />
           <div class="mt-3 flex flex-wrap gap-2">
             <button v-for="ex in examples" :key="ex" type="button" class="btn-pill text-start text-xs" @click="prompt = $t(ex)">
               {{ $t(ex) }}
@@ -398,16 +445,37 @@ onMounted(load);
                     {{ m.role === 'user' ? (m.author ?? $t('You')) : m.model ? `${$t('AI')} · ${m.model}` : $t('AI') }}
                   </span>
                   {{ m.text }}
+                  <span v-if="m.attachments?.length" class="mt-1.5 flex flex-wrap gap-1.5">
+                    <span
+                      v-for="a in m.attachments"
+                      :key="a.name"
+                      class="flex max-w-full items-center gap-1 rounded-lg bg-white/70 p-1 pe-2 text-xs text-slate-600"
+                      :title="a.name"
+                    >
+                      <img v-if="a.thumb" :src="a.thumb" alt="" class="h-10 w-10 rounded-md object-cover" />
+                      <i v-else class="mdi text-base" :class="a.kind === 'pdf' ? 'mdi-file-pdf-box' : 'mdi-file-document-outline'" />
+                      <span class="truncate">{{ a.name }}</span>
+                    </span>
+                  </span>
                 </li>
               </ol>
-              <form class="mt-3" @submit.prevent="ask">
+              <form
+                class="mt-3 rounded-2xl"
+                :class="{ 'ring-2 ring-[#00a998]': dropping }"
+                @submit.prevent="ask"
+                @dragover.prevent="dropping = true"
+                @dragleave="dropping = false"
+                @drop.prevent="onDrop"
+              >
                 <textarea
                   v-model="prompt"
                   class="input min-h-20 text-sm"
                   :placeholder="$t('E.g. make the cards rounder and add a subtitle')"
                   :aria-label="$t('Ask for changes')"
                   @keydown.enter.exact.prevent="ask"
+                  @paste="onPaste"
                 />
+                <AiAttachments ref="attach" v-model="files" class="mt-2" :disabled="busy" />
                 <select
                   v-if="connections && connections.length > 1"
                   v-model="connectionId"

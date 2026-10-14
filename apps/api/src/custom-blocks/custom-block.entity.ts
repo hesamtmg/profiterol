@@ -1,6 +1,6 @@
 import type { BlockDef } from '@profiterol/blocks';
 import { Column, CreateDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
-import type { AiMessage } from '../ai/providers';
+import type { AttachmentInfo } from '../ai/attachments';
 import { Site } from '../sites/site.entity';
 
 /**
@@ -49,8 +49,18 @@ export class CustomBlock {
 
   /** The conversation with the AI, so later requests ("make the title bigger") build on the earlier ones. */
   @Column({ type: 'jsonb', default: () => "'[]'" })
-  /** `model`: which of the admin's AI models answered (its name and model). */
-  conversation: (AiMessage & { at: string; author?: string; model?: string })[];
+  /**
+   * Text only: `model` says which of the admin's AI models answered, `attachments` what was attached to a request
+   * (names and small previews; the files themselves are sent once and not kept).
+   */
+  conversation: {
+    role: 'user' | 'assistant';
+    content: string;
+    at: string;
+    author?: string;
+    model?: string;
+    attachments?: AttachmentInfo[];
+  }[];
 
   @Column({ default: '' })
   createdBy: string;

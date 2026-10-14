@@ -4,6 +4,7 @@ import { allBlocks, type BlockDef, type BlockNode, CUSTOM_BLOCK_PREFIX, validate
 import { randomBytes } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
 import { AiConnectionsService, connectionLabel } from '../ai/ai-connections';
+import { type AiPart, attachmentNote, type AttachmentInfo } from '../ai/attachments';
 import { AiError, type AiMessage } from '../ai/providers';
 import { currentSiteId } from '../sites/site-context';
 import { BlockCompileError, compileBlock } from './compile';
@@ -21,6 +22,12 @@ const MAX_BLOCKS = 100;
 export interface Author {
   id: string;
   email: string;
+}
+
+/** Pictures and files attached to a request (see readAttachments). */
+export interface Attached {
+  parts: AiPart[];
+  info: AttachmentInfo[];
 }
 
 export interface DraftInput {
@@ -74,11 +81,11 @@ export class CustomBlocksService {
   }
 
   /** Asks the AI for a new block, with the admin's own model (`connectionId`, else their default). */
-  async generate(prompt: string, author: Author, connectionId?: string) {
+  async generate(prompt: string, author: Author, connectionId?: string, attached?: Attached) {
     if ((await this.repo.countBy({ siteId: currentSiteId() })) >= MAX_BLOCKS) {
       throw new BadRequestException(`A site can have up to ${MAX_BLOCKS} custom blocks`);
     }
-    const { version, messages } = await this.askAi([], prompt, author, connectionId);
+    const { version, messages } = await this.askAi([], prompt, author, connectionId, attached);
     // ASCII only (a Persian label gives just "block"), with a random end so two blocks never share a type.
     const name = version.def.label
       .toLowerCase()
@@ -101,9 +108,9 @@ export class CustomBlocksService {
   }
 
   /** Asks the AI to change a block's draft ("make the cards rounder"). */
-  async refine(id: string, prompt: string, author: Author, connectionId?: string) {
+  async refine(id: string, prompt: string, author: Author, connectionId?: string, attached?: Attached) {
     const block = await this.get(id);
-    const { version, messages } = await this.askAi(block.conversation, prompt, author, connectionId, block.type);
+    const { version, messages } = await this.askAi(block.conversation, prompt, author, connectionId, attached, block.type);
     block.draft = version;
     block.conversation = messages;
     return this.repo.save(block);
@@ -177,13 +184,21 @@ export class CustomBlocksService {
     prompt: string,
     author: Author,
     connectionId?: string,
+    attached: Attached = { parts: [], info: [] },
     type = `${CUSTOM_BLOCK_PREFIX}new`,
   ) {
     const { connection, provider } = await this.ai.pick(author.id, connectionId);
-    const asked = { role: 'user' as const, content: prompt, at: new Date().toISOString(), author: author.email };
+    const asked = {
+      role: 'user' as const,
+      content: prompt,
+      at: new Date().toISOString(),
+      author: author.email,
+      ...(attached.info.length ? { attachments: attached.info } : {}),
+    };
+    // Earlier turns go as text (their files were sent with them); this request carries its own files.
     const messages: AiMessage[] = [
-      ...history.slice(-HISTORY).map(({ role, content }) => ({ role, content })),
-      { role: 'user', content: prompt },
+      ...history.slice(-HISTORY).map(({ role, content, attachments }) => ({ role, content: content + attachmentNote(attachments) })),
+      { role: 'user', content: attached.parts.length ? [...attached.parts, { type: 'text', text: prompt }] : prompt },
     ];
     let problems: string[] = [];
     for (let round = 0; round <= FIX_ROUNDS; round++) {
