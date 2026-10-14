@@ -76,26 +76,29 @@ onMounted(load);
           <option v-for="f in folders" :key="f" :value="f">{{ f }}</option>
         </select>
       </div>
-      <div class="grid grid-cols-3 gap-3 overflow-y-auto p-6 sm:grid-cols-4">
-        <button
-          v-for="item in items"
-          :key="item.id"
-          type="button"
-          class="group aspect-square overflow-hidden rounded-2xl bg-slate-100 ring-offset-2 hover:ring-2 hover:ring-slate-900"
-          :title="item.originalName"
-          @click="emit('pick', item.url)"
-        >
-          <img
-            v-if="item.mime.startsWith('image/')"
-            :src="item.url"
-            :alt="item.alt?.en || item.originalName"
-            class="h-full w-full object-cover"
-          />
-          <span v-else class="flex h-full items-center justify-center text-3xl text-slate-400"><i class="mdi mdi-video-outline" /></span>
-        </button>
-        <p v-if="!items.length" class="col-span-full py-10 text-center text-sm text-slate-400">
-          {{ $t('No files yet. Upload one, or drop it here.') }}
-        </p>
+      <!-- Scroll on a wrapper: an overflow grid squeezed by max-h collapses its rows and the tiles overlap. -->
+      <div class="min-h-0 flex-1 overflow-y-auto p-6">
+        <div class="grid grid-cols-3 gap-3 sm:grid-cols-4">
+          <button
+            v-for="item in items"
+            :key="item.id"
+            type="button"
+            class="group aspect-square overflow-hidden rounded-2xl bg-slate-100 ring-offset-2 hover:ring-2 hover:ring-slate-900"
+            :title="item.originalName"
+            @click="emit('pick', item.url)"
+          >
+            <img
+              v-if="item.mime.startsWith('image/')"
+              :src="item.url"
+              :alt="item.alt?.en || item.originalName"
+              class="h-full w-full object-cover"
+            />
+            <span v-else class="flex h-full items-center justify-center text-3xl text-slate-400"><i class="mdi mdi-video-outline" /></span>
+          </button>
+          <p v-if="!items.length" class="col-span-full py-10 text-center text-sm text-slate-400">
+            {{ $t('No files yet. Upload one, or drop it here.') }}
+          </p>
+        </div>
       </div>
     </div>
   </div>
