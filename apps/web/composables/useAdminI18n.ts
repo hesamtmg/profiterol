@@ -3,20 +3,33 @@ import { adminFa } from '~/i18n/admin-fa';
 export type AdminLang = 'en' | 'fa';
 const STORE = 'profiterol-admin-lang';
 
-/** The admin's language, shared by every admin screen. Remembered in this browser. */
+/**
+ * The admin's language, shared by every admin screen. A choice made with the switch is remembered in this browser;
+ * until then it is the site's admin language set by the owner (Admin → Sites), or else the browser's language.
+ */
 const lang = ref<AdminLang>('en');
 let loaded = false;
+/** Whether this browser has a language picked with the switch, which wins over the site's. */
+let chosen = false;
 
 function load() {
   if (loaded || !import.meta.client) return;
   loaded = true;
   try {
     const saved = localStorage.getItem(STORE);
-    if (saved === 'fa' || saved === 'en') lang.value = saved;
-    else if (navigator.language.startsWith('fa')) lang.value = 'fa';
+    if (saved === 'fa' || saved === 'en') {
+      lang.value = saved;
+      chosen = true;
+    } else if (navigator.language.startsWith('fa')) lang.value = 'fa';
   } catch {
     /* private mode: stay in English */
   }
+}
+
+/** The site's admin language (from the owner), used unless this browser has its own choice. '' keeps the browser's. */
+export function applySiteAdminLang(code: unknown) {
+  load();
+  if (!chosen && (code === 'fa' || code === 'en')) lang.value = code;
 }
 
 /**
@@ -42,6 +55,7 @@ export function useAdminI18n() {
   const dir = computed(() => (lang.value === 'fa' ? 'rtl' : 'ltr'));
   function setLang(next: AdminLang) {
     lang.value = next;
+    chosen = true;
     try {
       localStorage.setItem(STORE, next);
     } catch {

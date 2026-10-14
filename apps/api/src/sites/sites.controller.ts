@@ -45,7 +45,7 @@ import { SeedService } from '../seed.service';
 import { SettingsService } from '../settings/settings.controller';
 import { UsersService } from '../users/users.service';
 import { currentSiteId, runInSite, siteOrigin, type SiteContext } from './site-context';
-import type { Site, SslStep, SslStepState } from './site.entity';
+import { ADMIN_LANGS, type AdminLang, type Site, type SslStep, type SslStepState } from './site.entity';
 import { SitesService, toContext } from './sites.service';
 
 /** A one-time sign-in link from the owner's panel to another site's admin is valid this long. */
@@ -84,6 +84,11 @@ class CreateSiteDto {
   @IsOptional()
   @IsBoolean()
   demo?: boolean;
+
+  /** The language the site's admin panel opens in for people who have not picked one; '' follows their browser. */
+  @IsOptional()
+  @IsIn(ADMIN_LANGS)
+  adminLang?: AdminLang;
 }
 
 class UpdateSiteDto {
@@ -102,6 +107,11 @@ class UpdateSiteDto {
   @ArrayMaxSize(19)
   @IsString({ each: true })
   aliases?: string[];
+
+  /** The language the site's admin panel opens in for people who have not picked one; '' follows their browser. */
+  @IsOptional()
+  @IsIn(ADMIN_LANGS)
+  adminLang?: AdminLang;
 }
 
 class DeleteSiteDto {
@@ -129,6 +139,7 @@ const view = (s: Site) => {
     aliases: c.domains.slice(1),
     domains: c.domains,
     url: siteOrigin(c),
+    adminLang: s.adminLang,
     sslMode: s.sslMode,
     ssl: s.ssl,
     sslMessage: s.sslMessage,
@@ -181,7 +192,7 @@ export class AdminSitesController {
   @Post()
   async create(@Body() dto: CreateSiteDto) {
     const domains = await this.sites.checkDomains(dto.domain, dto.aliases ?? []);
-    const site = await this.sites.create(dto.name ?? '', domains, dto.ssl ?? false);
+    const site = await this.sites.create(dto.name ?? '', domains, dto.ssl ?? false, dto.adminLang ?? '');
     const ctx = toContext(site);
     let invite: { email: string; link: string; emailed: boolean } | null = null;
     await runInSite(ctx, async () => {
@@ -206,6 +217,7 @@ export class AdminSitesController {
     let site = await this.sites.get(id);
     const before = toContext(site).domains;
     if (dto.name !== undefined) site = await this.sites.rename(id, dto.name);
+    if (dto.adminLang !== undefined) site = await this.sites.setAdminLang(id, dto.adminLang);
     if (dto.domain !== undefined || dto.aliases !== undefined) {
       const c = toContext(site);
       site = await this.sites.setDomains(id, dto.domain ?? c.primary, dto.aliases ?? c.domains.slice(1));

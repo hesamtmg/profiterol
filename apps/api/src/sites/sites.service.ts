@@ -4,7 +4,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { DataSource, In, Repository } from 'typeorm';
 import { config } from '../config';
 import { runInSite, type SiteContext } from './site-context';
-import { Site, SiteDomain, SslEvent, type SslStep, type SslStepState } from './site.entity';
+import { type AdminLang, Site, SiteDomain, SslEvent, type SslStep, type SslStepState } from './site.entity';
 
 /** example.com, sub.example.co.uk, localhost, xn--mgbh0fb.xn--mgbaam7a8h (IDN in punycode). */
 const HOSTNAME = /^(?=.{1,253}$)(?!-)[a-z0-9-]{1,63}(?<!-)(\.(?!-)[a-z0-9-]{1,63}(?<!-))*$/;
@@ -40,6 +40,7 @@ export const toContext = (site: Site): SiteContext => {
   return {
     id: site.id,
     name: site.name,
+    adminLang: site.adminLang ?? '',
     primary: sorted[0]?.domain ?? '',
     domains: sorted.map((d) => d.domain),
     https: site.ssl === 'active' || (!!config.siteUrl.startsWith('https://') && new URL(config.siteUrl).hostname === sorted[0]?.domain),
@@ -140,11 +141,12 @@ export class SitesService {
     return all;
   }
 
-  async create(name: string, domains: string[], ssl: boolean) {
+  async create(name: string, domains: string[], ssl: boolean, adminLang: AdminLang = '') {
     const site = await this.dataSource.transaction(async (m) => {
       const s = await m.save(
         m.create(Site, {
           name: name.trim().slice(0, 120) || domains[0],
+          adminLang,
           sslMode: ssl ? 'requested' : 'off',
           ssl: ssl ? 'queued' : 'none',
           domains: domains.map((domain, i) => m.create(SiteDomain, { domain, primary: i === 0 })),
@@ -174,6 +176,13 @@ export class SitesService {
   async rename(id: string, name: string) {
     await this.get(id);
     await this.sites.update(id, { name: name.trim().slice(0, 120) });
+    this.forget();
+    return this.get(id);
+  }
+
+  async setAdminLang(id: string, adminLang: AdminLang) {
+    await this.get(id);
+    await this.sites.update(id, { adminLang });
     this.forget();
     return this.get(id);
   }

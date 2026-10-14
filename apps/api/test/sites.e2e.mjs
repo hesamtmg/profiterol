@@ -77,7 +77,7 @@ describe('adding sites', () => {
     ids.a = a.body.site.id;
 
     const b = await call('POST', '/admin/sites', {
-      body: { name: 'Site B', domain: B, ssl: true, demo: false, adminEmail: `boss@${B}` },
+      body: { name: 'Site B', domain: B, ssl: true, demo: false, adminEmail: `boss@${B}`, adminLang: 'fa' },
     });
     assert.equal(b.status, 201, JSON.stringify(b.body));
     assert.equal(b.body.site.ssl, 'queued');
@@ -98,6 +98,18 @@ describe('adding sites', () => {
     assert.equal((await call('GET', '/public/en/page', { host: B, token: '' })).status, 404, 'B starts empty');
     assert.equal((await call('GET', '/admin/collections', { host: B })).body.length, 0);
     assert.ok((await call('GET', '/admin/collections', { host: A })).body.some((c) => c.key === 'projects'));
+  });
+
+  test("the owner picks each site's admin panel language; the admin reads it before signing in", async () => {
+    assert.equal((await call('GET', '/public/settings', { host: A, token: '' })).body.adminLang, '', 'unset: the browser decides');
+    assert.equal((await call('GET', '/public/settings', { host: B, token: '' })).body.adminLang, 'fa');
+    assert.equal((await call('POST', '/admin/sites', { body: { domain: `c-${run}.test`, adminLang: 'de' } })).status, 400);
+
+    const changed = await call('PATCH', `/admin/sites/${ids.a}`, { body: { adminLang: 'en' } });
+    assert.equal(changed.status, 200, JSON.stringify(changed.body));
+    assert.equal(changed.body.adminLang, 'en');
+    assert.equal((await call('GET', '/public/settings', { host: A, token: '' })).body.adminLang, 'en');
+    assert.equal((await call('PATCH', `/admin/sites/${ids.a}`, { body: { adminLang: 'xx' } })).status, 400);
   });
 
   test('an alias is the same site', async () => {

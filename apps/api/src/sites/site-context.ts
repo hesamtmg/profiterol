@@ -11,6 +11,8 @@ export interface SiteContext {
   domains: string[];
   /** Whether the site has a working certificate, so links can use https. */
   https: boolean;
+  /** The admin panel's language for people who have not picked one ('' follows their browser). */
+  adminLang: '' | 'en' | 'fa';
   /**
    * The port the request came in on, when its address had one (development, e.g. localhost:8080). Behind nginx
    * there is none. Links in emails keep it, so they work where the admin is running.
