@@ -20,6 +20,7 @@
     "format": "prettier --write . && eslint --fix .",
     "import:minicms": "node scripts/import-minicms.mjs",
     "seed:mazaheri": "node scripts/seed-mazaheri.mjs",
+    "seed:kasra": "node scripts/seed-kasra.mjs",
     "check:business-types": "node scripts/check-business-types.mjs"
   },
   "engines": {

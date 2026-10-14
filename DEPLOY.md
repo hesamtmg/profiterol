@@ -155,6 +155,34 @@ API_URL=https://your-domain/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:
 
 The pictures are generated placeholders, and the numbers and testimonials are examples: replace them in the editor.
 
+### Kasra content
+
+`scripts/seed-kasra.mjs` builds Kasra Haghdoust's portfolio (kasradesignstudio.com) in Persian and English from the pictures of his old site, [hesamtmg/kasra](https://github.com/hesamtmg/kasra). It uploads all 150 pictures into media folders named `Kasra · …` and creates:
+
+- the story of Kasra's career, mostly animated blocks: aurora hero, opening picture, scroll-lit text, spinning badge, timeline, decoding text, stacking cards, zoom-in picture, hover list, logo strip, picture in letters, before/after, sticky story, photo columns, photo trail, fanning cards, expanding panels, orbit, counters, skill bars, floating photos, scroll-moved words, then contact;
+- one page per kind of work, each ending with a gallery of all its pictures: `/identity`, `/logos`, `/low-poly`, `/low-poly-process`, `/nft`, `/illustration` and `/pop-art` (under `/fa/…` and `/en/…`).
+
+The script stops with an error if any picture is left unused. Put the kasra repository next to Profiterol on the server, then run the script with the API image, as for Mazaheri:
+
+```sh
+cd /opt && git clone https://github.com/hesamtmg/kasra
+cd /opt/profiterol && git pull
+C="docker compose -f docker-compose.prod.yml"   # behind Oblivion: C="docker compose"
+$C run --rm backup backup
+$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -v /opt/kasra/kasra-app/public/image:/kasra:ro \
+  -e API_URL=http://api:3001/api -e SITE=kasradesignstudio.com api node /seed/seed-kasra.mjs --images /kasra --home
+```
+
+`SITE` picks the site when one install runs several sites; leave it out otherwise. Without `--home` the story goes on a separate page, `/fa/kasra` and `/en/kasra`, with the colors set on the pages only. With `--home` it goes on the home page, and the script also sets the site name, a transparent copy of Kasra's logo, the favicon, the menu, the yellow and graphite colors, and the contact details. Running it again updates the same pages and does not upload the pictures twice. Add `--dry-run` to check the pictures and build the pages without signing in.
+
+From your own computer instead:
+
+```sh
+API_URL=https://kasradesignstudio.com/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:kasra -- --images ../kasra --home
+```
+
+The story is written from the old site's About page (born 1992, industrial design at Tabriz Islamic Art University) and from the pictures themselves. The timeline's years for the first brands (2017, from the photos' dates) and the NFTs (2021) are best guesses: check them, and the Persian spelling of Kasra's name, in the editor.
+
 ## Behind Oblivion (several sites on one server)
 
 When the server already runs other sites behind the shared [Oblivion](https://github.com/hesamtmg/Oblivion) reverse proxy, Profiterol must not take ports 80/443 itself. `docker-compose.oblivion.yml` changes the stack so that:
