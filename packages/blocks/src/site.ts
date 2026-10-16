@@ -13,10 +13,14 @@ export interface SavedTheme {
   theme: Partial<ThemeTokens>;
 }
 
+/** How the loading screen looks. */
+export const loaderStyles = ['percent', 'bar', 'name', 'logo', 'spinner', 'dots', 'curtain', 'typing', 'pulse'] as const;
+export type LoaderStyle = (typeof loaderStyles)[number];
+
 /** The screen shown while the site loads (minicms's page loader). */
 export interface LoaderSettings {
   enabled: boolean;
-  style: 'percent' | 'name' | 'bar';
+  style: LoaderStyle;
   /** Small line under the counter, per locale. */
   text: Record<string, string>;
   /** Optional background picture, blurred and sharpening as it loads. */
@@ -102,11 +106,24 @@ export function cleanLoader(input: unknown): LoaderSettings {
     typeof src.background === 'string' && /^\/uploads\/[\w-]+\.(jpg|png|webp|avif|gif)$/.test(src.background) ? src.background : '';
   return {
     enabled: src.enabled === true,
-    style: src.style === 'name' || src.style === 'bar' ? src.style : 'percent',
+    style: loaderStyles.includes(src.style as LoaderStyle) ? (src.style as LoaderStyle) : 'percent',
     text,
     background: bg,
     oncePerSession: src.oncePerSession !== false,
   };
+}
+
+/** The most custom CSS kept for the site or one page. */
+export const MAX_CUSTOM_CSS = 50_000;
+
+/**
+ * Custom CSS written by the site's editors (Site settings, and each page's settings). It goes into a <style> tag,
+ * so `<` is written as the CSS escape `\3c ` and nothing can close the tag and add HTML. CSS itself has no other
+ * use for `<` outside strings, and inside strings the escape means the same character.
+ */
+export function cleanCss(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  return input.slice(0, MAX_CUSTOM_CSS).replace(/</g, '\\3c ').trim();
 }
 
 /** Widths of the WebP copies made for every uploaded photo (never larger than the original). */

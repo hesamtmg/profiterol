@@ -1,0 +1,27 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { cleanCss, cleanLoader, loaderStyles, MAX_CUSTOM_CSS } from '../dist/esm/index.js';
+
+test('cleanCss keeps ordinary CSS as it is', () => {
+  const css = '.site h1 > a { color: red; }\n@media (min-width: 40em) { .pf-block { margin: 0 } }';
+  assert.equal(cleanCss(css), css);
+});
+
+test('cleanCss cannot close the style tag', () => {
+  const out = cleanCss('a{}</style><script>alert(1)</script>');
+  assert.ok(!out.includes('<'));
+  assert.equal(out, 'a{}\\3c /style>\\3c script>alert(1)\\3c /script>');
+  // Cleaning twice changes nothing (the site cleans again when it renders).
+  assert.equal(cleanCss(out), out);
+});
+
+test('cleanCss drops anything that is not text and limits the length', () => {
+  assert.equal(cleanCss(undefined), '');
+  assert.equal(cleanCss({ a: 1 }), '');
+  assert.equal(cleanCss('a'.repeat(MAX_CUSTOM_CSS + 10)).length, MAX_CUSTOM_CSS);
+});
+
+test('cleanLoader accepts every loader style and falls back to the counter', () => {
+  for (const style of loaderStyles) assert.equal(cleanLoader({ style }).style, style);
+  assert.equal(cleanLoader({ style: 'nope' }).style, 'percent');
+});

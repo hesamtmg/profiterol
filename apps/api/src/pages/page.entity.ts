@@ -49,6 +49,14 @@ export class Page {
   @Column({ type: 'jsonb', nullable: true })
   publishedTheme: Partial<ThemeTokens> | null;
 
+  /** Draft of CSS for this page only, added after the site's custom CSS. */
+  @Column({ type: 'text', default: '' })
+  customCss: string;
+
+  /** The page CSS visitors see; Publish copies `customCss` here. */
+  @Column({ type: 'text', default: '' })
+  publishedCss: string;
+
   @OneToMany(() => PageTranslation, (t) => t.page, { cascade: true, eager: true })
   translations: PageTranslation[];
 
@@ -119,6 +127,8 @@ export class PageTranslation {
 export interface PageSnapshot {
   name: string;
   theme: Partial<ThemeTokens> | null;
+  /** Missing in versions saved before pages had custom CSS. */
+  customCss?: string;
   translations: {
     locale: string;
     title: string;

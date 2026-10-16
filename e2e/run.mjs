@@ -24,6 +24,7 @@ const SUITES = [
   'business',
   'sites',
   'custom-blocks',
+  'custom-css',
 ];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;

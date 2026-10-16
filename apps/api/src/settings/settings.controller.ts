@@ -30,6 +30,7 @@ import {
 import {
   type BlockNode,
   cleanBusiness,
+  cleanCss,
   cleanFonts,
   cleanLoader,
   cleanSavedThemes,
@@ -37,6 +38,7 @@ import {
   cleanTheme,
   fontNames,
   locales,
+  MAX_CUSTOM_CSS,
   mapRichText,
   validateBlocks,
 } from '@profiterol/blocks';
@@ -100,6 +102,12 @@ class UpdateSettingsDto {
   @IsObject()
   loader?: Record<string, unknown>;
 
+  /** Cleaned by cleanCss. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_CUSTOM_CSS)
+  customCss?: string;
+
   @IsOptional()
   @IsBoolean()
   maintenance?: boolean;
@@ -151,6 +159,7 @@ export class SettingsService {
     if (dto.theme) next.theme = cleanTheme(dto.theme, custom);
     if (dto.savedThemes !== undefined) next.savedThemes = cleanSavedThemes(dto.savedThemes, custom);
     if (dto.loader !== undefined) next.loader = cleanLoader(dto.loader);
+    if (dto.customCss !== undefined) next.customCss = cleanCss(dto.customCss);
     if (dto.business !== undefined) next.business = cleanBusiness(dto.business);
     if (dto.seo !== undefined) next.seo = cleanSeo(dto.seo);
     return this.repo.save(next);

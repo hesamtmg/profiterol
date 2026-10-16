@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   type BlockDef,
   BlockNode,
+  cleanCss,
   cleanTheme,
   findBlock,
   fontNames,
@@ -164,6 +165,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       if (dto.isHome !== undefined) page.isHome = dto.isHome;
       if (dto.noindex !== undefined) page.noindex = dto.noindex;
       if (dto.theme !== undefined) page.theme = dto.theme === null ? null : cleanTheme(dto.theme, customFonts);
+      if (dto.customCss !== undefined) page.customCss = cleanCss(dto.customCss);
       if (dto.publishAt !== undefined) page.publishAt = dto.publishAt ? new Date(dto.publishAt) : null;
       if (dto.unpublishAt !== undefined) page.unpublishAt = dto.unpublishAt ? new Date(dto.unpublishAt) : null;
       if (page.publishAt && page.unpublishAt && page.unpublishAt <= page.publishAt) {
@@ -176,7 +178,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
         else page.translations.push(manager.create(PageTranslation, this.toTranslation(t, custom)));
       }
       const saved = await manager.save(page);
-      if (dto.translations || dto.theme !== undefined || dto.name !== undefined) await this.record(manager, saved, 'save', author);
+      const changed = dto.translations || dto.theme !== undefined || dto.customCss !== undefined || dto.name !== undefined;
+      if (changed) await this.record(manager, saved, 'save', author);
       this.wakeFor(saved.publishAt, saved.unpublishAt);
       return saved;
     });
@@ -187,6 +190,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     const page = await this.get(id);
     page.translations.forEach((t) => (t.publishedBlocks = t.blocks));
     page.publishedTheme = page.theme;
+    page.publishedCss = page.customCss;
     page.status = 'published';
     page.publishedAt = new Date();
     page.publishAt = null;
@@ -203,6 +207,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     return {
       name: page.name,
       theme: page.theme,
+      customCss: page.customCss,
       translations: page.translations.map((t) => ({
         locale: t.locale,
         title: t.title,
@@ -273,6 +278,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       const { snapshot } = rev;
       page.name = snapshot.name;
       page.theme = snapshot.theme;
+      page.customCss = snapshot.customCss ?? '';
       for (const t of snapshot.translations) {
         const existing = page.translations.find((x) => x.locale === t.locale);
         if (existing) Object.assign(existing, t);
@@ -304,6 +310,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
         noindex: source.noindex,
         name: `${source.name} (copy)`,
         theme: source.theme,
+        customCss: source.customCss,
         translations: translations.map((t) => manager.create(PageTranslation, t)),
       });
       const saved = await manager.save(page);
@@ -353,6 +360,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       slug: t.slug,
       isHome: t.page.isHome,
       theme: t.page.publishedTheme,
+      customCss: t.page.publishedCss,
       seoTitle: t.seoTitle || t.title,
       seoDescription: t.seoDescription,
       ogImage: t.ogImage,

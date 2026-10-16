@@ -259,7 +259,14 @@ onBeforeUnmount(() => {
                 <i class="mdi mdi-content-duplicate" /> {{ $t('Copy from {lang}', { lang: l.label }) }}
               </button>
             </div>
-            <FieldInput v-for="f in collection.fields" :key="`${locale}-${f.key}`" v-model="current.data[f.key]" :field="f" :dir="dir" />
+            <FieldInput
+              v-for="f in collection.fields"
+              :key="`${locale}-${f.key}`"
+              v-model="current.data[f.key]"
+              :field="f"
+              :dir="dir"
+              :locale="locale"
+            />
           </div>
 
           <div>

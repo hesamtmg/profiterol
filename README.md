@@ -77,6 +77,16 @@ The component can only import a few functions from `vue` and may not use `v-html
 storage or `eval`. The page's Content-Security-Policy still applies on top of that. Approved blocks render in the
 browser only, never on the server.
 
+## Custom CSS
+
+- **Site settings → Custom CSS** applies to every page; each page can add its own in the editor (**Design → Custom
+  CSS for this page**), which goes live when the page is published. Page CSS comes after the site's, and both come
+  after the built-in styles, so they win at the same specificity.
+- Every block has the class `pf-block` and one for its kind (`pf-spotlight`, `pf-text`…), or use its anchor
+  (`#services`).
+- The CSS cannot close its `<style>` tag (`<` is stored as the CSS escape `\3c `), and it is limited to 50,000
+  characters.
+
 ## Collections
 
 Collections hold content that repeats: projects, blog posts, team members. Each has its own fields (set in **Admin → Collections → Fields & settings**) and every item has a version per language.

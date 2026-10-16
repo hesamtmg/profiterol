@@ -9,12 +9,14 @@ import {
   type BusinessInfo,
   type FieldDef,
   type LoaderSettings,
+  type LoaderStyle,
   type SeoSettings,
   type ThemeTokens,
 } from '@profiterol/blocks';
 import BusinessPicker from '~/components/admin/BusinessPicker.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
 import FontManager from '~/components/admin/FontManager.vue';
+import LinkInput from '~/components/admin/LinkInput.vue';
 import SiteLoader from '~/components/site/SiteLoader.vue';
 import SiteTemplates from '~/components/admin/SiteTemplates.vue';
 import ThemeEditor from '~/components/admin/ThemeEditor.vue';
@@ -31,6 +33,20 @@ const loaderPreview = ref(0);
 const saving = ref(false);
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
+const loaderStyleOptions: { value: LoaderStyle; label: string }[] = [
+  { value: 'percent', label: 'Percentage counter' },
+  { value: 'bar', label: 'Thin bar at the top' },
+  { value: 'name', label: 'Site name filling with color' },
+  { value: 'logo', label: 'Logo with a filling ring' },
+  { value: 'spinner', label: 'Spinning ring' },
+  { value: 'dots', label: 'Bouncing dots' },
+  { value: 'pulse', label: 'Pulsing circles' },
+  { value: 'typing', label: 'Site name typed letter by letter' },
+  { value: 'curtain', label: 'Curtain opening on the site' },
+];
+
+const cssPlaceholder = '.site h1 {\n  letter-spacing: -0.02em;\n}';
+
 const imageField = (key: string, label: string): FieldDef => ({ key, label, type: 'image' });
 
 async function load() {
@@ -45,6 +61,7 @@ async function load() {
     loader.text[l.code] ??= '';
   }
   s.defaultLocale ??= '';
+  s.customCss ??= '';
   const seo = cleanSeo(s.seo);
   for (const l of locales) {
     seo.titleTemplate[l.code] ??= '';
@@ -93,6 +110,7 @@ async function save() {
       business,
       seo,
       defaultLocale,
+      customCss,
     } = settings.value;
     await api('/admin/settings', {
       method: 'PUT',
@@ -111,6 +129,7 @@ async function save() {
         business,
         seo,
         defaultLocale,
+        customCss,
       },
     });
     message.value = { kind: 'ok', text: translate('Settings saved') };
@@ -252,7 +271,7 @@ onMounted(load);
               :dir="l.dir"
               :placeholder="l.label"
             />
-            <input v-model="item.href" class="input w-40 flex-1 font-mono text-xs" dir="ltr" placeholder="#services" />
+            <LinkInput v-model="item.href" class="w-56 flex-1" placeholder="#services" />
             <button
               type="button"
               class="btn-icon"
@@ -299,9 +318,7 @@ onMounted(load);
           <div>
             <label class="field-label" for="loader-style">{{ $t('Style') }}</label>
             <select id="loader-style" v-model="settings.loader.style" class="input">
-              <option value="percent">{{ $t('Percentage counter') }}</option>
-              <option value="bar">{{ $t('Thin bar at the top') }}</option>
-              <option value="name">{{ $t('Site name filling with color') }}</option>
+              <option v-for="s in loaderStyleOptions" :key="s.value" :value="s.value">{{ $t(s.label) }}</option>
             </select>
           </div>
           <label class="flex items-center gap-2 self-end pb-2 text-sm">
@@ -324,12 +341,40 @@ onMounted(load);
               :key="loaderPreview"
               :loader="settings.loader"
               :site-name="settings.siteName.en || 'Your site'"
+              :logo="settings.logo"
               locale="en"
               preview
             />
             <p class="flex h-full items-center justify-center text-xs text-slate-400">{{ $t('The site appears here.') }}</p>
           </div>
         </div>
+      </section>
+
+      <section class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">{{ $t('Custom CSS') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">
+          {{
+            $t(
+              'Your own styles for every page of the site, added after the theme. Each page can also have its own CSS in the page editor (Design).',
+            )
+          }}
+        </p>
+        <textarea
+          v-model="settings.customCss"
+          rows="10"
+          class="input mt-4 font-mono text-xs leading-relaxed"
+          dir="ltr"
+          spellcheck="false"
+          :placeholder="cssPlaceholder"
+          data-testid="site-css"
+        />
+        <p class="mt-1 text-[11px] text-slate-400">
+          {{
+            $t(
+              'Tip: every block has the class .pf-block and one for its kind (e.g. .pf-spotlight), or use the anchor set in its settings (#services). The page is inside .site and the menu is header.',
+            )
+          }}
+        </p>
       </section>
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">

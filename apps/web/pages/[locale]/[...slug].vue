@@ -6,6 +6,7 @@
 import {
   articleJsonLd,
   breadcrumbJsonLd,
+  cleanCss,
   cleanLoader,
   fontFaceCss,
   fontNames,
@@ -39,6 +40,8 @@ interface PublicPage {
   isHome: boolean;
   /** The page's own theme changes, or null to use the site theme. */
   theme: Partial<ThemeTokens> | null;
+  /** CSS for this page only, after the site's custom CSS. */
+  customCss?: string;
   seoTitle: string;
   seoDescription: string;
   /** Picture for link previews chosen in the page settings ('' = the page's first picture). */
@@ -268,7 +271,17 @@ useHead({
   script: () => structuredData.value.map((data) => ({ type: 'application/ld+json', innerHTML: jsonLdScript(data) })),
   // Search console ownership checks (Admin → Settings → SEO).
   meta: () => verificationMeta(seo.value),
-  style: [{ innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` }],
+  style: [
+    { innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` },
+    // Custom CSS (Site settings, then the page's settings) goes at the end of the body, after the site's stylesheet,
+    // so its rules win over the built-in ones of the same specificity.
+    { key: 'site-css', tagPosition: 'bodyClose', innerHTML: () => cleanCss(settings.value?.customCss) },
+    {
+      key: 'page-css',
+      tagPosition: 'bodyClose',
+      innerHTML: () => (resolved.value?.kind === 'page' ? cleanCss(resolved.value.page.customCss) : ''),
+    },
+  ],
   link: () => [
     // The default fonts are always loaded (nuxt.config); others only when the theme picks them.
     ...(settings.value?.favicon ? [{ rel: 'icon', href: settings.value.favicon }] : []),
@@ -316,7 +329,7 @@ useSeoMeta({
       </div>
     </template>
     <template v-else-if="resolved">
-      <SiteLoader v-if="loader.enabled" :loader="loader" :site-name="siteName" :locale="locale" />
+      <SiteLoader v-if="loader.enabled" :loader="loader" :site-name="siteName" :logo="settings?.logo" :locale="locale" />
       <SiteHeader
         :site-name="siteName"
         :logo="settings?.logo"
