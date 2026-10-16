@@ -56,6 +56,10 @@ export class SiteSettings {
   @Column({ type: 'jsonb', default: () => "'{}'" })
   loader: Partial<LoaderSettings>;
 
+  /** CSS added after the theme on every page of the site (cleaned by cleanCss). */
+  @Column({ type: 'text', default: '' })
+  customCss: string;
+
   /** Blocks saved to reuse on other pages ("Saved sections" in the editor's library). Not sent to the site. */
   @Column({ type: 'jsonb', default: () => "'[]'" })
   sections: SavedSection[];

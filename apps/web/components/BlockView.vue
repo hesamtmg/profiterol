@@ -64,7 +64,8 @@ const isLayout = computed(() => Boolean(props.block.children));
 </script>
 
 <template>
-  <div :id="anchor" class="scroll-mt-24" :class="visibility" :style="look">
+  <!-- pf-block and pf-<type>: for the site's custom CSS (Site settings → Custom CSS). -->
+  <div :id="anchor" class="pf-block scroll-mt-24" :class="[`pf-${block.type}`, visibility]" :style="look">
     <!-- A separate element for the entrance animation, so Vue's own class updates never clear it. -->
     <div v-animate="merged.animation" :class="maxWidth ? 'mx-auto' : ''" :style="maxWidth ? { maxWidth } : undefined">
       <component

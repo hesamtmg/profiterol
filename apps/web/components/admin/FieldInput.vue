@@ -2,10 +2,12 @@
 /** Renders the input for one registry field. List fields render their items with this same component. */
 import { createListItem, type FieldDef } from '@profiterol/blocks';
 import FieldInput from './FieldInput.vue';
+import LinkInput from './LinkInput.vue';
 import MediaPicker from './MediaPicker.vue';
 import RichTextInput from './RichTextInput.vue';
 
-const props = defineProps<{ field: FieldDef; dir?: string }>();
+/** `locale`: the language of the page being edited, so the link picker offers that language's addresses. */
+const props = defineProps<{ field: FieldDef; dir?: string; locale?: string }>();
 /** Links the label to its input, for screen readers and for clicking the label. */
 const uid = useId();
 const model = defineModel<unknown>();
@@ -83,14 +85,12 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
     <label class="field-label" :for="field.type === 'list' || field.type === 'boolean' ? undefined : uid">{{ $t(field.label) }}</label>
 
     <input v-if="field.type === 'text'" :id="uid" v-model="model" type="text" class="input" :dir="dir" />
-    <input
+    <LinkInput
       v-else-if="field.type === 'url'"
       :id="uid"
-      v-model="model"
-      type="text"
-      class="input font-mono text-xs"
-      dir="ltr"
-      placeholder="/page, #anchor or https://…"
+      :model-value="model as string"
+      :locale="locale"
+      @update:model-value="model = $event"
     />
     <textarea v-else-if="field.type === 'textarea'" :id="uid" v-model="model" rows="4" class="input resize-y leading-relaxed" :dir="dir" />
     <RichTextInput v-else-if="field.type === 'richtext'" :model-value="model as string" :dir="dir" @update:model-value="model = $event" />
@@ -197,6 +197,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
             :key="sub.key"
             :field="sub"
             :dir="dir"
+            :locale="locale"
             :model-value="item[sub.key]"
             @update:model-value="(v) => setItemField(i, sub.key, v)"
           />

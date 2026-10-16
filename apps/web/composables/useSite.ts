@@ -16,6 +16,8 @@ export interface SiteSettings {
   fonts: SiteFont[];
   savedThemes: SavedTheme[];
   loader: Partial<LoaderSettings>;
+  /** CSS added after the theme on every page (Site settings → Custom CSS). */
+  customCss?: string;
   business: Partial<BusinessInfo>;
   seo: Partial<SeoSettings>;
   /** The language visitors land on at the root address; '' follows each visitor's browser. */

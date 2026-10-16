@@ -13,7 +13,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
-import { locales, pageTemplates } from '@profiterol/blocks';
+import { locales, MAX_CUSTOM_CSS, pageTemplates } from '@profiterol/blocks';
 import { SafeUrl } from '../common/safe-url';
 import { SLUG_PATTERN } from '../common/slug';
 
@@ -110,6 +110,12 @@ export class UpdatePageDto {
   @ValidateIf((o: UpdatePageDto) => o.theme !== null && o.theme !== undefined)
   @IsObject()
   theme?: Record<string, unknown> | null;
+
+  /** CSS for this page only (cleaned in the service); it goes live when the page is published. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_CUSTOM_CSS)
+  customCss?: string;
 
   @IsOptional()
   @IsArray()

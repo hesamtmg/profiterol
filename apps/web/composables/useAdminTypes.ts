@@ -28,6 +28,9 @@ export interface AdminPage {
   /** Draft of the page's own theme; null means it uses the site theme. */
   theme: Partial<ThemeTokens> | null;
   publishedTheme: Partial<ThemeTokens> | null;
+  /** Draft of CSS for this page only, and the copy visitors see (set by Publish). */
+  customCss?: string;
+  publishedCss?: string;
   translations: AdminTranslation[];
 }
 

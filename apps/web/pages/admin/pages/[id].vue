@@ -66,6 +66,8 @@ const { user } = useAuth();
 const siteTheme = ref<ThemeTokens>({ ...defaultTheme });
 const savedSiteTheme = ref('');
 const pageTheme = ref<Partial<ThemeTokens> | null>(null);
+/** CSS for this page only; it goes live when the page is published. */
+const pageCss = ref('');
 const isAdmin = computed(() => user.value?.role === 'admin' || user.value?.role === 'owner');
 /** What the canvas shows: the site theme with this page's changes on top. */
 const customFonts = computed(() => fontNames(settings.value?.fonts));
@@ -135,6 +137,7 @@ function snapshot() {
     noindex: noindex.value,
     drafts,
     pageTheme: pageTheme.value,
+    pageCss: pageCss.value,
     siteTheme: siteTheme.value,
   });
 }
@@ -146,6 +149,7 @@ function fromPage(p: AdminPage) {
   isHome.value = p.isHome;
   noindex.value = !!p.noindex;
   pageTheme.value = p.theme ? { ...p.theme } : null;
+  pageCss.value = p.customCss ?? '';
   for (const l of locales) {
     const t = p.translations.find((x) => x.locale === l.code);
     drafts[l.code] = {
@@ -189,6 +193,7 @@ async function save() {
         isHome: isHome.value,
         noindex: noindex.value,
         theme: pageTheme.value,
+        customCss: pageCss.value,
         translations: locales.map((l) => {
           const d = drafts[l.code];
           return {
@@ -314,7 +319,8 @@ const hasUnpublished = computed(
   () =>
     page.value?.status !== 'published' ||
     page.value.translations.some((t) => JSON.stringify(t.blocks) !== JSON.stringify(t.publishedBlocks)) ||
-    JSON.stringify(page.value.theme ?? null) !== JSON.stringify(page.value.publishedTheme ?? null),
+    JSON.stringify(page.value.theme ?? null) !== JSON.stringify(page.value.publishedTheme ?? null) ||
+    (page.value.customCss ?? '') !== (page.value.publishedCss ?? ''),
 );
 
 const liveUrl = computed(() => {
@@ -838,6 +844,24 @@ function deleteTheme(key: string) {
               @delete-theme="deleteTheme"
             />
           </fieldset>
+          <div class="mt-6 border-t border-slate-100 pt-5">
+            <label class="text-[11px] font-semibold uppercase tracking-wider text-slate-400" for="page-css">{{
+              $t('Custom CSS for this page')
+            }}</label>
+            <textarea
+              id="page-css"
+              v-model="pageCss"
+              rows="8"
+              class="input mt-2 font-mono text-xs leading-relaxed"
+              dir="ltr"
+              spellcheck="false"
+              placeholder=".pf-spotlight h1 { color: gold; }"
+              data-testid="page-css"
+            />
+            <p class="mt-1 text-[11px] leading-relaxed text-slate-400">
+              {{ $t('Added after the site’s custom CSS (Site settings). It goes live when you publish.') }}
+            </p>
+          </div>
         </div>
 
         <div v-else class="flex-1 overflow-y-auto px-3 pb-6">
@@ -955,6 +979,7 @@ function deleteTheme(key: string) {
               v-model="selected.props[field.key]"
               :field="field"
               :dir="localeDir"
+              :locale="locale"
             />
             <details
               v-for="group in fieldGroups"
@@ -974,6 +999,7 @@ function deleteTheme(key: string) {
                   v-model="selected.props[field.key]"
                   :field="field"
                   :dir="localeDir"
+                  :locale="locale"
                 />
               </div>
             </details>
