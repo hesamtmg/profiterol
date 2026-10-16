@@ -12,8 +12,8 @@ export interface ThemeTokens {
   buttonRadius: string;
   fontFa: string;
   fontEn: string;
-  /** Header bar: solid white, or frosted glass with white text. */
-  headerStyle: 'solid' | 'glass';
+  /** How the header looks (see headerStyles). */
+  headerStyle: ThemeHeaderStyle;
   /** Mouse pointer effect on the site (mouse and trackpad only). */
   cursor: ThemeCursor;
   /** Animation played when moving between pages. */
@@ -23,6 +23,26 @@ export interface ThemeTokens {
 }
 
 export type ThemeScrollMode = 'normal' | 'sections';
+
+export type ThemeHeaderStyle = 'solid' | 'glass' | 'studio' | 'centered' | 'minimal' | 'dock';
+
+/** Header designs, in the order the theme editor shows them. */
+export const headerStyles: { value: ThemeHeaderStyle; label: string; description: string }[] = [
+  { value: 'solid', label: 'Solid bar', description: 'A rounded bar with the links in a row.' },
+  { value: 'glass', label: 'Frosted glass', description: 'The same bar in frosted glass with white text.' },
+  {
+    value: 'studio',
+    label: 'Menu button',
+    description: 'The logo, a button and a "menu" button opening a full-screen menu with big numbered links (the awakeagency.dev look).',
+  },
+  { value: 'centered', label: 'Logo in the middle', description: 'The links split on both sides of a centered logo.' },
+  { value: 'minimal', label: 'Minimal', description: 'Just text with underlined links; gets a background once the page scrolls.' },
+  {
+    value: 'dock',
+    label: 'Floating dock',
+    description: 'A small dark pill in the middle that hides while scrolling down and comes back up.',
+  },
+];
 
 export type ThemeCursor = 'default' | 'ring' | 'glow' | 'blend';
 export type ThemePageTransition = 'none' | 'fade' | 'slide' | 'curtain' | 'circle';
@@ -154,6 +174,24 @@ export const themePresets: ThemePreset[] = [
       fontEn: 'Playfair Display',
     },
   },
+  {
+    // Taken from awakeagency.dev: a loud red, ink-dark panels and light gray cards on white.
+    key: 'studio-red',
+    name: 'Studio Red',
+    theme: {
+      ...defaultTheme,
+      primary: '#ff003c',
+      secondary: '#ffd0dc',
+      background: '#ffffff',
+      surface: '#f0f1f3',
+      dark: '#181e26',
+      text: '#181e26',
+      muted: '#5f6670',
+      radius: '2rem',
+      headerStyle: 'studio',
+      fontEn: 'Syne',
+    },
+  },
 ];
 
 /** Google Fonts that can be chosen, with the weights each one offers. */
@@ -214,7 +252,7 @@ export function cleanTheme(input: unknown, customFonts: string[] = []): Partial<
   if (themeRadii.button.some((r) => r.value === src.buttonRadius)) out.buttonRadius = src.buttonRadius as string;
   if (themeFonts.fa.some((f) => f.name === src.fontFa) || customFonts.includes(src.fontFa as string)) out.fontFa = src.fontFa as string;
   if (themeFonts.en.some((f) => f.name === src.fontEn) || customFonts.includes(src.fontEn as string)) out.fontEn = src.fontEn as string;
-  if (src.headerStyle === 'solid' || src.headerStyle === 'glass') out.headerStyle = src.headerStyle;
+  if (headerStyles.some((h) => h.value === src.headerStyle)) out.headerStyle = src.headerStyle as ThemeHeaderStyle;
   if (themeMotion.cursor.some((c) => c.value === src.cursor)) out.cursor = src.cursor as ThemeCursor;
   if (themeMotion.pageTransition.some((t) => t.value === src.pageTransition))
     out.pageTransition = src.pageTransition as ThemePageTransition;

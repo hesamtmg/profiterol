@@ -1,6 +1,15 @@
 <script setup lang="ts">
 /** Edits a full theme: ready-made presets, colors, corners, button shape, fonts, header style and motion. */
-import { themeFonts, themeMotion, themeMotionKeys, themePresets, themeRadii, type SavedTheme, type ThemeTokens } from '@profiterol/blocks';
+import {
+  headerStyles,
+  themeFonts,
+  themeMotion,
+  themeMotionKeys,
+  themePresets,
+  themeRadii,
+  type SavedTheme,
+  type ThemeTokens,
+} from '@profiterol/blocks';
 
 const theme = defineModel<ThemeTokens>({ required: true });
 defineProps<{
@@ -167,18 +176,58 @@ function tileRadius(radius: string) {
       </div>
       <div>
         <span class="field-label">{{ $t('Header') }}</span>
-        <div class="flex gap-1.5">
+        <div class="grid grid-cols-2 gap-1.5" :class="compact ? '' : 'sm:grid-cols-3'">
           <button
-            v-for="h in [
-              { value: 'solid', label: 'Solid' },
-              { value: 'glass', label: 'Frosted glass' },
-            ] as const"
+            v-for="h in headerStyles"
             :key="h.value"
             type="button"
-            class="flex-1 rounded-full border px-2 py-1.5 text-[11px] font-medium transition"
-            :class="theme.headerStyle === h.value ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-200 hover:border-slate-400'"
+            class="rounded-xl border p-1.5 text-start text-[11px] font-medium transition"
+            :class="theme.headerStyle === h.value ? 'border-slate-900 ring-2 ring-slate-900/10' : 'border-slate-200 hover:border-slate-400'"
+            :title="$t(h.description)"
+            :aria-pressed="theme.headerStyle === h.value"
             @click="set('headerStyle', h.value)"
           >
+            <!-- A small drawing of each header -->
+            <span
+              class="relative mb-1 block h-9 overflow-hidden rounded-lg"
+              :style="{ background: h.value === 'glass' ? theme.dark : h.value === 'studio' ? theme.primary : '#f1f5f9' }"
+              aria-hidden="true"
+            >
+              <span
+                v-if="h.value === 'solid' || h.value === 'glass'"
+                class="absolute inset-x-1 top-1 flex h-3 items-center gap-1 rounded-full px-1.5"
+                :class="h.value === 'glass' ? 'bg-white/25' : 'bg-white shadow-sm'"
+              >
+                <span class="h-1 w-3 rounded-full" :class="h.value === 'glass' ? 'bg-white' : 'bg-slate-800'" />
+                <span class="ms-auto h-0.5 w-8 rounded-full" :class="h.value === 'glass' ? 'bg-white/70' : 'bg-slate-400'" />
+              </span>
+              <span v-else-if="h.value === 'studio'" class="absolute inset-x-1.5 top-1.5 flex items-center gap-0.5">
+                <span class="h-1.5 w-4 rounded-full bg-white" />
+                <span class="ms-auto h-2 w-3 rounded-full bg-white/40" />
+                <span class="h-2 w-3 rounded-full bg-white" />
+              </span>
+              <span
+                v-else-if="h.value === 'centered'"
+                class="absolute inset-x-1 top-1 flex h-3 items-center justify-center gap-1 rounded-md bg-white px-1.5 shadow-sm"
+              >
+                <span class="h-0.5 w-3 rounded-full bg-slate-400" />
+                <span class="h-1.5 w-1.5 rounded-full bg-slate-800" />
+                <span class="h-0.5 w-3 rounded-full bg-slate-400" />
+              </span>
+              <span v-else-if="h.value === 'minimal'" class="absolute inset-x-1.5 top-1.5 flex items-center gap-1">
+                <span class="h-1 w-3 rounded-full bg-slate-800" />
+                <span class="ms-auto h-0.5 w-2 rounded-full bg-slate-500" />
+                <span class="h-0.5 w-2 rounded-full bg-slate-500" />
+                <span class="h-0.5 w-2 rounded-full bg-slate-500" />
+              </span>
+              <span v-else class="absolute inset-x-0 top-1 flex justify-center">
+                <span class="flex h-3 items-center gap-0.5 rounded-full px-0.5" :style="{ background: theme.dark }">
+                  <span class="h-2 w-2 rounded-full bg-white" />
+                  <span class="h-0.5 w-5 rounded-full bg-white/60" />
+                  <span class="h-2 w-2.5 rounded-full" :style="{ background: theme.primary }" />
+                </span>
+              </span>
+            </span>
             {{ $t(h.label) }}
           </button>
         </div>

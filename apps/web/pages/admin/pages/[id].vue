@@ -96,12 +96,13 @@ const selected = computed(() =>
 );
 const selectedDef = computed(() => (selected.value ? getBlock(selected.value.type) : undefined));
 const themeCss = computed(() => themeToCss(canvasTheme.value));
-const overlayHeader = computed(() => current.value?.blocks[0]?.type === 'spotlight');
+const overlayHeader = computed(() => floatsHeader(current.value?.blocks[0]?.type, settings.value?.header));
 
 const deviceWidths = { desktop: '100%', tablet: '820px', mobile: '390px' } as const;
 const categories: { key: BlockCategory; label: string }[] = [
   { key: 'layout', label: 'Layout' },
   { key: 'animated', label: 'Animated' },
+  { key: 'studio', label: 'Studio (bold agency look)' },
   { key: 'hero', label: 'Hero' },
   { key: 'cards', label: 'Cards' },
   { key: 'content', label: 'Content' },
@@ -923,7 +924,11 @@ function deleteTheme(key: string) {
             :menu="settings?.menu ?? []"
             :locale="locale"
             :overlay="overlayHeader"
-            :glass="canvasTheme.headerStyle === 'glass'"
+            :variant="canvasTheme.headerStyle"
+            :header="settings?.header"
+            :email="settings?.business?.email"
+            :social="settings?.business?.sameAs"
+            preview
             class="pointer-events-none"
             :class="overlayHeader ? '' : '!static'"
           />

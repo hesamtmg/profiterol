@@ -264,7 +264,9 @@ const theme = computed(() =>
   resolveTheme(settings.value?.theme, resolved.value?.kind === 'page' ? resolved.value.page.theme : null, fontNames(settings.value?.fonts)),
 );
 /** Full-screen heroes get the header floating over them. */
-const overlayHeader = computed(() => resolved.value?.kind === 'page' && resolved.value.page.blocks[0]?.type === 'spotlight');
+const overlayHeader = computed(
+  () => resolved.value?.kind === 'page' && floatsHeader(resolved.value.page.blocks[0]?.type, settings.value?.header),
+);
 useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
   // html:root outranks the stylesheet's :root defaults, which load after this tag.
@@ -337,7 +339,10 @@ useSeoMeta({
         :locale="locale"
         :alternates="alternates"
         :overlay="overlayHeader"
-        :glass="theme.headerStyle === 'glass'"
+        :variant="theme.headerStyle"
+        :header="settings?.header"
+        :email="settings?.business?.email"
+        :social="settings?.business?.sameAs"
       />
       <main>
         <template v-if="resolved.kind === 'page'">

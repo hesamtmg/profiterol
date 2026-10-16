@@ -87,6 +87,15 @@ browser only, never on the server.
 - The CSS cannot close its `<style>` tag (`<` is stored as the CSS escape `\3c `), and it is limited to 50,000
   characters.
 
+## Header
+
+- **Site theme → Header** picks its look (each page can choose another in the editor's Design tab): a solid bar, frosted
+  glass, a **menu button** opening a full-screen menu with big numbered links (the awakeagency.dev look), the logo in
+  the middle, minimal (text only until the page scrolls) or a floating dock that hides while scrolling down.
+- **Site settings → Menu and header** has the links, a header button ("Get in touch") per language, and an option to
+  float the header over the first block of every page. It always floats over the spotlight and big type heroes.
+- The full-screen menu shows the email and profile links from **Site settings → Business**.
+
 ## Collections
 
 Collections hold content that repeats: projects, blog posts, team members. Each has its own fields (set in **Admin → Collections → Fields & settings**) and every item has a version per language.

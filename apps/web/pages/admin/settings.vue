@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import {
   cleanBusiness,
+  cleanHeader,
   cleanLoader,
   cleanSeo,
   fontNames,
@@ -8,6 +9,7 @@ import {
   resolveTheme,
   type BusinessInfo,
   type FieldDef,
+  type HeaderSettings,
   type LoaderSettings,
   type LoaderStyle,
   type SeoSettings,
@@ -25,9 +27,9 @@ import type { SiteSettings } from '~/composables/useSite';
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 const api = useApi();
-const settings = ref<(SiteSettings & { notifyEmail: string; loader: LoaderSettings; business: BusinessInfo; seo: SeoSettings }) | null>(
-  null,
-);
+const settings = ref<
+  (SiteSettings & { notifyEmail: string; loader: LoaderSettings; business: BusinessInfo; seo: SeoSettings; header: HeaderSettings }) | null
+>(null);
 const customFonts = computed(() => fontNames(settings.value?.fonts));
 const loaderPreview = ref(0);
 const saving = ref(false);
@@ -55,7 +57,9 @@ async function load() {
   s.savedThemes ??= [];
   s.theme = resolveTheme(s.theme, null, fontNames(s.fonts));
   const loader = cleanLoader(s.loader);
+  const header = cleanHeader(s.header);
   for (const l of locales) {
+    header.ctaLabel[l.code] ??= '';
     s.siteName[l.code] ??= '';
     s.maintenanceText[l.code] ??= '';
     loader.text[l.code] ??= '';
@@ -67,7 +71,7 @@ async function load() {
     seo.titleTemplate[l.code] ??= '';
     seo.description[l.code] ??= '';
   }
-  settings.value = { ...s, loader, business: cleanBusiness(s.business), seo };
+  settings.value = { ...s, loader, header, business: cleanBusiness(s.business), seo };
 }
 
 /** Saved themes are kept with the other settings and stored with "Save settings". */
@@ -101,6 +105,7 @@ async function save() {
       favicon,
       theme,
       menu,
+      header,
       maintenance,
       maintenanceText,
       notifyEmail,
@@ -120,6 +125,7 @@ async function save() {
         favicon,
         theme,
         menu,
+        header,
         maintenance,
         maintenanceText,
         notifyEmail,
@@ -257,7 +263,7 @@ onMounted(load);
 
       <section class="rounded-[2rem] bg-white p-7 shadow-sm">
         <div class="flex items-center justify-between">
-          <h2 class="font-black">{{ $t('Menu') }}</h2>
+          <h2 class="font-black">{{ $t('Menu and header') }}</h2>
           <button type="button" class="btn-light" @click="addMenuItem"><i class="mdi mdi-plus" /> {{ $t('Add link') }}</button>
         </div>
         <p class="mt-1 text-xs text-slate-400">{{ $t('Use a page address (e.g. about-us), an anchor (#services) or a full URL.') }}</p>
@@ -284,6 +290,32 @@ onMounted(load);
               <i class="mdi mdi-close" />
             </button>
           </div>
+        </div>
+        <div class="mt-6 border-t border-slate-100 pt-5">
+          <h3 class="text-sm font-bold">{{ $t('Header button') }}</h3>
+          <p class="mt-1 text-xs text-slate-400">
+            {{
+              $t(
+                'A button beside the menu, such as “Get in touch”; none when the text is empty. The header’s look is chosen in Site theme → Header.',
+              )
+            }}
+          </p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              v-for="l in locales"
+              :key="l.code"
+              v-model="settings.header.ctaLabel[l.code]"
+              class="input w-36 flex-1"
+              :dir="l.dir"
+              :placeholder="l.label"
+            />
+            <LinkInput v-model="settings.header.ctaLink" class="w-56 flex-1" placeholder="#contact" />
+          </div>
+          <label class="mt-4 flex items-center gap-2 text-sm">
+            <input v-model="settings.header.overlay" type="checkbox" class="h-4 w-4 rounded" />
+            {{ $t('Float the header over the first block of every page, with white text') }}
+          </label>
+          <p class="mt-1 text-xs text-slate-400">{{ $t('It always floats over the spotlight and big type heroes.') }}</p>
         </div>
       </section>
 

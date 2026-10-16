@@ -1,4 +1,13 @@
-import type { BlockNode, BusinessInfo, LoaderSettings, SavedTheme, SeoSettings, SiteFont, ThemeTokens } from '@profiterol/blocks';
+import type {
+  BlockNode,
+  BusinessInfo,
+  HeaderSettings,
+  LoaderSettings,
+  SavedTheme,
+  SeoSettings,
+  SiteFont,
+  ThemeTokens,
+} from '@profiterol/blocks';
 import { Column, Entity, JoinColumn, OneToOne, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { Site } from '../sites/site.entity';
 
@@ -43,6 +52,10 @@ export class SiteSettings {
 
   @Column({ type: 'jsonb', default: () => "'[]'" })
   menu: MenuItem[];
+
+  /** The header's button and placement (its look is the theme's header style). */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  header: Partial<HeaderSettings>;
 
   /** Fonts uploaded to the media library, usable in themes. */
   @Column({ type: 'jsonb', default: () => "'[]'" })

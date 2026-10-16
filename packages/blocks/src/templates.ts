@@ -240,6 +240,114 @@ export const pageTemplates: PageTemplate[] = [
       },
     ],
   },
+  {
+    key: 'bold-studio-home',
+    name: { en: 'Bold studio home', fa: 'خانه‌ی استودیوی جسور' },
+    description: {
+      en: 'The awakeagency.dev look: huge type, scattered projects, tilted service cards and an "I need…" picker.',
+      fa: 'ظاهر awakeagency.dev: حروف بسیار بزرگ، پروژه‌های پراکنده، کارت‌های کج خدمات و انتخابگر «نیاز دارم…».',
+    },
+    icon: 'mdi-format-letter-case-upper',
+    blocks: (l) =>
+      l === 'fa'
+        ? [
+            {
+              type: 'type-hero',
+              props: {
+                lines: [
+                  { start: 'ما', end: 'می‌سازیم' },
+                  { start: 'سایت‌هایی', end: 'که' },
+                  { start: 'به یاد می‌مانند.', end: '' },
+                ],
+                text: 'یک استودیوی خلاق دیجیتال. سایت‌ها و محصولات وب برای تیم‌هایی که می‌خواهند دیده شوند.',
+                placeLabel: 'در:',
+                city: 'تهران',
+                timeZone: 'Asia/Tehran',
+              },
+            },
+            {
+              type: 'blueprint-statement',
+              props: {
+                paragraphs: [
+                  { text: 'ما سایت، هویت برند و محصول دیجیتال طراحی می‌کنیم و می‌سازیم؛ به همان خوبی که به نظر می‌رسند کار می‌کنند.' },
+                  { text: 'چه محصولی تازه داشته باشید و چه برندی برای بازسازی، یک تیم آن را از طرح اولیه تا نسخه‌ی زنده پیش می‌برد.' },
+                ],
+              },
+            },
+            { type: 'project-scatter', props: { title: 'پروژه‌های ما', anchor: 'projects' } },
+            { type: 'project-archive', props: { buttonLabel: 'همه‌ی پروژه‌ها' } },
+            {
+              type: 'service-stack',
+              props: {
+                title: 'خدمات',
+                anchor: 'services',
+                services: [
+                  {
+                    title: 'توسعه‌ی وب',
+                    text: 'با یک جلسه‌ی آشنایی شروع می‌کنیم تا هدف‌ها و زمان‌بندی را بفهمیم، بعد سریع و محکم می‌سازیم.',
+                    drawing: 'nodes',
+                    buttonLabel: 'بیشتر بدانید',
+                    buttonLink: '',
+                  },
+                  {
+                    title: 'طراحی تجربه و رابط کاربری',
+                    text: 'بررسی می‌کنیم مردم چطور از محصول شما استفاده می‌کنند و رابطی دلپذیر طراحی می‌کنیم.',
+                    drawing: 'circles',
+                    buttonLabel: 'بیشتر بدانید',
+                    buttonLink: '',
+                  },
+                  {
+                    title: 'برندینگ',
+                    text: 'فرایندی گام‌به‌گام که به هویتی ماندگار برای برند شما می‌رسد.',
+                    drawing: 'letter',
+                    buttonLabel: 'بیشتر بدانید',
+                    buttonLink: '',
+                  },
+                ],
+              },
+            },
+            {
+              type: 'need-picker',
+              props: {
+                lead: 'نیاز دارم به',
+                options: [
+                  { label: 'توسعه', link: '#contact' },
+                  { label: 'طراحی سایت', link: '#contact' },
+                  { label: 'برندینگ', link: '#contact' },
+                ],
+                buttonLabel: 'بعدی',
+              },
+            },
+            {
+              type: 'studio-footer',
+              props: {
+                name: 'استودیو.',
+                anchor: 'contact',
+                links: [
+                  { label: 'خانه', link: '/' },
+                  { label: 'خدمات', link: '#services' },
+                  { label: 'پروژه‌ها', link: '#projects' },
+                ],
+                emailLabel: 'تماس با ما',
+                copiedText: 'کپی شد',
+                placeLabel: 'در',
+                city: 'تهران',
+                timeZone: 'Asia/Tehran',
+                copyright: '© استودیو. همه‌ی حقوق محفوظ است.',
+                legal: [{ label: 'حریم خصوصی', link: '' }],
+              },
+            },
+          ]
+        : [
+            { type: 'type-hero' },
+            { type: 'blueprint-statement' },
+            { type: 'project-scatter', props: { anchor: 'projects' } },
+            { type: 'project-archive' },
+            { type: 'service-stack', props: { anchor: 'services' } },
+            { type: 'need-picker' },
+            { type: 'studio-footer', props: { anchor: 'contact' } },
+          ],
+  },
 ];
 
 export function getPageTemplate(key: string) {
@@ -278,6 +386,20 @@ export const siteTemplates: SiteTemplate[] = [
     theme: 'minimal',
     pages: [
       { template: 'studio-home', name: { en: 'Home', fa: 'خانه' }, slug: 'home' },
+      { template: 'about', name: { en: 'About', fa: 'درباره' }, slug: 'about' },
+      { template: 'contact', name: { en: 'Contact', fa: 'تماس' }, slug: 'contact' },
+    ],
+  },
+  {
+    key: 'bold-studio',
+    name: { en: 'Bold studio (awakeagency.dev look)', fa: 'استودیوی جسور (ظاهر awakeagency.dev)' },
+    description: {
+      en: 'Loud red, huge type and the menu-button header: a home page with projects and services, About and Contact.',
+      fa: 'قرمز پررنگ، حروف بسیار بزرگ و سربرگ با دکمه‌ی منو: خانه با پروژه‌ها و خدمات، درباره و تماس.',
+    },
+    theme: 'studio-red',
+    pages: [
+      { template: 'bold-studio-home', name: { en: 'Home', fa: 'خانه' }, slug: 'home' },
       { template: 'about', name: { en: 'About', fa: 'درباره' }, slug: 'about' },
       { template: 'contact', name: { en: 'Contact', fa: 'تماس' }, slug: 'contact' },
     ],

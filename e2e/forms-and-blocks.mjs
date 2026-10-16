@@ -119,7 +119,7 @@ check('gallery shows 3 photos in the canvas', (await blocks.nth(2).locator('img'
 
 // Video player: a YouTube link
 await blocks.nth(3).click({ position: { x: 300, y: 40 } });
-await panel().locator('label:has-text("YouTube") + input').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+await panel().getByLabel('Or a YouTube / Aparat link').fill('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
 await page.waitForTimeout(300);
 check(
   'YouTube link becomes a privacy-friendly embed',
