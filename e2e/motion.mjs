@@ -191,7 +191,7 @@ await ed.waitForSelector('main [id^=blk-]');
 check(
   'editor: Animated group lists 27 blocks',
   (await ed
-    .locator('aside h3', { hasText: /^Animated$/ })
+    .locator('aside h3', { hasText: /^\s*Animated\s*$/ })
     .locator('xpath=following-sibling::div[1]/button')
     .count()) === 27,
 );
