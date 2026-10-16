@@ -154,6 +154,16 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Cursor effects, a theme setting (site or page): dot and trailing ring, soft glow, or inverting circle; mouse/trackpad only, normal pointer over text fields
 - [x] Page transitions, a theme setting: fade, slide, curtain (with the site name) or circle from the click; the uncovering is pure CSS in the server page; Back button safe
 - [x] Both previewed live on the editor canvas from the Design tab; ready-made themes keep the motion settings
+
+Studio (the bold agency look of awakeagency.dev; the "Studio Red" theme matches it):
+- [x] Big type hero: huge words pushed to both edges rising line by line, round coin badges bobbing and drifting with the mouse, the city with its live local time (`type-hero`)
+- [x] Blueprint statement: sentences lighting up word by word over guide lines, a circle and a square drawing themselves in while the panel stays on screen (`blueprint-statement`)
+- [x] Scattered projects: a page-wide title, cards in two staggered columns and a thick line winding behind them as you scroll (`project-scatter`)
+- [x] Project archive: names with category and year, the picture beside the mouse, a zigzag drawn behind (`project-archive`)
+- [x] Tilted service cards: numbered cards sliding over each other on a dark panel and landing slightly tilted (`service-stack`)
+- [x] "I need…" picker: a wheel of pills that turns by itself; the button goes to the chosen one's link (`need-picker`)
+- [x] Studio footer: two link columns, an email copied with one click, the local time, small links (`studio-footer`)
+- [x] A "Bold studio" page template and site template using them, in English and Persian
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
@@ -192,7 +202,9 @@ Animated (Wix-style motion; every one holds still for visitors who turn off anim
 - [x] Site name per language, logo, favicon
 - [x] Menu editor (labels per language, page/anchor/URL links)
 - [x] Theme editor: colors, corner radius, fonts, with live preview
-- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose), button shape (pill/rounded/square), solid or frosted-glass header, a wider choice of Persian and Latin fonts
+- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
+- [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down); phones get the full-screen menu
+- [x] Header button ("Get in touch") per language, and an option to float the header over the first block of every page
 - [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page
 - [x] Upload your own fonts (WOFF2, WOFF, TTF, OTF; one file per weight) in Site settings; they appear in every theme's font lists and are served with `@font-face`
 - [x] Save your own themes under a name (Site settings or the editor's Design tab) and reuse them on any page

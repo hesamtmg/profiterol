@@ -32,6 +32,7 @@ import {
   cleanBusiness,
   cleanCss,
   cleanFonts,
+  cleanHeader,
   cleanLoader,
   cleanSavedThemes,
   cleanSeo,
@@ -89,6 +90,11 @@ class UpdateSettingsDto {
   @ValidateNested({ each: true })
   @Type(() => MenuItemDto)
   menu?: MenuItemDto[];
+
+  /** Checked by cleanHeader. */
+  @IsOptional()
+  @IsObject()
+  header?: Record<string, unknown>;
 
   @IsOptional()
   @IsArray()
@@ -159,6 +165,7 @@ export class SettingsService {
     if (dto.theme) next.theme = cleanTheme(dto.theme, custom);
     if (dto.savedThemes !== undefined) next.savedThemes = cleanSavedThemes(dto.savedThemes, custom);
     if (dto.loader !== undefined) next.loader = cleanLoader(dto.loader);
+    if (dto.header !== undefined) next.header = cleanHeader(dto.header);
     if (dto.customCss !== undefined) next.customCss = cleanCss(dto.customCss);
     if (dto.business !== undefined) next.business = cleanBusiness(dto.business);
     if (dto.seo !== undefined) next.seo = cleanSeo(dto.seo);

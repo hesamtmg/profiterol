@@ -1,6 +1,12 @@
 <script setup lang="ts">
-import { LOCALE_COOKIE, locales } from '@profiterol/blocks';
+import { locales, type HeaderSettings, type ThemeHeaderStyle } from '@profiterol/blocks';
+import type { Component } from 'vue';
 import type { MenuItem } from '~/composables/useSite';
+import CenteredHeader from './site/header/CenteredHeader.vue';
+import DockHeader from './site/header/DockHeader.vue';
+import MinimalHeader from './site/header/MinimalHeader.vue';
+import StudioHeader from './site/header/StudioHeader.vue';
+import { networkName, rememberLocale, type HeaderNav } from './site/header/nav';
 
 const props = defineProps<{
   siteName: string;
@@ -11,11 +17,27 @@ const props = defineProps<{
   alternates?: { locale: string; slug: string }[];
   /** Float over the first block instead of sitting above it (used above full-screen heroes). */
   overlay?: boolean;
-  /** Frosted glass bar with white text (theme "header style"); always on when floating. */
-  glass?: boolean;
+  /** The theme's header style. */
+  variant?: ThemeHeaderStyle;
+  /** The header button (Site settings → Menu and header). */
+  header?: Partial<HeaderSettings>;
+  /** The site's email and profile links (Site settings → Business), shown in the full-screen menu. */
+  email?: string;
+  social?: string[];
+  /** In the editor's canvas. */
+  preview?: boolean;
 }>();
 
-const isGlass = computed(() => props.overlay || props.glass);
+const designs: Partial<Record<ThemeHeaderStyle, Component>> = {
+  studio: StudioHeader,
+  centered: CenteredHeader,
+  minimal: MinimalHeader,
+  dock: DockHeader,
+};
+const design = computed(() => designs[props.variant ?? 'solid']);
+
+// The solid bar turns to glass when it floats over a photo.
+const isGlass = computed(() => props.overlay || props.variant === 'glass');
 
 const open = ref(false);
 
@@ -24,17 +46,38 @@ function localeHref(code: string) {
   return alt?.slug ? `/${code}/${alt.slug}` : `/${code}`;
 }
 
-/**
- * The visitor's own choice wins over the site's first-visit language next time they open the root address. Set in the
- * browser, so cached pages never carry it.
- */
-function rememberLocale(code: string) {
-  document.cookie = `${LOCALE_COOKIE}=${code}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
-}
+const cta = computed(() => {
+  const label = props.header?.ctaLabel?.[props.locale]?.trim();
+  return label ? { label, href: resolveHref(props.header?.ctaLink ?? '', props.locale) } : null;
+});
+
+const nav = computed<HeaderNav>(() => ({
+  siteName: props.siteName,
+  logo: props.logo,
+  locale: props.locale,
+  links: props.menu.map((item) => ({ label: item.label[props.locale] ?? item.label.en ?? '', href: resolveHref(item.href, props.locale) })),
+  cta: cta.value,
+  languages: locales.filter((l) => l.code !== props.locale).map((l) => ({ code: l.code, label: l.label, href: localeHref(l.code) })),
+  light: Boolean(props.overlay),
+  preview: Boolean(props.preview),
+  email: props.email ?? '',
+  social: (props.social ?? []).map((href) => ({ href, label: networkName(href) })),
+}));
 </script>
 
 <template>
-  <header class="top-0 z-40 px-3 pt-3 @3xl:px-6" :class="overlay ? 'absolute inset-x-0 @5xl:px-28 @5xl:pt-6' : 'sticky'">
+  <header
+    v-if="design"
+    class="z-40"
+    :class="[
+      variant === 'dock' ? '' : 'top-0 px-3 pt-3 @3xl:px-6',
+      variant === 'dock' ? 'relative' : overlay ? 'absolute inset-x-0' : variant === 'studio' ? 'relative' : 'sticky',
+    ]"
+  >
+    <component :is="design" :nav="nav" />
+  </header>
+
+  <header v-else class="top-0 z-40 px-3 pt-3 @3xl:px-6" :class="overlay ? 'absolute inset-x-0 @5xl:px-28 @5xl:pt-6' : 'sticky'">
     <div
       class="flex items-center justify-between gap-4 rounded-full px-5 py-3 @3xl:px-8"
       :class="
@@ -60,6 +103,14 @@ function rememberLocale(code: string) {
       </nav>
 
       <div class="flex items-center gap-2">
+        <a
+          v-if="cta"
+          :href="cta.href"
+          class="hidden rounded-[var(--radius-button)] px-4 py-1.5 text-sm font-semibold transition hover:scale-105 @3xl:block"
+          :class="isGlass ? 'bg-white text-dark' : 'bg-primary text-white'"
+        >
+          {{ cta.label }}
+        </a>
         <a
           v-for="l in locales.filter((l) => l.code !== locale)"
           :key="l.code"
@@ -92,6 +143,7 @@ function rememberLocale(code: string) {
           <a v-for="(item, i) in menu" :key="i" :href="resolveHref(item.href, locale)" class="text-3xl font-black" @click="open = false">
             {{ item.label[locale] ?? item.label.en }}
           </a>
+          <a v-if="cta" :href="cta.href" class="text-3xl font-black text-primary" @click="open = false">{{ cta.label }}</a>
         </nav>
       </div>
     </Transition>

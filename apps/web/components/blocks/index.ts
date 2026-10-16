@@ -44,6 +44,13 @@ import PictureText from './animated/PictureText.vue';
 import Orbit from './animated/Orbit.vue';
 import CardFan from './animated/CardFan.vue';
 import PhotoColumns from './animated/PhotoColumns.vue';
+import BlueprintStatement from './studio/BlueprintStatement.vue';
+import NeedPicker from './studio/NeedPicker.vue';
+import ProjectArchive from './studio/ProjectArchive.vue';
+import ProjectScatter from './studio/ProjectScatter.vue';
+import ServiceStack from './studio/ServiceStack.vue';
+import StudioFooter from './studio/StudioFooter.vue';
+import TypeHero from './studio/TypeHero.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -112,6 +119,14 @@ export const blockComponents: Record<string, Component> = {
   orbit: Orbit,
   'card-fan': CardFan,
   'photo-columns': PhotoColumns,
+  // The awakeagency.dev look
+  'type-hero': TypeHero,
+  'blueprint-statement': BlueprintStatement,
+  'project-scatter': ProjectScatter,
+  'project-archive': ProjectArchive,
+  'service-stack': ServiceStack,
+  'need-picker': NeedPicker,
+  'studio-footer': StudioFooter,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,

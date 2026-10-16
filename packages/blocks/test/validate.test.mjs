@@ -154,6 +154,28 @@ test('animated blocks are registered, and every block can have an entrance anima
   assert.equal(validateBlocks([hero])[0].path, 'blocks[0].props.animation');
 });
 
+test('studio blocks (the awakeagency.dev look) are registered; the full-screen ones stay on the page itself', async () => {
+  const { studioDefinitions, isTopLevelOnly } = await import('../dist/esm/index.js');
+  assert.equal(studioDefinitions.length, 7);
+  assert.ok(studioDefinitions.every((d) => d.category === 'studio' && blocks.some((b) => b.type === d.type)));
+  for (const type of ['type-hero', 'blueprint-statement', 'service-stack']) assert.ok(isTopLevelOnly(type), type);
+  const picker = createBlock('need-picker');
+  picker.props.options = [{ label: 'x', link: 'javascript:alert(1)' }];
+  assert.equal(validateBlocks([picker])[0].path, 'blocks[0].props.options[0].link');
+  const cards = createBlock('service-stack');
+  cards.props.services[0].drawing = 'dragon';
+  assert.equal(validateBlocks([cards])[0].path, 'blocks[0].props.services[0].drawing');
+});
+
+test('every header style is kept by cleanTheme', async () => {
+  const { headerStyles, cleanTheme } = await import('../dist/esm/index.js');
+  assert.deepEqual(
+    headerStyles.map((h) => h.value),
+    ['solid', 'glass', 'studio', 'centered', 'minimal', 'dock'],
+  );
+  for (const h of headerStyles) assert.deepEqual(cleanTheme({ headerStyle: h.value }), { headerStyle: h.value });
+});
+
 test('site fonts, saved themes and loader settings are cleaned', async () => {
   const { cleanFonts, fontFaceCss, cleanSavedThemes, cleanLoader, cleanTheme, resolveTheme } = await import('../dist/esm/index.js');
   const fonts = cleanFonts([
