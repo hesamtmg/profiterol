@@ -468,6 +468,168 @@ export const pageTemplates: PageTemplate[] = [
             { type: 'talk-footer', props: { anchor: 'contact' } },
           ],
   },
+  {
+    key: 'spatial-studio-home',
+    name: { en: 'Shapes and giant letters home', fa: 'خانه با شکل‌ها و حروف غول‌آسا' },
+    description: {
+      en: 'The undplus.com look: a giant gliding word, words with pictures, spinning shapes, projects under a big title and a wavy call to action.',
+      fa: 'ظاهر undplus.com: کلمه‌ای غول‌آسا که می‌لغزد، کلمه‌ها با تصویر، شکل‌های چرخان، پروژه‌ها زیر عنوانی بزرگ و دعوت به تماس موج‌دار.',
+    },
+    icon: 'mdi-shape-outline',
+    blocks: (l) =>
+      l === 'fa'
+        ? [
+            {
+              type: 'letter-hero',
+              props: {
+                word: 'استودیو',
+                lead: 'استودیویی برای',
+                words: [{ text: 'طراحی فضاهای ماندگار' }, { text: 'معماری با کمی شیطنت' }, { text: 'فضاهایی که به یاد می‌مانند' }],
+              },
+            },
+            {
+              type: 'picture-words',
+              props: {
+                lines: [
+                  { before: 'از ایده تا اجرا.', media: 'none', shape: 'sun', image: '', after: '' },
+                  { before: 'ایده‌ها', media: 'shape', shape: 'sun', image: '', after: 'فضا می‌شوند.' },
+                  { before: 'فضاها', media: 'image', shape: 'burst', image: '', after: 'تجربه می‌شوند.' },
+                ],
+              },
+            },
+            {
+              type: 'shape-parade',
+              props: {
+                title: 'خدمات ۳۶۰ درجه',
+                subtitle: 'یا فقط همان چند درجه‌ای که لازم دارید.',
+                text: 'از نخستین جرقه تا آخرین جزئیات، روند کارمان را با تصویر ذهنی شما هماهنگ می‌کنیم.',
+              },
+            },
+            {
+              type: 'focus-list',
+              props: {
+                label: 'خدمات',
+                anchor: 'services',
+                items: [
+                  { title: 'معماری برند', link: '' },
+                  { title: 'رویداد و تجربه‌ی برند', link: '' },
+                  { title: 'طراحی داخلی و فضا', link: '' },
+                  { title: 'فروشگاه و مهمان‌نوازی', link: '' },
+                  { title: 'فضای کار', link: '' },
+                  { title: 'مشاوره و راهبرد', link: '' },
+                ],
+              },
+            },
+            {
+              type: 'work-done',
+              props: {
+                title: 'کارهای ما',
+                anchor: 'projects',
+                projects: [
+                  { image: '', title: 'غرفه‌ی نمایشگاه', tags: 'معماری برند', size: 'medium', link: '' },
+                  { image: '', title: 'دفتر دوجو', tags: 'فضای کار\nطراحی داخلی', size: 'small', link: '' },
+                  { image: '', title: 'کافه‌ی شهر', tags: 'فروشگاه و مهمان‌نوازی\nطراحی داخلی', size: 'wide', link: '' },
+                  { image: '', title: 'شب جوایز', tags: 'رویداد و تجربه‌ی برند', size: 'small', link: '' },
+                  { image: '', title: 'اتوبوس برند', tags: 'معرفی محصول', size: 'medium', link: '' },
+                ],
+                buttonLabel: 'پروژه‌های بیشتر',
+              },
+            },
+            {
+              type: 'ticker-band',
+              props: {
+                items: [
+                  { label: 'پروژه‌های بیشتر در اینستاگرام', image: '', icon: 'instagram', link: 'https://www.instagram.com/' },
+                  { label: 'ما را در لینکدین دنبال کنید', image: '', icon: 'linkedin', link: 'https://www.linkedin.com/' },
+                  { label: 'در تلگرام با ما در تماس باشید', image: '', icon: 'telegram', link: 'https://t.me/' },
+                ],
+              },
+            },
+            {
+              type: 'lit-paragraph',
+              props: {
+                text: 'ما فضاهایی طراحی می‌کنیم که برندها در دنیای واقعی در آن‌ها شکل می‌گیرند؛ از دفتر کار و فروشگاه تا نمایشگاه، فروشگاه موقت و رویداد زنده، جاهایی که در یاد می‌مانند. کنجکاوید ما که هستیم؟',
+                linkLabel: 'بیشتر',
+                linkAfter: 'درباره‌ی ما بخوانید.',
+                link: 'about',
+              },
+            },
+            {
+              type: 'ticker-band',
+              props: {
+                items: [{ label: 'تماس بگیرید — بیایید با هم فضا بسازیم.', image: '', icon: '', link: '#contact' }],
+                separator: 'flower',
+                reverse: true,
+                look: 'second',
+              },
+            },
+            { type: 'wave-cta', props: { title: 'تماس بگیرید', letter: '', link: '#contact' } },
+            {
+              type: 'pill-footer',
+              props: {
+                label: 'پیوندها',
+                anchor: 'contact',
+                links: [
+                  { label: 'تماس', link: 'contact' },
+                  { label: 'فرصت‌های شغلی', link: '' },
+                  { label: 'حریم خصوصی', link: '' },
+                ],
+                social: [
+                  { network: 'instagram', link: 'https://www.instagram.com/' },
+                  { network: 'linkedin', link: 'https://www.linkedin.com/' },
+                  { network: 'telegram', link: 'https://t.me/' },
+                ],
+                name: 'استودیو',
+                place: 'تهران – اصفهان',
+                copyright: '© استودیو',
+              },
+            },
+          ]
+        : [
+            { type: 'letter-hero' },
+            { type: 'picture-words' },
+            { type: 'shape-parade' },
+            { type: 'focus-list', props: { anchor: 'services' } },
+            {
+              type: 'ticker-band',
+              props: {
+                items: ['NORTHWIND', 'acme', 'LUMEN', 'Orbit', 'FERN & CO', 'kite'].map((label) => ({
+                  label,
+                  image: '',
+                  icon: '',
+                  link: '',
+                })),
+                separator: 'none',
+                look: 'dark',
+              },
+            },
+            { type: 'work-done', props: { anchor: 'projects' } },
+            { type: 'ticker-band' },
+            { type: 'lit-paragraph', props: { link: 'about' } },
+            {
+              type: 'ticker-band',
+              props: {
+                items: [{ label: 'Get in touch — let’s create spaces together.', image: '', icon: '', link: '#contact' }],
+                separator: 'flower',
+                reverse: true,
+                look: 'second',
+              },
+            },
+            { type: 'wave-cta' },
+            {
+              type: 'pill-footer',
+              props: {
+                anchor: 'contact',
+                links: [
+                  { label: 'Contact', link: 'contact' },
+                  { label: 'Jobs', link: '' },
+                  { label: 'Imprint', link: '' },
+                  { label: 'Privacy Policy', link: '' },
+                ],
+              },
+            },
+          ],
+  },
 ];
 
 export function getPageTemplate(key: string) {
@@ -534,6 +696,20 @@ export const siteTemplates: SiteTemplate[] = [
     theme: 'folio-night',
     pages: [
       { template: 'folio-home', name: { en: 'Home', fa: 'خانه' }, slug: 'home' },
+      { template: 'about', name: { en: 'About', fa: 'درباره' }, slug: 'about' },
+      { template: 'contact', name: { en: 'Contact', fa: 'تماس' }, slug: 'contact' },
+    ],
+  },
+  {
+    key: 'spatial-studio',
+    name: { en: 'Shapes and giant letters (undplus.com look)', fa: 'شکل‌ها و حروف غول‌آسا (ظاهر undplus.com)' },
+    description: {
+      en: 'Sunny yellow on black and white, spinning shapes and the shaped-buttons header: a home page with services and projects, About and Contact.',
+      fa: 'زرد آفتابی روی سیاه و سفید، شکل‌های چرخان و سربرگ با دکمه‌های شکل‌دار: خانه با خدمات و پروژه‌ها، درباره و تماس.',
+    },
+    theme: 'spatial-yellow',
+    pages: [
+      { template: 'spatial-studio-home', name: { en: 'Home', fa: 'خانه' }, slug: 'home' },
       { template: 'about', name: { en: 'About', fa: 'درباره' }, slug: 'about' },
       { template: 'contact', name: { en: 'Contact', fa: 'تماس' }, slug: 'contact' },
     ],

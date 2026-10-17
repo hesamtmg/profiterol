@@ -52,6 +52,7 @@ export default defineNuxtConfig({
     // With the width axis, which the Folio blocks use to narrow their huge type.
     '@fontsource-variable/archivo/wdth.css',
     '@fontsource-variable/archivo/wdth-italic.css',
+    '@fontsource-variable/outfit/index.css',
     '~/assets/css/main.css',
   ],
 

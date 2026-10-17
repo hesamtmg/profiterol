@@ -39,7 +39,7 @@ export function useSiteSettings() {
 }
 
 /** Blocks designed to have the header float over them. */
-const FLOAT_HEADER_OVER = ['spotlight', 'type-hero'];
+const FLOAT_HEADER_OVER = ['spotlight', 'type-hero', 'letter-hero'];
 
 /** Whether the header floats over a page whose first block is `firstType` (always, when the site asks for it). */
 export function floatsHeader(firstType: string | undefined, header?: Partial<HeaderSettings>): boolean {

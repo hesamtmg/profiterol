@@ -236,6 +236,11 @@
     transform: translateX(-50%);
   }
 }
+@keyframes spatial-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 @keyframes fill-x {
   from {
     transform: scaleX(0);

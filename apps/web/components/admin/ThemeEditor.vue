@@ -228,6 +228,12 @@ function tileRadius(radius: string) {
                 <span class="h-0.5 w-2 rounded-full bg-white/70" />
                 <span class="h-1.5 w-3 rounded-full" :style="{ background: theme.primary }" />
               </span>
+              <span v-else-if="h.value === 'shapes'" class="absolute inset-x-1.5 top-1.5 flex items-center gap-0.5">
+                <span class="h-2.5 w-2.5 rounded-full bg-slate-900" />
+                <span class="ms-auto h-2 w-3 rounded-full bg-slate-900" />
+                <span class="h-2 w-3 bg-slate-900" style="clip-path: polygon(0 50%, 20% 0, 80% 0, 100% 50%, 80% 100%, 20% 100%)" />
+                <span class="h-2 w-2.5 bg-slate-900" />
+              </span>
               <span v-else class="absolute inset-x-0 top-1 flex justify-center">
                 <span class="flex h-3 items-center gap-0.5 rounded-full px-0.5" :style="{ background: theme.dark }">
                   <span class="h-2 w-2 rounded-full bg-white" />

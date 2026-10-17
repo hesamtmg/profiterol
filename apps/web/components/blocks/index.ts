@@ -58,6 +58,15 @@ import ServiceGrid from './folio/ServiceGrid.vue';
 import TalkFooter from './folio/TalkFooter.vue';
 import WordTicker from './folio/WordTicker.vue';
 import WorkIndex from './folio/WorkIndex.vue';
+import FocusList from './spatial/FocusList.vue';
+import LetterHero from './spatial/LetterHero.vue';
+import LitParagraph from './spatial/LitParagraph.vue';
+import PictureWords from './spatial/PictureWords.vue';
+import PillFooter from './spatial/PillFooter.vue';
+import ShapeParade from './spatial/ShapeParade.vue';
+import TickerBand from './spatial/TickerBand.vue';
+import WaveCta from './spatial/WaveCta.vue';
+import WorkDone from './spatial/WorkDone.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -142,6 +151,16 @@ export const blockComponents: Record<string, Component> = {
   'hello-statement': HelloStatement,
   'service-grid': ServiceGrid,
   'talk-footer': TalkFooter,
+  // The undplus.com look
+  'letter-hero': LetterHero,
+  'picture-words': PictureWords,
+  'shape-parade': ShapeParade,
+  'focus-list': FocusList,
+  'ticker-band': TickerBand,
+  'work-done': WorkDone,
+  'lit-paragraph': LitParagraph,
+  'wave-cta': WaveCta,
+  'pill-footer': PillFooter,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,

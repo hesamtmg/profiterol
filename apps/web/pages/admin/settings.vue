@@ -316,7 +316,7 @@ onMounted(load);
             <input v-model="settings.header.overlay" type="checkbox" class="h-4 w-4 rounded" />
             {{ $t('Float the header over the first block of every page, with white text') }}
           </label>
-          <p class="mt-1 text-xs text-slate-400">{{ $t('It always floats over the spotlight and big type heroes.') }}</p>
+          <p class="mt-1 text-xs text-slate-400">{{ $t('It always floats over the spotlight, big type and giant letters heroes.') }}</p>
         </div>
         <div class="mt-6 border-t border-slate-100 pt-5">
           <h3 class="text-sm font-bold">{{ $t('City and local time') }}</h3>

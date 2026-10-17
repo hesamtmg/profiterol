@@ -104,6 +104,7 @@ const categories: { key: BlockCategory; label: string }[] = [
   { key: 'animated', label: 'Animated' },
   { key: 'studio', label: 'Studio (bold agency look)' },
   { key: 'folio', label: 'Folio (dark developer portfolio)' },
+  { key: 'spatial', label: 'Spatial (shapes and giant letters)' },
   { key: 'hero', label: 'Hero' },
   { key: 'cards', label: 'Cards' },
   { key: 'content', label: 'Content' },

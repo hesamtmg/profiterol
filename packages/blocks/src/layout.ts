@@ -102,6 +102,8 @@ export const topLevelOnlyTypes = [
   'name-hero',
   'close-up-strip',
   'work-index',
+  'letter-hero',
+  'work-done',
   'video-cover',
   'slider',
   ...layoutBlockTypes,

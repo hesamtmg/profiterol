@@ -3,6 +3,7 @@ import { animatedDefinitions, entranceAnimations } from './animated.js';
 import { classicDefinitions, formFieldsField } from './classic.js';
 import { extraDefinitions } from './extras.js';
 import { folioDefinitions } from './folio.js';
+import { spatialDefinitions } from './spatial.js';
 import { layoutDefinitions, styleDefaults, styleFields, topLevelOnlyTypes } from './layout.js';
 import { studioDefinitions } from './studio.js';
 
@@ -544,6 +545,7 @@ const definitions: BlockDef[] = [
   ...animatedDefinitions,
   ...studioDefinitions,
   ...folioDefinitions,
+  ...spatialDefinitions,
   ...classicDefinitions,
   ...layoutDefinitions,
 ];

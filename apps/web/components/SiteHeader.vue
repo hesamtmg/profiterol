@@ -6,6 +6,7 @@ import CenteredHeader from './site/header/CenteredHeader.vue';
 import ClockHeader from './site/header/ClockHeader.vue';
 import DockHeader from './site/header/DockHeader.vue';
 import MinimalHeader from './site/header/MinimalHeader.vue';
+import ShapesHeader from './site/header/ShapesHeader.vue';
 import StudioHeader from './site/header/StudioHeader.vue';
 import { networkName, rememberLocale, type HeaderNav } from './site/header/nav';
 
@@ -35,6 +36,7 @@ const designs: Partial<Record<ThemeHeaderStyle, Component>> = {
   minimal: MinimalHeader,
   dock: DockHeader,
   clock: ClockHeader,
+  shapes: ShapesHeader,
 };
 const design = computed(() => designs[props.variant ?? 'solid']);
 
@@ -70,8 +72,13 @@ const nav = computed<HeaderNav>(() => ({
 </script>
 
 <template>
+  <!-- The shaped header places itself (fixed to the top, with a spacer when it does not float over a hero). -->
+  <header v-if="variant === 'shapes'">
+    <component :is="design" :nav="nav" />
+  </header>
+
   <header
-    v-if="design"
+    v-else-if="design"
     class="z-40"
     :class="[
       variant === 'dock' ? '' : variant === 'clock' ? 'top-0' : 'top-0 px-3 pt-3 @3xl:px-6',

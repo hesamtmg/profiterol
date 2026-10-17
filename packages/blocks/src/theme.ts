@@ -24,7 +24,7 @@ export interface ThemeTokens {
 
 export type ThemeScrollMode = 'normal' | 'sections';
 
-export type ThemeHeaderStyle = 'solid' | 'glass' | 'studio' | 'centered' | 'minimal' | 'dock' | 'clock';
+export type ThemeHeaderStyle = 'solid' | 'glass' | 'studio' | 'centered' | 'minimal' | 'dock' | 'clock' | 'shapes';
 
 /** Header designs, in the order the theme editor shows them. */
 export const headerStyles: { value: ThemeHeaderStyle; label: string; description: string }[] = [
@@ -47,6 +47,12 @@ export const headerStyles: { value: ThemeHeaderStyle; label: string; description
     label: 'Bar with the local time',
     description:
       'The name with one letter highlighted, the city and its live local time in the middle, small spaced-out links and a pill button (the mikewilcockdesign.com look).',
+  },
+  {
+    value: 'shapes',
+    label: 'Shaped buttons',
+    description:
+      'The logo and each link in a shape of its own (pill, hexagon, square), turning dark over light panels and light over dark ones (the undplus.com look).',
   },
 ];
 
@@ -216,6 +222,24 @@ export const themePresets: ThemePreset[] = [
       fontEn: 'Archivo',
     },
   },
+  {
+    // Taken from undplus.com: sunny yellow on black and white, a soft lilac and the round geometric Outfit letters (close to its Poppins).
+    key: 'spatial-yellow',
+    name: 'Spatial Yellow',
+    theme: {
+      ...defaultTheme,
+      primary: '#ffd64f',
+      secondary: '#c9a3f2',
+      background: '#ffffff',
+      surface: '#ffffff',
+      dark: '#000000',
+      text: '#000000',
+      muted: '#5c5c5c',
+      radius: '0.5rem',
+      headerStyle: 'shapes',
+      fontEn: 'Outfit',
+    },
+  },
 ];
 
 /** Google Fonts that can be chosen, with the weights each one offers. */
@@ -236,6 +260,7 @@ export const themeFonts = {
     { name: 'Space Grotesk', weights: 'wght@300..700' },
     // With its width axis, so the Folio blocks can narrow it for their huge type.
     { name: 'Archivo', weights: 'ital,wdth,wght@0,62..125,100..900;1,62..125,100..900' },
+    { name: 'Outfit', weights: 'wght@100..900' },
   ],
 };
 

@@ -175,6 +175,19 @@ Folio (the dark developer portfolio of mikewilcockdesign.com; the "Folio Night" 
 - [x] "Let's talk" footer: huge words rising in and leading to the email, profile links, the city's live local time, back to top (`talk-footer`)
 - [x] Header with the local time: the name with one letter highlighted, the city and its clock in the middle (set in Site settings → Menu and header), monospace links and a pill button
 - [x] A "Developer portfolio" page template and site template using them, in English and Persian; Archivo (with its width axis) self-hosted
+
+Spatial (the playful shapes-and-giant-letters look of undplus.com; the "Spatial Yellow" theme matches it):
+- [x] Giant letters hero: one huge word gliding sideways (faster while scrolling), the last words of a line typing themselves in turn (`letter-hero`)
+- [x] Words with pictures: big centered lines rising in, with a picture or a spinning shape set between the words (`picture-words`)
+- [x] Shape parade: a huge title, a row of cut-out shapes turning and drifting sideways while scrolling, a short text (`shape-parade`)
+- [x] Centered list in focus: the name in the middle of the screen is sharp, the others fade (`focus-list`)
+- [x] Ticker band: a slim band of logos, profile links with icons or one sentence gliding past, with shapes between (`ticker-band`)
+- [x] Projects under a big title: the title stays in the middle while pictures of three sizes pass under it; a starburst button (`work-done`)
+- [x] Paragraph lighting up word by word while scrolling, ending in a link (`lit-paragraph`)
+- [x] Wavy call to action: giant chunky words, one letter swapped for a spinning shape, hopping letters, a wavy bottom edge (`wave-cta`)
+- [x] Pill label footer: underlined links under a pill label, big profile icons, name and cities (`pill-footer`)
+- [x] Seven shapes shared by them (starburst, sun rays, flower, octagon, scalloped circle, four petals, spark)
+- [x] A "Shapes and giant letters" page template and site template using them, in English and Persian
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
@@ -213,8 +226,8 @@ Folio (the dark developer portfolio of mikewilcockdesign.com; the "Folio Night" 
 - [x] Site name per language, logo, favicon
 - [x] Menu editor (labels per language, page/anchor/URL links)
 - [x] Theme editor: colors, corner radius, fonts, with live preview
-- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red, Folio Night), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
-- [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down), a dark bar with the city's local time (mikewilcockdesign.com); phones get the full-screen menu
+- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red, Folio Night, Spatial Yellow), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
+- [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down), a dark bar with the city's local time (mikewilcockdesign.com), shaped buttons (undplus.com: each link a pill, hexagon or square, black or white depending on the panel behind); phones get the full-screen menu
 - [x] Header button ("Get in touch") per language, and an option to float the header over the first block of every page
 - [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page
 - [x] Upload your own fonts (WOFF2, WOFF, TTF, OTF; one file per weight) in Site settings; they appear in every theme's font lists and are served with `@font-face`
