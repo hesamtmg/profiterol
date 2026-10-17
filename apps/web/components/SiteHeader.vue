@@ -3,6 +3,7 @@ import { locales, type HeaderSettings, type ThemeHeaderStyle } from '@profiterol
 import type { Component } from 'vue';
 import type { MenuItem } from '~/composables/useSite';
 import CenteredHeader from './site/header/CenteredHeader.vue';
+import ClockHeader from './site/header/ClockHeader.vue';
 import DockHeader from './site/header/DockHeader.vue';
 import MinimalHeader from './site/header/MinimalHeader.vue';
 import StudioHeader from './site/header/StudioHeader.vue';
@@ -33,6 +34,7 @@ const designs: Partial<Record<ThemeHeaderStyle, Component>> = {
   centered: CenteredHeader,
   minimal: MinimalHeader,
   dock: DockHeader,
+  clock: ClockHeader,
 };
 const design = computed(() => designs[props.variant ?? 'solid']);
 
@@ -62,6 +64,8 @@ const nav = computed<HeaderNav>(() => ({
   preview: Boolean(props.preview),
   email: props.email ?? '',
   social: (props.social ?? []).map((href) => ({ href, label: networkName(href) })),
+  place: props.header?.place?.[props.locale]?.trim() ?? '',
+  timeZone: props.header?.timeZone ?? '',
 }));
 </script>
 
@@ -70,7 +74,7 @@ const nav = computed<HeaderNav>(() => ({
     v-if="design"
     class="z-40"
     :class="[
-      variant === 'dock' ? '' : 'top-0 px-3 pt-3 @3xl:px-6',
+      variant === 'dock' ? '' : variant === 'clock' ? 'top-0' : 'top-0 px-3 pt-3 @3xl:px-6',
       variant === 'dock' ? 'relative' : overlay ? 'absolute inset-x-0' : variant === 'studio' ? 'relative' : 'sticky',
     ]"
   >

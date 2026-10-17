@@ -51,6 +51,13 @@ import ProjectScatter from './studio/ProjectScatter.vue';
 import ServiceStack from './studio/ServiceStack.vue';
 import StudioFooter from './studio/StudioFooter.vue';
 import TypeHero from './studio/TypeHero.vue';
+import CloseUpStrip from './folio/CloseUpStrip.vue';
+import HelloStatement from './folio/HelloStatement.vue';
+import NameHero from './folio/NameHero.vue';
+import ServiceGrid from './folio/ServiceGrid.vue';
+import TalkFooter from './folio/TalkFooter.vue';
+import WordTicker from './folio/WordTicker.vue';
+import WorkIndex from './folio/WorkIndex.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -127,6 +134,14 @@ export const blockComponents: Record<string, Component> = {
   'service-stack': ServiceStack,
   'need-picker': NeedPicker,
   'studio-footer': StudioFooter,
+  // The mikewilcockdesign.com look
+  'name-hero': NameHero,
+  'word-ticker': WordTicker,
+  'work-index': WorkIndex,
+  'close-up-strip': CloseUpStrip,
+  'hello-statement': HelloStatement,
+  'service-grid': ServiceGrid,
+  'talk-footer': TalkFooter,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,

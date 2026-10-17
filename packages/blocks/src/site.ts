@@ -121,19 +121,34 @@ export interface HeaderSettings {
   ctaLink: string;
   /** Float over the first block with light text, on every page (always on above the spotlight and big type heroes). */
   overlay: boolean;
+  /** Shown in the middle of the "Bar with the local time" header, per locale ("Manchester, UK"). */
+  place: Record<string, string>;
+  /** IANA time zone of the clock beside `place` (Europe/London); no clock when empty or unknown. */
+  timeZone: string;
 }
 
-export const defaultHeader: HeaderSettings = { ctaLabel: {}, ctaLink: '', overlay: false };
+export const defaultHeader: HeaderSettings = { ctaLabel: {}, ctaLink: '', overlay: false, place: {}, timeZone: '' };
+
+function perLocale(input: unknown, max: number): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (typeof input === 'object' && input !== null) {
+    for (const [k, v] of Object.entries(input)) if (/^[a-z]{2}$/.test(k) && typeof v === 'string') out[k] = v.trim().slice(0, max);
+  }
+  return out;
+}
 
 export function cleanHeader(input: unknown): HeaderSettings {
   const src = (typeof input === 'object' && input !== null ? input : {}) as Record<string, unknown>;
-  const ctaLabel: Record<string, string> = {};
-  if (typeof src.ctaLabel === 'object' && src.ctaLabel !== null) {
-    for (const [k, v] of Object.entries(src.ctaLabel))
-      if (/^[a-z]{2}$/.test(k) && typeof v === 'string') ctaLabel[k] = v.trim().slice(0, 40);
-  }
   const link = typeof src.ctaLink === 'string' ? src.ctaLink.trim().slice(0, 500) : '';
-  return { ctaLabel, ctaLink: isSafeUrl(link) ? link : '', overlay: src.overlay === true };
+  const zone = typeof src.timeZone === 'string' ? src.timeZone.trim() : '';
+  return {
+    ctaLabel: perLocale(src.ctaLabel, 40),
+    ctaLink: isSafeUrl(link) ? link : '',
+    overlay: src.overlay === true,
+    place: perLocale(src.place, 60),
+    // Only the shape of a zone name (Europe/London, Etc/GMT+3, UTC); the browser decides whether it knows it.
+    timeZone: /^[A-Za-z][\w+-]*(\/[\w+-]+){0,2}$/.test(zone) && zone.length <= 40 ? zone : '',
+  };
 }
 
 /** The most custom CSS kept for the site or one page. */

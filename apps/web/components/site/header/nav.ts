@@ -17,6 +17,9 @@ export interface HeaderNav {
   /** From the site's business details, for the full-screen menu. */
   email: string;
   social: { label: string; href: string }[];
+  /** The city and its time zone, for the header with the local time. */
+  place: string;
+  timeZone: string;
 }
 
 /**
