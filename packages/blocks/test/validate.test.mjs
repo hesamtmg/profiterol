@@ -167,6 +167,20 @@ test('studio blocks (the awakeagency.dev look) are registered; the full-screen o
   assert.equal(validateBlocks([cards])[0].path, 'blocks[0].props.services[0].drawing');
 });
 
+test('folio blocks (the mikewilcockdesign.com look) are registered; the full-screen ones stay on the page itself', async () => {
+  const { folioDefinitions, isTopLevelOnly } = await import('../dist/esm/index.js');
+  assert.equal(folioDefinitions.length, 7);
+  assert.ok(folioDefinitions.every((d) => d.category === 'folio' && blocks.some((b) => b.type === d.type)));
+  for (const type of ['name-hero', 'work-index', 'close-up-strip']) assert.ok(isTopLevelOnly(type), type);
+  assert.ok(!isTopLevelOnly('hello-statement'));
+  const work = createBlock('work-index');
+  work.props.projects[0].link = 'javascript:alert(1)';
+  assert.equal(validateBlocks([work])[0].path, 'blocks[0].props.projects[0].link');
+  const footer = createBlock('talk-footer');
+  footer.props.look = 'neon';
+  assert.equal(validateBlocks([footer])[0].path, 'blocks[0].props.look');
+});
+
 test('spatial blocks (the undplus.com look) are registered and checked', async () => {
   const { spatialDefinitions, spatialShapes, isTopLevelOnly, themePresets, themeFontsHref } = await import('../dist/esm/index.js');
   assert.equal(spatialDefinitions.length, 9);
@@ -197,7 +211,7 @@ test('every header style is kept by cleanTheme', async () => {
   const { headerStyles, cleanTheme } = await import('../dist/esm/index.js');
   assert.deepEqual(
     headerStyles.map((h) => h.value),
-    ['solid', 'glass', 'studio', 'centered', 'minimal', 'dock', 'shapes'],
+    ['solid', 'glass', 'studio', 'centered', 'minimal', 'dock', 'clock', 'shapes'],
   );
   for (const h of headerStyles) assert.deepEqual(cleanTheme({ headerStyle: h.value }), { headerStyle: h.value });
 });

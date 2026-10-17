@@ -26,6 +26,7 @@ const SUITES = [
   'custom-blocks',
   'custom-css',
   'studio',
+  'folio',
   'spatial',
 ];
 const only = process.argv.slice(2);

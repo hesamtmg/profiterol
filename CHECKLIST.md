@@ -165,6 +165,17 @@ Studio (the bold agency look of awakeagency.dev; the "Studio Red" theme matches 
 - [x] Studio footer: two link columns, an email copied with one click, the local time, small links (`studio-footer`)
 - [x] A "Bold studio" page template and site template using them, in English and Persian
 
+Folio (the dark developer portfolio of mikewilcockdesign.com; the "Folio Night" theme matches it):
+- [x] Split name hero: three small labels across the top, a huge condensed name on two lines (start and end) rising in, text, scroll hint and an outlined button; the name shrinks to fit any font or length (`name-hero`)
+- [x] Italic word ticker: big italic words between hairlines with diamonds in the main color, sliding on their own and faster while scrolling (`word-ticker`)
+- [x] Work list with a sticky preview: numbered projects with year, kind of work, a note and a link; the row in the middle of the screen (or pointed at) is lit and its picture stays beside the list with a counter and a progress line; phones show each picture under its row (`work-index`)
+- [x] Close-up strip: large pictures running off the page with numbered captions and tags, dragged with the mouse or swiped, drifting as the page scrolls (`close-up-strip`)
+- [x] Hello statement: a bold sentence lighting up word by word, *starred* words in light italics and _underscored_ ones in the main color (`hello-statement`)
+- [x] Numbered service grid: outlined cells sharing their borders, numbers and arrows in the main color (`service-grid`)
+- [x] "Let's talk" footer: huge words rising in and leading to the email, profile links, the city's live local time, back to top (`talk-footer`)
+- [x] Header with the local time: the name with one letter highlighted, the city and its clock in the middle (set in Site settings → Menu and header), monospace links and a pill button
+- [x] A "Developer portfolio" page template and site template using them, in English and Persian; Archivo (with its width axis) self-hosted
+
 Spatial (the playful shapes-and-giant-letters look of undplus.com; the "Spatial Yellow" theme matches it):
 - [x] Giant letters hero: one huge word gliding sideways (faster while scrolling), the last words of a line typing themselves in turn (`letter-hero`)
 - [x] Words with pictures: big centered lines rising in, with a picture or a spinning shape set between the words (`picture-words`)
@@ -215,8 +226,8 @@ Spatial (the playful shapes-and-giant-letters look of undplus.com; the "Spatial 
 - [x] Site name per language, logo, favicon
 - [x] Menu editor (labels per language, page/anchor/URL links)
 - [x] Theme editor: colors, corner radius, fonts, with live preview
-- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red, Spatial Yellow), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
-- [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down), shaped buttons (undplus.com: each link a pill, hexagon or square, black or white depending on the panel behind); phones get the full-screen menu
+- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red, Folio Night, Spatial Yellow), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
+- [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down), a dark bar with the city's local time (mikewilcockdesign.com), shaped buttons (undplus.com: each link a pill, hexagon or square, black or white depending on the panel behind); phones get the full-screen menu
 - [x] Header button ("Get in touch") per language, and an option to float the header over the first block of every page
 - [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page
 - [x] Upload your own fonts (WOFF2, WOFF, TTF, OTF; one file per weight) in Site settings; they appear in every theme's font lists and are served with `@font-face`

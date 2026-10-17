@@ -190,7 +190,9 @@ function tileRadius(radius: string) {
             <!-- A small drawing of each header -->
             <span
               class="relative mb-1 block h-9 overflow-hidden rounded-lg"
-              :style="{ background: h.value === 'glass' ? theme.dark : h.value === 'studio' ? theme.primary : '#f1f5f9' }"
+              :style="{
+                background: h.value === 'glass' || h.value === 'clock' ? theme.dark : h.value === 'studio' ? theme.primary : '#f1f5f9',
+              }"
               aria-hidden="true"
             >
               <span
@@ -219,6 +221,12 @@ function tileRadius(radius: string) {
                 <span class="ms-auto h-0.5 w-2 rounded-full bg-slate-500" />
                 <span class="h-0.5 w-2 rounded-full bg-slate-500" />
                 <span class="h-0.5 w-2 rounded-full bg-slate-500" />
+              </span>
+              <span v-else-if="h.value === 'clock'" class="absolute inset-x-1.5 top-1.5 flex items-center gap-1">
+                <span class="h-1 w-3 rounded-full bg-white" />
+                <span class="mx-auto h-0.5 w-4 rounded-full bg-white/40" />
+                <span class="h-0.5 w-2 rounded-full bg-white/70" />
+                <span class="h-1.5 w-3 rounded-full" :style="{ background: theme.primary }" />
               </span>
               <span v-else-if="h.value === 'shapes'" class="absolute inset-x-1.5 top-1.5 flex items-center gap-0.5">
                 <span class="h-2.5 w-2.5 rounded-full bg-slate-900" />

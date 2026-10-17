@@ -349,6 +349,126 @@ export const pageTemplates: PageTemplate[] = [
           ],
   },
   {
+    key: 'folio-home',
+    name: { en: 'Developer portfolio home', fa: 'خانه‌ی نمونه‌کار توسعه‌دهنده' },
+    description: {
+      en: 'The mikewilcockdesign.com look: a huge split name, a word ticker, a work list with a sticky preview, close-ups, services and "Let\'s talk".',
+      fa: 'ظاهر mikewilcockdesign.com: نامی بسیار بزرگ در دو سو، نوار کلمه‌ها، فهرست کارها با پیش‌نمایش چسبان، نماهای نزدیک، خدمات و «حرف بزنیم».',
+    },
+    icon: 'mdi-format-letter-spacing-variant',
+    blocks: (l) =>
+      l === 'fa'
+        ? [
+            {
+              type: 'name-hero',
+              props: {
+                labelStart: '(نمونه‌کار / ۱۴۰۵)',
+                labelMiddle: 'توسعه‌دهنده‌ی خلاق',
+                labelEnd: 'تهران، ایران',
+                first: 'سارا',
+                second: 'احمدی',
+                text: 'سایت و اپ‌هایی طراحی می‌کنم و می‌سازم که پر از حرکت‌اند. بیشتر برای استارتاپ‌ها، کسب‌وکارهای کوچک و استودیوهای همکار.',
+                hint: '↓ آرام اسکرول کنید',
+                buttonLabel: 'دیدن کارها ←',
+              },
+            },
+            {
+              type: 'word-ticker',
+              props: { words: ['طراحی', 'ساخت', 'حرکت', 'فروشگاه', 'وب‌فلو', 'اپ'].map((text) => ({ text })) },
+            },
+            {
+              type: 'work-index',
+              props: {
+                label: 'کارهای منتخب',
+                period: '۱۴۰۳ — ۱۴۰۵',
+                anchor: 'work',
+                linkLabel: 'دیدن پروژه ←',
+                projects: [
+                  {
+                    title: 'شهربازی',
+                    year: '۱۴۰۵',
+                    kind: 'طراحی و ساخت اپ موبایل',
+                    note: '(روی iOS و اندروید)',
+                    tag: 'اپ',
+                    image: '',
+                    color: '#3b3f9e',
+                    link: '',
+                  },
+                  {
+                    title: 'پاپوش',
+                    year: '۱۴۰۴',
+                    kind: 'طراحی و ساخت فروشگاه',
+                    note: '',
+                    tag: 'فروشگاه',
+                    image: '',
+                    color: '#a9cddb',
+                    link: '',
+                  },
+                  { title: 'نشر نو', year: '۱۴۰۳', kind: 'ساخت با وب‌فلو', note: '', tag: 'وب‌فلو', image: '', color: '#e5202e', link: '' },
+                ],
+              },
+            },
+            {
+              type: 'close-up-strip',
+              props: {
+                label: '(از نزدیک)',
+                hint: 'بکشید یا اسکرول کنید',
+                items: [
+                  { image: '', caption: '(۰۱) شهربازی', tag: 'موبایل', color: '#3b3f9e' },
+                  { image: '', caption: '(۰۱) شهربازی', tag: 'جزئیات', color: '#2c5aa0' },
+                  { image: '', caption: '(۰۲) پاپوش', tag: 'موبایل', color: '#a9cddb' },
+                  { image: '', caption: '(۰۳) نشر نو', tag: 'موبایل', color: '#e5202e' },
+                ],
+              },
+            },
+            {
+              type: 'hello-statement',
+              props: {
+                label: '(سلام)',
+                text: 'من سارا هستم. سایت و اپ‌هایی طراحی می‌کنم و می‌سازم که *حرکت می‌کنند، پاسخ می‌دهند* و کار با آن‌ها لذت دارد. طراحی در فیگما، ساخته با کد، در _تهران._',
+              },
+            },
+            {
+              type: 'service-grid',
+              props: {
+                label: 'کار من',
+                linkLabel: 'همه‌ی خدمات ←',
+                anchor: 'services',
+                services: [
+                  { title: 'سایت', text: 'سایت معرفی و نمونه‌کار، طراحی‌شده و ساخته‌شده با حرکت.', link: '' },
+                  { title: 'فروشگاه', text: 'فروشگاه اینترنتی ساخته‌شده بر پایه‌ی برند و محصولات شما.', link: '' },
+                  { title: 'وب‌فلو', text: 'سایت‌هایی که تیم شما خودش می‌تواند ویرایش کند.', link: '' },
+                  { title: 'اپ', text: 'طراحی و توسعه‌ی رابط اپ موبایل، از اولین طرح تا انتشار.', link: '' },
+                ],
+              },
+            },
+            {
+              type: 'talk-footer',
+              props: {
+                label: 'ایده‌ای در سر دارید؟',
+                title: 'حرف بزنیم',
+                anchor: 'contact',
+                social: [
+                  { label: 'لینکدین', link: 'https://www.linkedin.com/' },
+                  { label: 'گیت‌هاب', link: 'https://github.com/' },
+                ],
+                city: 'تهران',
+                timeZone: 'Asia/Tehran',
+                topLabel: 'بازگشت به بالا ↑',
+              },
+            },
+          ]
+        : [
+            { type: 'name-hero' },
+            { type: 'word-ticker' },
+            { type: 'work-index', props: { anchor: 'work' } },
+            { type: 'close-up-strip' },
+            { type: 'hello-statement' },
+            { type: 'service-grid', props: { anchor: 'services' } },
+            { type: 'talk-footer', props: { anchor: 'contact' } },
+          ],
+  },
+  {
     key: 'spatial-studio-home',
     name: { en: 'Shapes and giant letters home', fa: 'خانه با شکل‌ها و حروف غول‌آسا' },
     description: {
@@ -562,6 +682,20 @@ export const siteTemplates: SiteTemplate[] = [
     theme: 'studio-red',
     pages: [
       { template: 'bold-studio-home', name: { en: 'Home', fa: 'خانه' }, slug: 'home' },
+      { template: 'about', name: { en: 'About', fa: 'درباره' }, slug: 'about' },
+      { template: 'contact', name: { en: 'Contact', fa: 'تماس' }, slug: 'contact' },
+    ],
+  },
+  {
+    key: 'folio',
+    name: { en: 'Developer portfolio (mikewilcockdesign.com look)', fa: 'نمونه‌کار توسعه‌دهنده (ظاهر mikewilcockdesign.com)' },
+    description: {
+      en: 'Near-black pages, huge condensed type, small monospace labels and one soft blue: a home page with work and services, About and Contact.',
+      fa: 'صفحه‌های تقریباً سیاه، حروف فشرده‌ی بسیار بزرگ، برچسب‌های ریز تک‌فاصله و یک آبی ملایم: خانه با کارها و خدمات، درباره و تماس.',
+    },
+    theme: 'folio-night',
+    pages: [
+      { template: 'folio-home', name: { en: 'Home', fa: 'خانه' }, slug: 'home' },
       { template: 'about', name: { en: 'About', fa: 'درباره' }, slug: 'about' },
       { template: 'contact', name: { en: 'Contact', fa: 'تماس' }, slug: 'contact' },
     ],

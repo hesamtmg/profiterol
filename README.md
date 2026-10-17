@@ -91,9 +91,10 @@ browser only, never on the server.
 
 - **Site theme → Header** picks its look (each page can choose another in the editor's Design tab): a solid bar, frosted
   glass, a **menu button** opening a full-screen menu with big numbered links (the awakeagency.dev look), the logo in
-  the middle, minimal (text only until the page scrolls), a floating dock that hides while scrolling down, or
-  **shaped buttons** (the undplus.com look): each link in a pill, hexagon or square, black over light panels and white
-  over dark ones.
+  the middle, minimal (text only until the page scrolls), a floating dock that hides while scrolling down, a dark
+  **bar with the local time** (the mikewilcockdesign.com look; its city and time zone are set in **Site settings → Menu
+  and header**), or **shaped buttons** (the undplus.com look): each link in a pill, hexagon or square, black over light
+  panels and white over dark ones.
 - **Site settings → Menu and header** has the links, a header button ("Get in touch") per language, and an option to
   float the header over the first block of every page. It always floats over the spotlight, big type and giant letters heroes.
 - The full-screen menu shows the email and profile links from **Site settings → Business**.
