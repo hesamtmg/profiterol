@@ -3,6 +3,7 @@ export * from './registry.js';
 export * from './classic.js';
 export * from './animated.js';
 export * from './studio.js';
+export * from './spatial.js';
 export * from './validate.js';
 export * from './locales.js';
 export * from './theme.js';

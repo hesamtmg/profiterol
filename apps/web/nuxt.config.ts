@@ -49,6 +49,7 @@ export default defineNuxtConfig({
     '@fontsource-variable/syne/index.css',
     '@fontsource-variable/playfair-display/index.css',
     '@fontsource-variable/space-grotesk/index.css',
+    '@fontsource-variable/outfit/index.css',
     '~/assets/css/main.css',
   ],
 

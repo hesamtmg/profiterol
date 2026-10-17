@@ -39,8 +39,12 @@ export interface FieldDef {
   group?: 'style' | 'advanced';
 }
 
-/** `custom`: the site's own blocks, made with the AI block builder. `studio`: the bold agency look of awakeagency.dev. */
-export type BlockCategory = 'layout' | 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic' | 'animated' | 'studio' | 'custom';
+/**
+ * `custom`: the site's own blocks, made with the AI block builder. `studio`: the bold agency look of awakeagency.dev.
+ * `spatial`: the playful shapes-and-giant-letters look of undplus.com.
+ */
+export type BlockCategory =
+  'layout' | 'hero' | 'content' | 'cards' | 'media' | 'contact' | 'classic' | 'animated' | 'studio' | 'spatial' | 'custom';
 
 export interface BlockDef {
   type: string;

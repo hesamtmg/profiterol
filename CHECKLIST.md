@@ -164,6 +164,19 @@ Studio (the bold agency look of awakeagency.dev; the "Studio Red" theme matches 
 - [x] "I need…" picker: a wheel of pills that turns by itself; the button goes to the chosen one's link (`need-picker`)
 - [x] Studio footer: two link columns, an email copied with one click, the local time, small links (`studio-footer`)
 - [x] A "Bold studio" page template and site template using them, in English and Persian
+
+Spatial (the playful shapes-and-giant-letters look of undplus.com; the "Spatial Yellow" theme matches it):
+- [x] Giant letters hero: one huge word gliding sideways (faster while scrolling), the last words of a line typing themselves in turn (`letter-hero`)
+- [x] Words with pictures: big centered lines rising in, with a picture or a spinning shape set between the words (`picture-words`)
+- [x] Shape parade: a huge title, a row of cut-out shapes turning and drifting sideways while scrolling, a short text (`shape-parade`)
+- [x] Centered list in focus: the name in the middle of the screen is sharp, the others fade (`focus-list`)
+- [x] Ticker band: a slim band of logos, profile links with icons or one sentence gliding past, with shapes between (`ticker-band`)
+- [x] Projects under a big title: the title stays in the middle while pictures of three sizes pass under it; a starburst button (`work-done`)
+- [x] Paragraph lighting up word by word while scrolling, ending in a link (`lit-paragraph`)
+- [x] Wavy call to action: giant chunky words, one letter swapped for a spinning shape, hopping letters, a wavy bottom edge (`wave-cta`)
+- [x] Pill label footer: underlined links under a pill label, big profile icons, name and cities (`pill-footer`)
+- [x] Seven shapes shared by them (starburst, sun rays, flower, octagon, scalloped circle, four petals, spark)
+- [x] A "Shapes and giant letters" page template and site template using them, in English and Persian
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
@@ -202,8 +215,8 @@ Studio (the bold agency look of awakeagency.dev; the "Studio Red" theme matches 
 - [x] Site name per language, logo, favicon
 - [x] Menu editor (labels per language, page/anchor/URL links)
 - [x] Theme editor: colors, corner radius, fonts, with live preview
-- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
-- [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down); phones get the full-screen menu
+- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red, Spatial Yellow), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
+- [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down), shaped buttons (undplus.com: each link a pill, hexagon or square, black or white depending on the panel behind); phones get the full-screen menu
 - [x] Header button ("Get in touch") per language, and an option to float the header over the first block of every page
 - [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page
 - [x] Upload your own fonts (WOFF2, WOFF, TTF, OTF; one file per weight) in Site settings; they appear in every theme's font lists and are served with `@font-face`

@@ -24,7 +24,7 @@ export interface ThemeTokens {
 
 export type ThemeScrollMode = 'normal' | 'sections';
 
-export type ThemeHeaderStyle = 'solid' | 'glass' | 'studio' | 'centered' | 'minimal' | 'dock';
+export type ThemeHeaderStyle = 'solid' | 'glass' | 'studio' | 'centered' | 'minimal' | 'dock' | 'shapes';
 
 /** Header designs, in the order the theme editor shows them. */
 export const headerStyles: { value: ThemeHeaderStyle; label: string; description: string }[] = [
@@ -41,6 +41,12 @@ export const headerStyles: { value: ThemeHeaderStyle; label: string; description
     value: 'dock',
     label: 'Floating dock',
     description: 'A small dark pill in the middle that hides while scrolling down and comes back up.',
+  },
+  {
+    value: 'shapes',
+    label: 'Shaped buttons',
+    description:
+      'The logo and each link in a shape of its own (pill, hexagon, square), turning dark over light panels and light over dark ones (the undplus.com look).',
   },
 ];
 
@@ -192,6 +198,24 @@ export const themePresets: ThemePreset[] = [
       fontEn: 'Syne',
     },
   },
+  {
+    // Taken from undplus.com: sunny yellow on black and white, a soft lilac and the round geometric Outfit letters (close to its Poppins).
+    key: 'spatial-yellow',
+    name: 'Spatial Yellow',
+    theme: {
+      ...defaultTheme,
+      primary: '#ffd64f',
+      secondary: '#c9a3f2',
+      background: '#ffffff',
+      surface: '#ffffff',
+      dark: '#000000',
+      text: '#000000',
+      muted: '#5c5c5c',
+      radius: '0.5rem',
+      headerStyle: 'shapes',
+      fontEn: 'Outfit',
+    },
+  },
 ];
 
 /** Google Fonts that can be chosen, with the weights each one offers. */
@@ -210,6 +234,7 @@ export const themeFonts = {
     { name: 'Syne', weights: 'wght@400..800' },
     { name: 'Playfair Display', weights: 'wght@400..900' },
     { name: 'Space Grotesk', weights: 'wght@300..700' },
+    { name: 'Outfit', weights: 'wght@100..900' },
   ],
 };
 

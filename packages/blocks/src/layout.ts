@@ -99,6 +99,8 @@ export const topLevelOnlyTypes = [
   'type-hero',
   'blueprint-statement',
   'service-stack',
+  'letter-hero',
+  'work-done',
   'video-cover',
   'slider',
   ...layoutBlockTypes,

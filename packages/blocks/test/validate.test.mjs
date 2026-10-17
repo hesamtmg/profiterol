@@ -167,11 +167,37 @@ test('studio blocks (the awakeagency.dev look) are registered; the full-screen o
   assert.equal(validateBlocks([cards])[0].path, 'blocks[0].props.services[0].drawing');
 });
 
+test('spatial blocks (the undplus.com look) are registered and checked', async () => {
+  const { spatialDefinitions, spatialShapes, isTopLevelOnly, themePresets, themeFontsHref } = await import('../dist/esm/index.js');
+  assert.equal(spatialDefinitions.length, 9);
+  assert.ok(spatialDefinitions.every((d) => d.category === 'spatial' && blocks.some((b) => b.type === d.type)));
+  for (const d of spatialDefinitions) assert.deepEqual(validateBlocks([createBlock(d.type)]), [], d.type);
+  for (const type of ['letter-hero', 'work-done']) assert.ok(isTopLevelOnly(type), type);
+  assert.ok(!isTopLevelOnly('ticker-band'));
+
+  const words = createBlock('picture-words');
+  words.props.lines[1].shape = 'dragon';
+  assert.equal(validateBlocks([words])[0].path, 'blocks[0].props.lines[1].shape');
+  const band = createBlock('ticker-band');
+  band.props.items[0].link = 'javascript:alert(1)';
+  assert.equal(validateBlocks([band])[0].path, 'blocks[0].props.items[0].link');
+  const parade = createBlock('shape-parade');
+  parade.props.shapes[0].color = 'red;}';
+  assert.equal(validateBlocks([parade])[0].path, 'blocks[0].props.shapes[0].color');
+  parade.props.shapes[0].color = '';
+  assert.deepEqual(validateBlocks([parade]), [], 'an empty color takes the theme colors');
+  assert.ok(spatialShapes.some((s) => s.value === 'burst'));
+
+  const yellow = themePresets.find((t) => t.key === 'spatial-yellow');
+  assert.equal(yellow.theme.headerStyle, 'shapes');
+  assert.match(themeFontsHref(yellow.theme), /family=Outfit/);
+});
+
 test('every header style is kept by cleanTheme', async () => {
   const { headerStyles, cleanTheme } = await import('../dist/esm/index.js');
   assert.deepEqual(
     headerStyles.map((h) => h.value),
-    ['solid', 'glass', 'studio', 'centered', 'minimal', 'dock'],
+    ['solid', 'glass', 'studio', 'centered', 'minimal', 'dock', 'shapes'],
   );
   for (const h of headerStyles) assert.deepEqual(cleanTheme({ headerStyle: h.value }), { headerStyle: h.value });
 });

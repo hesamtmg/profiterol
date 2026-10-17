@@ -3,6 +3,7 @@ import { animatedDefinitions, entranceAnimations } from './animated.js';
 import { classicDefinitions, formFieldsField } from './classic.js';
 import { extraDefinitions } from './extras.js';
 import { layoutDefinitions, styleDefaults, styleFields, topLevelOnlyTypes } from './layout.js';
+import { spatialDefinitions } from './spatial.js';
 import { studioDefinitions } from './studio.js';
 
 const button: FieldDef[] = [
@@ -542,6 +543,7 @@ const definitions: BlockDef[] = [
   ...extraDefinitions,
   ...animatedDefinitions,
   ...studioDefinitions,
+  ...spatialDefinitions,
   ...classicDefinitions,
   ...layoutDefinitions,
 ];
