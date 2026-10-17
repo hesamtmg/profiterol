@@ -26,6 +26,7 @@ const SUITES = [
   'custom-blocks',
   'custom-css',
   'studio',
+  'folio',
 ];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;

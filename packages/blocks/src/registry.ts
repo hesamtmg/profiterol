@@ -2,6 +2,7 @@ import type { BlockDef, BlockNode, FieldDef } from './types.js';
 import { animatedDefinitions, entranceAnimations } from './animated.js';
 import { classicDefinitions, formFieldsField } from './classic.js';
 import { extraDefinitions } from './extras.js';
+import { folioDefinitions } from './folio.js';
 import { layoutDefinitions, styleDefaults, styleFields, topLevelOnlyTypes } from './layout.js';
 import { studioDefinitions } from './studio.js';
 
@@ -542,6 +543,7 @@ const definitions: BlockDef[] = [
   ...extraDefinitions,
   ...animatedDefinitions,
   ...studioDefinitions,
+  ...folioDefinitions,
   ...classicDefinitions,
   ...layoutDefinitions,
 ];

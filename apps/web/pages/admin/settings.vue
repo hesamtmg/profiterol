@@ -60,6 +60,7 @@ async function load() {
   const header = cleanHeader(s.header);
   for (const l of locales) {
     header.ctaLabel[l.code] ??= '';
+    header.place[l.code] ??= '';
     s.siteName[l.code] ??= '';
     s.maintenanceText[l.code] ??= '';
     loader.text[l.code] ??= '';
@@ -316,6 +317,27 @@ onMounted(load);
             {{ $t('Float the header over the first block of every page, with white text') }}
           </label>
           <p class="mt-1 text-xs text-slate-400">{{ $t('It always floats over the spotlight and big type heroes.') }}</p>
+        </div>
+        <div class="mt-6 border-t border-slate-100 pt-5">
+          <h3 class="text-sm font-bold">{{ $t('City and local time') }}</h3>
+          <p class="mt-1 text-xs text-slate-400">
+            {{
+              $t(
+                'Shown in the middle of the “Bar with the local time” header. The time zone is a name such as Europe/London or Asia/Tehran.',
+              )
+            }}
+          </p>
+          <div class="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              v-for="l in locales"
+              :key="l.code"
+              v-model="settings.header.place[l.code]"
+              class="input w-36 flex-1"
+              :dir="l.dir"
+              :placeholder="l.label"
+            />
+            <input v-model="settings.header.timeZone" class="input w-56 flex-1" dir="ltr" placeholder="Europe/London" />
+          </div>
         </div>
       </section>
 

@@ -24,7 +24,7 @@ export interface ThemeTokens {
 
 export type ThemeScrollMode = 'normal' | 'sections';
 
-export type ThemeHeaderStyle = 'solid' | 'glass' | 'studio' | 'centered' | 'minimal' | 'dock';
+export type ThemeHeaderStyle = 'solid' | 'glass' | 'studio' | 'centered' | 'minimal' | 'dock' | 'clock';
 
 /** Header designs, in the order the theme editor shows them. */
 export const headerStyles: { value: ThemeHeaderStyle; label: string; description: string }[] = [
@@ -41,6 +41,12 @@ export const headerStyles: { value: ThemeHeaderStyle; label: string; description
     value: 'dock',
     label: 'Floating dock',
     description: 'A small dark pill in the middle that hides while scrolling down and comes back up.',
+  },
+  {
+    value: 'clock',
+    label: 'Bar with the local time',
+    description:
+      'The name with one letter highlighted, the city and its live local time in the middle, small spaced-out links and a pill button (the mikewilcockdesign.com look).',
   },
 ];
 
@@ -192,6 +198,24 @@ export const themePresets: ThemePreset[] = [
       fontEn: 'Syne',
     },
   },
+  {
+    // Taken from mikewilcockdesign.com: near-black pages, warm paper-white text, one soft blue and condensed Archivo.
+    key: 'folio-night',
+    name: 'Folio Night',
+    theme: {
+      ...defaultTheme,
+      primary: '#7ea2ff',
+      secondary: '#ece9e3',
+      background: '#141414',
+      surface: '#ece9e3',
+      dark: '#141414',
+      text: '#141414',
+      muted: '#8a8780',
+      radius: '0.5rem',
+      headerStyle: 'clock',
+      fontEn: 'Archivo',
+    },
+  },
 ];
 
 /** Google Fonts that can be chosen, with the weights each one offers. */
@@ -210,6 +234,8 @@ export const themeFonts = {
     { name: 'Syne', weights: 'wght@400..800' },
     { name: 'Playfair Display', weights: 'wght@400..900' },
     { name: 'Space Grotesk', weights: 'wght@300..700' },
+    // With its width axis, so the Folio blocks can narrow it for their huge type.
+    { name: 'Archivo', weights: 'ital,wdth,wght@0,62..125,100..900;1,62..125,100..900' },
   ],
 };
 

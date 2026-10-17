@@ -49,6 +49,9 @@ export default defineNuxtConfig({
     '@fontsource-variable/syne/index.css',
     '@fontsource-variable/playfair-display/index.css',
     '@fontsource-variable/space-grotesk/index.css',
+    // With the width axis, which the Folio blocks use to narrow their huge type.
+    '@fontsource-variable/archivo/wdth.css',
+    '@fontsource-variable/archivo/wdth-italic.css',
     '~/assets/css/main.css',
   ],
 

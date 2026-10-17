@@ -31,9 +31,19 @@ test('cleanHeader keeps a button label per language and a safe link only', () =>
     ctaLabel: { en: 'Get in touch', fa: 'تماس' },
     ctaLink: '#contact',
     overlay: true,
+    place: {},
+    timeZone: '',
   });
   assert.equal(cleanHeader({ ctaLink: 'javascript:alert(1)' }).ctaLink, '');
   assert.equal(cleanHeader({ ctaLink: 'contact' }).ctaLink, 'contact');
   assert.equal(cleanHeader({ ctaLabel: { en: 'x'.repeat(100) } }).ctaLabel.en.length, 40);
-  assert.deepEqual(cleanHeader('nope'), { ctaLabel: {}, ctaLink: '', overlay: false });
+  assert.deepEqual(cleanHeader('nope'), { ctaLabel: {}, ctaLink: '', overlay: false, place: {}, timeZone: '' });
+});
+
+test('cleanHeader keeps the place per language and a time zone name only', () => {
+  const h = cleanHeader({ place: { en: ' Manchester, UK ', fa: 'تهران', x: 'no' }, timeZone: 'Europe/London' });
+  assert.deepEqual(h.place, { en: 'Manchester, UK', fa: 'تهران' });
+  assert.equal(h.timeZone, 'Europe/London');
+  for (const zone of ['UTC', 'America/Argentina/Buenos_Aires', 'Etc/GMT+3']) assert.equal(cleanHeader({ timeZone: zone }).timeZone, zone);
+  for (const zone of ['</script>', 'Europe/London; x', '../../etc', 3]) assert.equal(cleanHeader({ timeZone: zone }).timeZone, '');
 });
