@@ -85,6 +85,7 @@ This combines:
 - [x] Drop a photo onto a block to use it as that block's image; drop or paste images into any image field, the media library window and the Media page
 - [x] Rich text field (bold, italic, links, lists) with sanitized HTML output
 - [x] Saved sections: save any configured block (columns included) and insert it on other pages from the top of the library
+- [x] Copy blocks to another page: pick blocks (the selected one, or several), a page, its language and top or end; the copies go into that page's draft
 - [ ] Shareable draft preview link (signed token)
 - [x] Editor UI in Persian as well as English: a فارسی / English switch in the header, login and editor; right-to-left layout; remembered per browser; block names, fields and help text translated
 - [ ] Real-time multi-user awareness (someone else is editing this page)

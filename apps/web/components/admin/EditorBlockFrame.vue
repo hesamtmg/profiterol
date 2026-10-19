@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * One block on the editor canvas: click to select, a toolbar to move, copy or delete it, drop a photo onto it,
+ * One block on the editor canvas: click to select, a toolbar to move, copy (here or to another page) or delete it, drop a photo onto it,
  * and a + to add a block after it. Used for blocks on the page and for blocks inside columns (`nested`).
  */
 import { getBlock, type BlockNode } from '@profiterol/blocks';
@@ -69,6 +69,14 @@ const label = computed(() => translate(getBlock(props.block.type)?.label ?? prop
         @click.stop="ctx.duplicate(block.id)"
       >
         <i class="mdi mdi-content-copy" />
+      </button>
+      <button
+        type="button"
+        class="btn-icon !h-7 !w-7 !text-white hover:!bg-white/15"
+        :title="$t('Copy to another page')"
+        @click.stop="ctx.copyToPage(block.id)"
+      >
+        <i class="mdi mdi-file-move-outline" />
       </button>
       <button
         type="button"

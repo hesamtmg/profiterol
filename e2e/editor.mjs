@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { ADMIN, BASE, check, finish, fixtures, launch, shots, watch } from './lib.mjs';
+import { ADMIN, BASE, api, apiToken, check, finish, fixtures, launch, shots, watch } from './lib.mjs';
 
 const out = shots('editor');
 const browser = await launch();
@@ -149,6 +149,27 @@ await page.keyboard.type('استودیو طراحی تازه');
 await page.keyboard.press('Enter');
 check('Persian text edited in place', (await heroTitle.innerText()) === 'استودیو طراحی تازه');
 await page.screenshot({ path: out + 'inline-edit-fa.png' });
+
+// ---------- Copy a block to another page ----------
+const token = await apiToken();
+const target = await api(token, 'POST', '/admin/pages', { name: 'Copy target e2e' });
+await page.click('button:has-text("English")');
+await page.waitForTimeout(300);
+const copiedType = await blocks().nth(1).getAttribute('data-type');
+await blocks()
+  .nth(1)
+  .click({ position: { x: 20, y: 20 } });
+await page.click('[data-testid=copy-block-to-page]');
+const dialog = page.locator('[data-testid=copy-to-page]');
+check('copy panel ticks the selected block', (await dialog.locator('[data-copy-block]:checked').count()) === 1);
+await dialog.locator('[data-copy-target]', { hasText: 'Copy target e2e' }).click();
+await page.screenshot({ path: out + 'copy-to-page.png' });
+await dialog.locator('button:has-text("Copy to")').click();
+await dialog.locator('text=Open that page').waitFor({ timeout: 10000 });
+const copied = (await api(token, 'GET', `/admin/pages/${target.id}`)).translations.find((t) => t.locale === 'en').blocks;
+check('the block is in the other page’s draft', copied.length === 1 && copied[0].type === copiedType);
+await dialog.locator('button:has-text("Done")').click();
+await api(token, 'DELETE', `/admin/pages/${target.id}`);
 
 // ---------- Publish and check the live site ----------
 await page.click('button:has-text("Publish")');

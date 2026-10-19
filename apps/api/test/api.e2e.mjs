@@ -529,6 +529,42 @@ describe('page history, copies and scheduling', () => {
     await call('DELETE', `/admin/pages/${copy.body.id}`);
   });
 
+  test('blocks can be copied into another page’s draft', async () => {
+    const page = (await call('POST', '/admin/pages', { name: 'Copy target' })).body;
+    await save(page.id, 'Kept', 'copy-target');
+    const columns = {
+      id: 'cols',
+      type: 'columns',
+      props: { count: '2' },
+      children: [[{ id: 'inner', type: 'rich-text', props: { html: '<p onclick="x()">Inner</p>' } }], []],
+    };
+    const add = (body) => call('POST', `/admin/pages/${page.id}/blocks`, body);
+
+    const end = await add({ locale: 'en', blocks: [columns] });
+    assert.equal(end.status, 200);
+    let en = end.body.translations.find((t) => t.locale === 'en').blocks;
+    assert.deepEqual(
+      en.map((b) => b.type),
+      ['rich-text', 'columns'],
+      'added after the page’s blocks',
+    );
+    assert.notEqual(en[1].id, 'cols', 'the copy gets a new id');
+    assert.notEqual(en[1].children[0][0].id, 'inner', 'so do the blocks inside it');
+    assert.equal(en[1].children[0][0].props.html, '<p>Inner</p>', 'rich text is cleaned');
+    assert.equal(end.body.status, 'draft', 'only the draft changes');
+
+    const start = await add({ locale: 'en', position: 'start', blocks: blocks('First') });
+    en = start.body.translations.find((t) => t.locale === 'en').blocks;
+    assert.equal(en[0].props.html, '<p>First</p>');
+    assert.equal(en.length, 3);
+    assert.equal(start.body.translations.find((t) => t.locale === 'fa').blocks.length, 0, 'other languages are left alone');
+
+    assert.equal((await add({ locale: 'en', blocks: [{ id: 'x', type: 'nope', props: {} }] })).status, 400, 'unknown blocks are refused');
+    assert.equal((await add({ locale: 'en', blocks: [] })).status, 400, 'nothing to copy');
+    assert.equal((await add({ locale: 'xx', blocks: blocks('A') })).status, 400, 'unknown language');
+    await call('DELETE', `/admin/pages/${page.id}`);
+  });
+
   test('a page goes online and offline at the scheduled times', async () => {
     const page = (await call('POST', '/admin/pages', { name: 'Scheduled' })).body;
     await save(page.id, 'Scheduled', 'scheduled-page');
