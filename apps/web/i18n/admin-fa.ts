@@ -1035,6 +1035,8 @@ export const adminFa: Record<string, string> = {
   "OpenRouter (many models, some free)": "OpenRouter (مدل‌های زیاد، برخی رایگان)",
   "Google Gemini (free tier)": "Google Gemini (طرح رایگان)",
   "Groq (free tier)": "Groq (طرح رایگان)",
+  "GapGPT (Iran, pay in rials)": "GapGPT (ایران، پرداخت ریالی)",
+  "Reaches GPT, Claude, Gemini and other models from Iran, paid in rials. Use model names as GapGPT lists them.": "دسترسی به GPT، Claude، Gemini و مدل‌های دیگر از ایران با پرداخت ریالی. نام مدل‌ها را همان‌طور که GapGPT فهرست می‌کند وارد کنید.",
   "Ollama (your own server, free)": "Ollama (سرور خودتان، رایگان)",
   "Other OpenAI-compatible service": "سرویس دیگر سازگار با OpenAI",
   "Models ending in \":free\" cost nothing, with a daily request limit.": "مدل‌هایی که به «:free» ختم می‌شوند رایگان‌اند، با محدودیت روزانه‌ی درخواست.",
