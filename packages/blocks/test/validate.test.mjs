@@ -258,7 +258,17 @@ test('site fonts, saved themes and loader settings are cleaned', async () => {
       style: 'percent',
       text: { en: 'Hi' },
       background: '',
+      backgroundMobile: '',
       oncePerSession: false,
+      textColor: '',
+      accentColor: '',
+      backgroundColor: '',
+      overlay: 50,
+      blur: true,
+      size: 'medium',
+      logo: '',
+      minSeconds: 1.2,
+      hideOnMobile: false,
     },
   );
 });
