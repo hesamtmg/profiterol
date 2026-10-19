@@ -148,6 +148,31 @@ function onDrop(e: DragEvent) {
   attach.value?.add(e.dataTransfer?.files);
 }
 
+/**
+ * The AI can take minutes, longer than nginx or a proxy in front keeps a request open. So the API answers at once
+ * with a job id and builds in the background, and this asks every few seconds whether the block is ready.
+ */
+async function askInBackground(path: string, body: FormData | object): Promise<CustomBlockView> {
+  // Attached files can take a while to upload on a slow connection.
+  const { job } = await api<{ job: string }>(path, { method: 'POST', body, headers: { prefer: 'respond-async' }, timeout: 120_000 });
+  let misses = 0;
+  while (!left) {
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+    try {
+      const res = await api<{ state: 'running' } | { state: 'done'; block: CustomBlockView }>(`/admin/custom-blocks/jobs/${job}`);
+      misses = 0;
+      if (res.state === 'done') return res.block;
+    } catch (err) {
+      // A dropped connection or a moment of "bad gateway" is no answer: keep asking. The API's own errors end it.
+      const status = (err as { statusCode?: number }).statusCode;
+      if ((status && ![502, 503, 504].includes(status)) || ++misses > 20) throw err;
+    }
+  }
+  throw new Error(t('Stopped waiting for the AI.'));
+}
+let left = false;
+onBeforeUnmount(() => (left = true));
+
 const ask = () =>
   run(async () => {
     const text = prompt.value.trim();
@@ -160,9 +185,7 @@ const ask = () =>
       for (const f of files.value) form.append('files', f);
       body = form;
     }
-    const block = selected.value
-      ? await api<CustomBlockView>(`/admin/custom-blocks/${selected.value.id}/refine`, { method: 'POST', body })
-      : await api<CustomBlockView>('/admin/custom-blocks', { method: 'POST', body });
+    const block = await askInBackground(selected.value ? `/admin/custom-blocks/${selected.value.id}/refine` : '/admin/custom-blocks', body);
     replace(block);
     prompt.value = '';
     files.value = [];

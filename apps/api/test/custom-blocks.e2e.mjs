@@ -286,6 +286,46 @@ describe('custom blocks', () => {
     assert.match(block.draft.compiled, /export default function \(Vue\)/);
   });
 
+  test('with "Prefer: respond-async" the AI works in the background and the builder asks for the result', async () => {
+    const start = async (body, bearer = token) => {
+      const res = await fetch(`${API}/admin/custom-blocks`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', prefer: 'respond-async', authorization: `Bearer ${bearer}` },
+        body: JSON.stringify(body),
+      });
+      return { status: res.status, body: await res.json() };
+    };
+    const result = async (job, bearer = token) => {
+      for (;;) {
+        const res = await call('GET', `/admin/custom-blocks/jobs/${job}`, undefined, bearer);
+        if (res.status !== 200 || res.body.state === 'done') return res;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    };
+    const started = await start({ prompt: 'A pricing table' });
+    assert.equal(started.status, 202, JSON.stringify(started.body));
+    assert.match(started.body.job, /^[0-9a-f-]{36}$/);
+    const other = await otherAdmin();
+    assert.equal(
+      (await call('GET', `/admin/custom-blocks/jobs/${started.body.job}`, undefined, other)).status,
+      404,
+      'only its admin sees it',
+    );
+    const done = await result(started.body.job);
+    assert.equal(done.status, 200, JSON.stringify(done.body));
+    assert.match(done.body.block.type, /^ai-price-cards-/);
+    assert.equal((await call('GET', `/admin/custom-blocks/${done.body.block.id}`)).body.id, done.body.block.id, 'and it is saved');
+    assert.equal((await call('DELETE', `/admin/custom-blocks/${done.body.block.id}`)).status, 204);
+
+    // Errors come back from the job with the status and message the request would have answered with.
+    const failing = await start({ prompt: 'A pricing table' }, other);
+    assert.equal(failing.status, 202);
+    const failed = await result(failing.body.job, other);
+    assert.equal(failed.status, 400);
+    assert.match(failed.body.message, /Connect an AI model/);
+    assert.equal((await call('GET', '/admin/custom-blocks/jobs/00000000-0000-4000-8000-000000000000')).status, 404);
+  });
+
   test('unapproved blocks cannot be used or loaded', async () => {
     const page = await call('POST', '/admin/pages', { name: `Custom ${Date.now()}` });
     const node = { id: 'c1', type: block.type, props: { title: 'Hi' } };

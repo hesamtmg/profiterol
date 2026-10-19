@@ -162,7 +162,8 @@ const remove = (c: AiConnectionView) =>
 
 async function test(c: AiConnectionView) {
   await run(async () => {
-    const res = await api<{ ok: boolean; message?: string }>(`/admin/ai/connections/${c.id}/test`, { method: 'POST' });
+    // A slow provider (or one far away) can take longer than the usual 20 seconds even for this tiny request.
+    const res = await api<{ ok: boolean; message?: string }>(`/admin/ai/connections/${c.id}/test`, { method: 'POST', timeout: 60_000 });
     message.value = res.ok
       ? { kind: 'ok', text: translate('{name} answered: the key and model work.', { name: c.name }) }
       : { kind: 'error', text: res.message ?? translate('The AI did not answer.') };

@@ -1,7 +1,15 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException, UnprocessableEntityException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  HttpException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { allBlocks, type BlockDef, type BlockNode, CUSTOM_BLOCK_PREFIX, validateBlockDef, withCommonFields } from '@profiterol/blocks';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { DataSource, Repository } from 'typeorm';
 import { AiConnectionsService, connectionLabel } from '../ai/ai-connections';
 import { type AiPart, attachmentNote, type AttachmentInfo } from '../ai/attachments';
@@ -17,6 +25,21 @@ const HISTORY = 8;
 /** Extra rounds in which the AI may fix what the checks found, before the admin sees the problems. */
 const FIX_ROUNDS = 2;
 const MAX_BLOCKS = 100;
+/** How long a finished AI request's result waits to be picked up by the builder. */
+const JOB_KEEP_MS = 60 * 60 * 1000;
+
+/**
+ * An AI request running in the background (see background()). Kept in memory: a restart of the API loses it, and
+ * the builder then says to try again.
+ */
+interface Job {
+  siteId: string;
+  userId: string;
+  finishedAt?: number;
+  block?: CustomBlock;
+  /** The HTTP error the request would have answered with. */
+  error?: { status: number; body: string | object };
+}
 
 /** Who asks: their id picks their own AI models, their email is shown in the conversation. */
 export interface Author {
@@ -42,6 +65,46 @@ export class CustomBlocksService {
     private readonly ai: AiConnectionsService,
     private readonly dataSource: DataSource,
   ) {}
+
+  private readonly log = new Logger(CustomBlocksService.name);
+  private readonly jobs = new Map<string, Job>();
+
+  /**
+   * Runs an AI request (generate or refine) without holding the HTTP request open: the AI can take minutes, longer
+   * than nginx, other proxies in front or a mobile connection keep a request waiting. Returns the job's id; the
+   * builder asks job() for the result every few seconds.
+   */
+  background(userId: string, work: () => Promise<CustomBlock>): string {
+    const now = Date.now();
+    for (const [id, j] of this.jobs) if (j.finishedAt && now - j.finishedAt > JOB_KEEP_MS) this.jobs.delete(id);
+    const id = randomUUID();
+    const job: Job = { siteId: currentSiteId(), userId };
+    this.jobs.set(id, job);
+    // Started inside the request, so it keeps the request's site (see site-context.ts) after the answer is sent.
+    work().then(
+      (block) => Object.assign(job, { block, finishedAt: Date.now() }),
+      (err: unknown) => {
+        if (!(err instanceof HttpException))
+          this.log.error(`AI request failed: ${err instanceof Error ? (err.stack ?? err.message) : err}`);
+        const error =
+          err instanceof HttpException
+            ? { status: err.getStatus(), body: err.getResponse() }
+            : { status: 500, body: { statusCode: 500, message: 'The AI request failed.' } };
+        Object.assign(job, { error, finishedAt: Date.now() });
+      },
+    );
+    return id;
+  }
+
+  /** A background request's block once it is ready (null while the AI is still working), or its error. */
+  job(userId: string, id: string): CustomBlock | null {
+    const job = this.jobs.get(id);
+    if (!job || job.userId !== userId || job.siteId !== currentSiteId()) {
+      throw new NotFoundException('This AI request is no longer running, maybe because the server restarted. Try again.');
+    }
+    if (job.error) throw new HttpException(job.error.body, job.error.status);
+    return job.block ?? null;
+  }
 
   list() {
     return this.repo.find({ where: { siteId: currentSiteId() }, order: { createdAt: 'DESC' } });

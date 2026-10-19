@@ -20,7 +20,7 @@ export function useApi() {
       ...opts,
       baseURL: import.meta.server ? config.apiInternal : config.public.apiBase,
       // Fail fast while the API restarts (e.g. during an update) so visitors get the "back in a moment" page.
-      timeout: import.meta.server ? 8000 : 20000,
+      timeout: opts.timeout ?? (import.meta.server ? 8000 : 20000),
       headers: {
         ...(opts.headers as Record<string, string> | undefined),
         ...(csrfToken() ? { 'x-csrf-token': csrfToken() } : {}),
