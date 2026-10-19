@@ -36,6 +36,10 @@ import {
 type Authed = { user: AuthUser };
 
 const MAX_CONNECTIONS = 20;
+const MIN_TIMEOUT_SECONDS = 30;
+const MAX_TIMEOUT_SECONDS = 3600;
+/** "Test" answers before nginx (60 s) would cut the request off, whatever the model's own timeout. */
+const TEST_TIMEOUT_SECONDS = 50;
 
 class ConnectionDto {
   @IsOptional()
@@ -73,6 +77,12 @@ class ConnectionDto {
   @Min(1)
   @Max(1000)
   dailyLimit?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(MIN_TIMEOUT_SECONDS)
+  @Max(MAX_TIMEOUT_SECONDS)
+  timeoutSeconds?: number;
 }
 
 class ListModelsDto {
@@ -108,6 +118,7 @@ export function connectionView(c: AiConnection) {
     keyHint: c.keyHint,
     isDefault: c.isDefault,
     dailyLimit: c.dailyLimit,
+    timeoutSeconds: c.timeoutSeconds,
     usedToday: usedToday(c),
   };
 }
@@ -161,6 +172,7 @@ export class AiConnectionsService {
       name: dto.name?.trim() || dto.model.trim(),
       baseUrl: dto.baseUrl?.trim() ?? '',
       dailyLimit: dto.dailyLimit ?? 50,
+      timeoutSeconds: dto.timeoutSeconds ?? 600,
       apiKeyEnc: encryptSecret(key),
       keyHint: key.length > 8 ? key.slice(-4) : '',
       isDefault: false,
@@ -179,6 +191,7 @@ export class AiConnectionsService {
     if (dto.name !== undefined) c.name = dto.name.trim() || c.model;
     if (dto.baseUrl !== undefined) c.baseUrl = dto.baseUrl.trim();
     if (dto.dailyLimit !== undefined) c.dailyLimit = dto.dailyLimit;
+    if (dto.timeoutSeconds !== undefined) c.timeoutSeconds = dto.timeoutSeconds;
     const key = dto.apiKey?.trim();
     if (key) {
       c.apiKeyEnc = encryptSecret(key);
@@ -202,9 +215,9 @@ export class AiConnectionsService {
 
   /**
    * The model to use for a builder request: the one asked for, else the admin's default. Throws a message saying
-   * what to do when there is none.
+   * what to do when there is none. `maxSeconds` shortens the model's own timeout.
    */
-  async pick(userId: string, id?: string): Promise<{ connection: AiConnection; provider: AiProvider }> {
+  async pick(userId: string, id?: string, maxSeconds?: number): Promise<{ connection: AiConnection; provider: AiProvider }> {
     const connection = id ? await this.get(userId, id) : (await this.list(userId))[0];
     if (!connection) throw new BadRequestException('Connect an AI model first: add your provider, model and API key.');
     const apiKey = decryptSecret(connection.apiKeyEnc);
@@ -213,7 +226,13 @@ export class AiConnectionsService {
     }
     return {
       connection,
-      provider: createProvider({ provider: connection.provider, model: connection.model, apiKey, baseUrl: connection.baseUrl }),
+      provider: createProvider({
+        provider: connection.provider,
+        model: connection.model,
+        apiKey,
+        baseUrl: connection.baseUrl,
+        timeoutSeconds: Math.min(connection.timeoutSeconds, maxSeconds ?? Infinity),
+      }),
     };
   }
 
@@ -291,7 +310,7 @@ export class AiConnectionsController {
   @Post(':id/test')
   @HttpCode(200)
   async test(@Param('id', ParseUUIDPipe) id: string, @Req() req: Authed) {
-    const { provider } = await this.ai.pick(req.user.sub, id);
+    const { provider } = await this.ai.pick(req.user.sub, id, TEST_TIMEOUT_SECONDS);
     try {
       await provider.generateJson({
         system: 'Answer with JSON only.',

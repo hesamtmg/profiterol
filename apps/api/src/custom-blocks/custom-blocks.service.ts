@@ -35,11 +35,22 @@ const JOB_KEEP_MS = 60 * 60 * 1000;
 interface Job {
   siteId: string;
   userId: string;
+  startedAt: string;
+  /** What the AI has done so far, for the builder's conversation while it waits. */
+  steps: AiStep[];
   finishedAt?: number;
   block?: CustomBlock;
   /** The HTTP error the request would have answered with. */
   error?: { status: number; body: string | object };
 }
+
+/**
+ * One step of a request in progress: a round sent to the AI (`asking`), or an answer that failed the checks and
+ * goes back to the AI with its problems (`problems`).
+ */
+export type AiStep =
+  | { kind: 'asking'; at: string; round: number; rounds: number; model: string }
+  | { kind: 'problems'; at: string; round: number; summary: string; problems: string[] };
 
 /** Who asks: their id picks their own AI models, their email is shown in the conversation. */
 export interface Author {
@@ -74,14 +85,14 @@ export class CustomBlocksService {
    * than nginx, other proxies in front or a mobile connection keep a request waiting. Returns the job's id; the
    * builder asks job() for the result every few seconds.
    */
-  background(userId: string, work: () => Promise<CustomBlock>): string {
+  background(userId: string, work: (report: (step: AiStep) => void) => Promise<CustomBlock>): string {
     const now = Date.now();
     for (const [id, j] of this.jobs) if (j.finishedAt && now - j.finishedAt > JOB_KEEP_MS) this.jobs.delete(id);
     const id = randomUUID();
-    const job: Job = { siteId: currentSiteId(), userId };
+    const job: Job = { siteId: currentSiteId(), userId, startedAt: new Date().toISOString(), steps: [] };
     this.jobs.set(id, job);
     // Started inside the request, so it keeps the request's site (see site-context.ts) after the answer is sent.
-    work().then(
+    work((step) => job.steps.push(step)).then(
       (block) => Object.assign(job, { block, finishedAt: Date.now() }),
       (err: unknown) => {
         if (!(err instanceof HttpException))
@@ -96,14 +107,14 @@ export class CustomBlocksService {
     return id;
   }
 
-  /** A background request's block once it is ready (null while the AI is still working), or its error. */
-  job(userId: string, id: string): CustomBlock | null {
+  /** A background request: its block once ready, else what the AI has done so far. Throws the request's error. */
+  job(userId: string, id: string): { block: CustomBlock | null; startedAt: string; steps: AiStep[] } {
     const job = this.jobs.get(id);
     if (!job || job.userId !== userId || job.siteId !== currentSiteId()) {
       throw new NotFoundException('This AI request is no longer running, maybe because the server restarted. Try again.');
     }
     if (job.error) throw new HttpException(job.error.body, job.error.status);
-    return job.block ?? null;
+    return { block: job.block ?? null, startedAt: job.startedAt, steps: job.steps };
   }
 
   list() {
@@ -144,11 +155,11 @@ export class CustomBlocksService {
   }
 
   /** Asks the AI for a new block, with the admin's own model (`connectionId`, else their default). */
-  async generate(prompt: string, author: Author, connectionId?: string, attached?: Attached) {
+  async generate(prompt: string, author: Author, connectionId?: string, attached?: Attached, report?: (step: AiStep) => void) {
     if ((await this.repo.countBy({ siteId: currentSiteId() })) >= MAX_BLOCKS) {
       throw new BadRequestException(`A site can have up to ${MAX_BLOCKS} custom blocks`);
     }
-    const { version, messages } = await this.askAi([], prompt, author, connectionId, attached);
+    const { version, messages } = await this.askAi([], prompt, author, connectionId, attached, undefined, report);
     // ASCII only (a Persian label gives just "block"), with a random end so two blocks never share a type.
     const name = version.def.label
       .toLowerCase()
@@ -171,9 +182,9 @@ export class CustomBlocksService {
   }
 
   /** Asks the AI to change a block's draft ("make the cards rounder"). */
-  async refine(id: string, prompt: string, author: Author, connectionId?: string, attached?: Attached) {
+  async refine(id: string, prompt: string, author: Author, connectionId?: string, attached?: Attached, report?: (step: AiStep) => void) {
     const block = await this.get(id);
-    const { version, messages } = await this.askAi(block.conversation, prompt, author, connectionId, attached, block.type);
+    const { version, messages } = await this.askAi(block.conversation, prompt, author, connectionId, attached, block.type, report);
     block.draft = version;
     block.conversation = messages;
     return this.repo.save(block);
@@ -249,6 +260,7 @@ export class CustomBlocksService {
     connectionId?: string,
     attached: Attached = { parts: [], info: [] },
     type = `${CUSTOM_BLOCK_PREFIX}new`,
+    report: (step: AiStep) => void = () => undefined,
   ) {
     const { connection, provider } = await this.ai.pick(author.id, connectionId);
     const asked = {
@@ -266,6 +278,8 @@ export class CustomBlocksService {
     let problems: string[] = [];
     for (let round = 0; round <= FIX_ROUNDS; round++) {
       await this.ai.useOne(connection);
+      const at = () => new Date().toISOString();
+      report({ kind: 'asking', at: at(), round: round + 1, rounds: FIX_ROUNDS + 1, model: connectionLabel(connection) });
       let answer: Record<string, unknown>;
       try {
         answer = await provider.generateJson({ system: SYSTEM_PROMPT, messages, schema: ANSWER_SCHEMA, maxTokens: 32000 });
@@ -285,6 +299,7 @@ export class CustomBlocksService {
       if (version) {
         return { version, messages: [...history, asked, { ...reply, at: new Date().toISOString(), model: connectionLabel(connection) }] };
       }
+      report({ kind: 'problems', at: at(), round: round + 1, summary: String(answer.summary ?? ''), problems: [...problems] });
       messages.push(reply, {
         role: 'user',
         content: `The block did not pass the checks. Fix every problem and answer with the complete block again:\n- ${problems.join('\n- ')}`,

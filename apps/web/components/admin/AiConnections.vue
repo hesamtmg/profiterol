@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * "Your AI models" in the block builder: the signed-in admin's own AI connections on this site. Each has its own
- * provider, model, API key and daily limit; other admins never see or use them. Keys are sent once and never come
+ * provider, model, API key, daily limit and timeout; other admins never see or use them. Keys are sent once and never come
  * back: the API keeps them encrypted and shows only their last characters.
  */
 export type AiProvider = 'anthropic' | 'openai' | 'openrouter' | 'gemini' | 'groq' | 'gapgpt' | 'ollama' | 'openai-compatible';
@@ -25,6 +25,7 @@ export interface AiConnectionView {
   keyHint: string;
   isDefault: boolean;
   dailyLimit: number;
+  timeoutSeconds: number;
   usedToday: number;
 }
 
@@ -48,6 +49,7 @@ const empty = () => ({
   apiKey: '',
   baseUrl: '',
   dailyLimit: 50,
+  timeoutSeconds: 600,
   isDefault: false,
 });
 const form = reactive(empty());
@@ -299,6 +301,11 @@ onMounted(load);
         <div>
           <label class="field-label" for="ai-limit">{{ $t('Requests per day') }}</label>
           <input id="ai-limit" v-model.number="form.dailyLimit" type="number" min="1" max="1000" class="input" />
+        </div>
+        <div>
+          <label class="field-label" for="ai-timeout">{{ $t('Timeout (seconds)') }}</label>
+          <input id="ai-timeout" v-model.number="form.timeoutSeconds" type="number" min="30" max="3600" class="input" />
+          <p class="mt-1 text-xs text-slate-400">{{ $t('How long to wait for each answer. Give slow or far-away services more.') }}</p>
         </div>
       </div>
       <label class="flex items-center gap-2 text-sm">

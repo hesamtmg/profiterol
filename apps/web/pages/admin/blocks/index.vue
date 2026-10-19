@@ -7,6 +7,7 @@
 import { fontNames, resolveTheme, type BlockDef, type ThemeTokens } from '@profiterol/blocks';
 import AiAttachments from '~/components/admin/AiAttachments.vue';
 import AiConnections, { type AiConnectionView } from '~/components/admin/AiConnections.vue';
+import CustomBlockChat, { type AiStep, type ChatMessage, type PendingRequest } from '~/components/admin/CustomBlockChat.vue';
 import CustomBlockPreview from '~/components/admin/CustomBlockPreview.vue';
 import FieldInput from '~/components/admin/FieldInput.vue';
 
@@ -28,14 +29,7 @@ interface CustomBlockView {
   draft: Version;
   live: { hash: string; url: string } | null;
   changed: boolean;
-  conversation: {
-    role: 'user' | 'assistant';
-    text: string;
-    at: string;
-    author?: string;
-    model?: string;
-    attachments?: { name: string; kind: 'image' | 'pdf' | 'text'; thumb?: string }[];
-  }[];
+  conversation: ChatMessage[];
   createdBy: string;
   approvedBy: string;
   updatedAt: string;
@@ -117,14 +111,18 @@ function replace(block: CustomBlockView) {
   resetEditors(block);
 }
 
+function errorText(err: unknown) {
+  const problems = (err as { data?: { problems?: string[] } }).data?.problems;
+  return [apiErrorMessage(err), ...(problems ?? []).map((p) => `• ${p}`)].join('\n');
+}
+
 async function run(work: () => Promise<void>) {
   busy.value = true;
   error.value = '';
   try {
     await work();
   } catch (err) {
-    const problems = (err as { data?: { problems?: string[] } }).data?.problems;
-    error.value = [apiErrorMessage(err), ...(problems ?? []).map((p) => `• ${p}`)].join('\n');
+    error.value = errorText(err);
   } finally {
     busy.value = false;
     // Today's request counts changed.
@@ -152,15 +150,18 @@ function onDrop(e: DragEvent) {
  * The AI can take minutes, longer than nginx or a proxy in front keeps a request open. So the API answers at once
  * with a job id and builds in the background, and this asks every few seconds whether the block is ready.
  */
-async function askInBackground(path: string, body: FormData | object): Promise<CustomBlockView> {
+async function askInBackground(path: string, body: FormData | object, onSteps: (steps: AiStep[]) => void): Promise<CustomBlockView> {
   // Attached files can take a while to upload on a slow connection.
   const { job } = await api<{ job: string }>(path, { method: 'POST', body, headers: { prefer: 'respond-async' }, timeout: 120_000 });
   let misses = 0;
   while (!left) {
     await new Promise((resolve) => setTimeout(resolve, 2500));
     try {
-      const res = await api<{ state: 'running' } | { state: 'done'; block: CustomBlockView }>(`/admin/custom-blocks/jobs/${job}`);
+      const res = await api<{ state: 'running'; steps: AiStep[] } | { state: 'done'; block: CustomBlockView; steps: AiStep[] }>(
+        `/admin/custom-blocks/jobs/${job}`,
+      );
       misses = 0;
+      onSteps(res.steps);
       if (res.state === 'done') return res.block;
     } catch (err) {
       // A dropped connection or a moment of "bad gateway" is no answer: keep asking. The API's own errors end it.
@@ -172,6 +173,10 @@ async function askInBackground(path: string, body: FormData | object): Promise<C
 }
 let left = false;
 onBeforeUnmount(() => (left = true));
+
+/** The request in progress (or the last one that failed), shown at the end of its block's conversation. */
+const pending = ref<(PendingRequest & { blockId: string | null }) | null>(null);
+const pendingFor = (blockId: string | null) => (pending.value?.blockId === blockId ? pending.value : null);
 
 const ask = () =>
   run(async () => {
@@ -185,7 +190,20 @@ const ask = () =>
       for (const f of files.value) form.append('files', f);
       body = form;
     }
-    const block = await askInBackground(selected.value ? `/admin/custom-blocks/${selected.value.id}/refine` : '/admin/custom-blocks', body);
+    const blockId = selected.value?.id ?? null;
+    pending.value = { blockId, text, files: files.value.map((f) => f.name), startedAt: Date.now(), steps: [] };
+    const request = pending.value;
+    let block: CustomBlockView;
+    try {
+      block = await askInBackground(blockId ? `/admin/custom-blocks/${blockId}/refine` : '/admin/custom-blocks', body, (steps) => {
+        request.steps = steps;
+      });
+    } catch (err) {
+      // Shown in the conversation, where the request is; the request stays in the box to send again.
+      request.error = errorText(err);
+      return;
+    }
+    pending.value = null;
     replace(block);
     prompt.value = '';
     files.value = [];
@@ -334,6 +352,10 @@ onMounted(load);
               $t('With {name}', { name: connections[0].name })
             }}</span>
           </div>
+          <div v-if="pendingFor(null)" class="mt-5 flex max-h-[32rem] flex-col border-t border-slate-100 pt-4">
+            <h3 class="mb-2 px-1 text-sm font-semibold">{{ $t('Conversation with the AI') }}</h3>
+            <CustomBlockChat :messages="[]" :pending="pendingFor(null)" />
+          </div>
         </form>
 
         <div v-else-if="selected" class="space-y-4">
@@ -457,31 +479,7 @@ onMounted(load);
             <!-- The conversation with the AI: each request changes the draft. -->
             <aside class="flex max-h-[48rem] flex-col rounded-[2rem] bg-white p-4 shadow-sm">
               <h3 class="px-1 text-sm font-semibold">{{ $t('Ask for changes') }}</h3>
-              <ol class="mt-3 flex-1 space-y-2 overflow-y-auto">
-                <li
-                  v-for="(m, i) in selected.conversation"
-                  :key="i"
-                  class="rounded-2xl px-3 py-2 text-sm"
-                  :class="m.role === 'user' ? 'ms-6 bg-slate-100' : 'me-6 bg-[#00a998]/10'"
-                >
-                  <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    {{ m.role === 'user' ? (m.author ?? $t('You')) : m.model ? `${$t('AI')} · ${m.model}` : $t('AI') }}
-                  </span>
-                  {{ m.text }}
-                  <span v-if="m.attachments?.length" class="mt-1.5 flex flex-wrap gap-1.5">
-                    <span
-                      v-for="a in m.attachments"
-                      :key="a.name"
-                      class="flex max-w-full items-center gap-1 rounded-lg bg-white/70 p-1 pe-2 text-xs text-slate-600"
-                      :title="a.name"
-                    >
-                      <img v-if="a.thumb" :src="a.thumb" alt="" class="h-10 w-10 rounded-md object-cover" />
-                      <i v-else class="mdi text-base" :class="a.kind === 'pdf' ? 'mdi-file-pdf-box' : 'mdi-file-document-outline'" />
-                      <span class="truncate">{{ a.name }}</span>
-                    </span>
-                  </span>
-                </li>
-              </ol>
+              <CustomBlockChat class="mt-3" :messages="selected.conversation" :pending="pendingFor(selected.id)" />
               <form
                 class="mt-3 rounded-2xl"
                 :class="{ 'ring-2 ring-[#00a998]': dropping }"

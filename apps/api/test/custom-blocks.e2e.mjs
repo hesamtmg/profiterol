@@ -153,6 +153,20 @@ describe('AI models (each admin their own, per site)', () => {
     assert.equal((await call('POST', '/admin/ai/connections', { model: 'x', provider: 'anthropic' })).status, 400, 'a key is required');
   });
 
+  test('each model has its own timeout', async () => {
+    assert.equal(conn.timeoutSeconds, 600, 'ten minutes unless set');
+    const slower = await call('PUT', `/admin/ai/connections/${conn.id}`, { timeoutSeconds: 1200 });
+    assert.equal(slower.body.timeoutSeconds, 1200);
+    for (const timeoutSeconds of [29, 3601]) {
+      assert.equal(
+        (await call('PUT', `/admin/ai/connections/${conn.id}`, { timeoutSeconds })).status,
+        400,
+        `${timeoutSeconds} s is refused`,
+      );
+    }
+    await call('PUT', `/admin/ai/connections/${conn.id}`, { timeoutSeconds: 600 });
+  });
+
   test('an admin can add any model, and choose the default', async () => {
     const second = await call('POST', '/admin/ai/connections', {
       provider: 'anthropic',
@@ -302,6 +316,8 @@ describe('custom blocks', () => {
         await new Promise((r) => setTimeout(r, 100));
       }
     };
+    // The first answer fails the checks, so the job reports a fix round.
+    answers.push({ summary: 'first try', def_json: '{', source: SOURCE });
     const started = await start({ prompt: 'A pricing table' });
     assert.equal(started.status, 202, JSON.stringify(started.body));
     assert.match(started.body.job, /^[0-9a-f-]{36}$/);
@@ -314,6 +330,13 @@ describe('custom blocks', () => {
     const done = await result(started.body.job);
     assert.equal(done.status, 200, JSON.stringify(done.body));
     assert.match(done.body.block.type, /^ai-price-cards-/);
+    assert.deepEqual(
+      done.body.steps.map((s) => `${s.kind} ${s.round}`),
+      ['asking 1', 'problems 1', 'asking 2'],
+      'what the AI did, for the builder to show',
+    );
+    assert.deepEqual(done.body.steps[1].problems, ['def_json is not valid JSON']);
+    assert.equal(done.body.steps[0].model, 'Stand-in (test-model)');
     assert.equal((await call('GET', `/admin/custom-blocks/${done.body.block.id}`)).body.id, done.body.block.id, 'and it is saved');
     assert.equal((await call('DELETE', `/admin/custom-blocks/${done.body.block.id}`)).status, 204);
 

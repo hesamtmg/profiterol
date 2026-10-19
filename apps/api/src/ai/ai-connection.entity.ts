@@ -57,6 +57,10 @@ export class AiConnection {
   @Column({ type: 'int', default: 50 })
   dailyLimit: number;
 
+  /** How long one answer may take (each fix round waits this long again); slow or far-away services need more. */
+  @Column({ type: 'int', default: 600 })
+  timeoutSeconds: number;
+
   @Column({ type: 'jsonb', default: () => "'{}'" })
   usage: { day?: string; count?: number };
 
