@@ -121,6 +121,12 @@ if (import.meta.server && settings.value?.maintenance) {
     setResponseHeader(event, 'Retry-After', '3600');
   }
 }
+// The owner's own HTML tags (Site settings → Custom HTML tags) are written into the page by server/plugins/custom-html.ts.
+// They come with the first page a visitor opens and stay while they move around the site.
+if (import.meta.server) {
+  const event = useRequestEvent();
+  if (event) event.context.customHtml = { head: settings.value?.headHtml ?? '', body: settings.value?.bodyHtml ?? '' };
+}
 
 // Blurred previews and descriptions of the photos on this page, for every <img> (plugins/srcset.ts).
 const mediaHints = useMediaHints();

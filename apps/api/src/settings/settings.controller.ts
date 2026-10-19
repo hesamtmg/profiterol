@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   HttpCode,
   Injectable,
@@ -10,6 +11,7 @@ import {
   Param,
   Post,
   Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -31,6 +33,7 @@ import {
   type BlockNode,
   cleanBusiness,
   cleanCss,
+  cleanCustomHtml,
   cleanFonts,
   cleanHeader,
   cleanLoader,
@@ -40,6 +43,7 @@ import {
   fontNames,
   locales,
   MAX_CUSTOM_CSS,
+  MAX_CUSTOM_HTML,
   mapRichText,
   validateBlocks,
 } from '@profiterol/blocks';
@@ -47,7 +51,7 @@ import { randomBytes } from 'node:crypto';
 import { cleanHtml } from '../common/rich-text';
 import { DataSource, Repository } from 'typeorm';
 import { liveCustomDefs } from '../custom-blocks/live-defs';
-import { AuthGuard, Roles } from '../auth/auth.guard';
+import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
 import { currentSite, currentSiteId, siteOrigin } from '../sites/site-context';
 import { Localized, SavedSection, SiteSettings } from './settings.entity';
@@ -114,6 +118,17 @@ class UpdateSettingsDto {
   @MaxLength(MAX_CUSTOM_CSS)
   customCss?: string;
 
+  /** Written into every page as it is, so only owners may change it (see update below). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_CUSTOM_HTML)
+  headHtml?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(MAX_CUSTOM_HTML)
+  bodyHtml?: string;
+
   @IsOptional()
   @IsBoolean()
   maintenance?: boolean;
@@ -167,6 +182,8 @@ export class SettingsService {
     if (dto.loader !== undefined) next.loader = cleanLoader(dto.loader);
     if (dto.header !== undefined) next.header = cleanHeader(dto.header);
     if (dto.customCss !== undefined) next.customCss = cleanCss(dto.customCss);
+    if (dto.headHtml !== undefined) next.headHtml = cleanCustomHtml(dto.headHtml);
+    if (dto.bodyHtml !== undefined) next.bodyHtml = cleanCustomHtml(dto.bodyHtml);
     if (dto.business !== undefined) next.business = cleanBusiness(dto.business);
     if (dto.seo !== undefined) next.seo = cleanSeo(dto.seo);
     return this.repo.save(next);
@@ -195,7 +212,12 @@ export class SettingsController {
   @Put('admin/settings')
   @UseGuards(AuthGuard)
   @Roles('admin')
-  update(@Body() dto: UpdateSettingsDto) {
+  update(@Body() dto: UpdateSettingsDto, @Req() req: { user: AuthUser }) {
+    // Custom HTML runs as the site itself, with the signed-in visitor's session, so an admin could use it to act as
+    // the owner.
+    if (req.user.role !== 'owner' && (dto.headHtml !== undefined || dto.bodyHtml !== undefined)) {
+      throw new ForbiddenException('Only the owner can change the custom HTML tags');
+    }
     return this.settings.update(dto as Partial<SiteSettings>);
   }
 }

@@ -73,6 +73,14 @@ export class SiteSettings {
   @Column({ type: 'text', default: '' })
   customCss: string;
 
+  /** HTML tags added to the end of every page's <head> (analytics, verification tags…). Only owners set it. */
+  @Column({ type: 'text', default: '' })
+  headHtml: string;
+
+  /** HTML added at the end of every page's <body> (chat widgets, <noscript> pixels…). Only owners set it. */
+  @Column({ type: 'text', default: '' })
+  bodyHtml: string;
+
   /** Blocks saved to reuse on other pages ("Saved sections" in the editor's library). Not sent to the site. */
   @Column({ type: 'jsonb', default: () => "'[]'" })
   sections: SavedSection[];

@@ -20,6 +20,9 @@ export interface SiteSettings {
   loader: Partial<LoaderSettings>;
   /** CSS added after the theme on every page (Site settings → Custom CSS). */
   customCss?: string;
+  /** HTML tags added to the end of every page's <head> and <body> (Site settings → Custom HTML tags; owners only). */
+  headHtml?: string;
+  bodyHtml?: string;
   business: Partial<BusinessInfo>;
   seo: Partial<SeoSettings>;
   /** The language visitors land on at the root address; '' follows each visitor's browser. */

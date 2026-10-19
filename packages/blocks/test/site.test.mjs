@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanCss, cleanHeader, cleanLoader, loaderStyles, MAX_CUSTOM_CSS } from '../dist/esm/index.js';
+import {
+  cleanCss,
+  cleanCustomHtml,
+  cleanHeader,
+  cleanLoader,
+  customHtmlHasScript,
+  loaderStyles,
+  MAX_CUSTOM_CSS,
+  MAX_CUSTOM_HTML,
+} from '../dist/esm/index.js';
 
 test('cleanCss keeps ordinary CSS as it is', () => {
   const css = '.site h1 > a { color: red; }\n@media (min-width: 40em) { .pf-block { margin: 0 } }';
@@ -46,4 +55,15 @@ test('cleanHeader keeps the place per language and a time zone name only', () =>
   assert.equal(h.timeZone, 'Europe/London');
   for (const zone of ['UTC', 'America/Argentina/Buenos_Aires', 'Etc/GMT+3']) assert.equal(cleanHeader({ timeZone: zone }).timeZone, zone);
   for (const zone of ['</script>', 'Europe/London; x', '../../etc', 3]) assert.equal(cleanHeader({ timeZone: zone }).timeZone, '');
+});
+
+test('cleanCustomHtml keeps the HTML as it is, trimmed and limited in length', () => {
+  const html = '<meta name="x" content="1">\n<script async src="https://example.com/a.js"></script>';
+  assert.equal(cleanCustomHtml(`  ${html}\n`), html);
+  assert.equal(cleanCustomHtml(42), '');
+  assert.equal(cleanCustomHtml('a'.repeat(MAX_CUSTOM_HTML + 10)).length, MAX_CUSTOM_HTML);
+  assert.equal(customHtmlHasScript(html), true);
+  assert.equal(customHtmlHasScript('<SCRIPT>x()</SCRIPT>'), true);
+  assert.equal(customHtmlHasScript('<meta name="scripted">'), false);
+  assert.equal(customHtmlHasScript(undefined), false);
 });
