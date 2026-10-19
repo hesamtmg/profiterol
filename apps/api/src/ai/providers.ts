@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { AiPart } from './attachments';
 
-export type AiProviderName = 'anthropic' | 'openai' | 'openrouter' | 'gemini' | 'groq' | 'ollama' | 'openai-compatible';
+export type AiProviderName = 'anthropic' | 'openai' | 'openrouter' | 'gemini' | 'groq' | 'gapgpt' | 'ollama' | 'openai-compatible';
 
 /**
  * What the AI models form needs to know about each provider. Everything but Anthropic speaks OpenAI's Chat
@@ -60,6 +60,14 @@ export const AI_PRESETS: Record<AiProviderName, AiPreset> = {
     keyUrl: 'https://console.groq.com/keys',
     free: true,
     note: 'The free tier has per-minute and daily limits.',
+  },
+  gapgpt: {
+    label: 'GapGPT (Iran, pay in rials)',
+    baseUrl: 'https://api.gapgpt.app/v1',
+    keyRequired: true,
+    keyUrl: 'https://gapgpt.app/platform',
+    free: false,
+    note: 'Reaches GPT, Claude, Gemini and other models from Iran, paid in rials. Use model names as GapGPT lists them.',
   },
   ollama: {
     label: 'Ollama (your own server, free)',
@@ -196,7 +204,7 @@ function openAiContent(content: AiMessage['content']) {
   });
 }
 
-/** OpenAI's Chat Completions API, which many other services (OpenRouter, Ollama, LM Studio…) also speak. */
+/** OpenAI's Chat Completions API, which many other services (OpenRouter, GapGPT, Ollama, LM Studio…) also speak. */
 class OpenAiProvider implements AiProvider {
   constructor(private readonly opts: ProviderOptions) {}
 

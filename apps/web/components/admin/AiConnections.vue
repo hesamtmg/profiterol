@@ -4,7 +4,7 @@
  * provider, model, API key and daily limit; other admins never see or use them. Keys are sent once and never come
  * back: the API keeps them encrypted and shows only their last characters.
  */
-export type AiProvider = 'anthropic' | 'openai' | 'openrouter' | 'gemini' | 'groq' | 'ollama' | 'openai-compatible';
+export type AiProvider = 'anthropic' | 'openai' | 'openrouter' | 'gemini' | 'groq' | 'gapgpt' | 'ollama' | 'openai-compatible';
 
 /** What the API says about each provider (apps/api/src/ai/providers.ts AI_PRESETS). */
 interface AiPreset {

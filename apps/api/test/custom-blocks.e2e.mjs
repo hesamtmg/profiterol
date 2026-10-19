@@ -231,7 +231,8 @@ describe('AI models (each admin their own, per site)', () => {
     assert.equal((await call('POST', '/admin/ai/connections/models', { provider: 'groq' })).status, 400, 'a key is needed to list');
 
     const meta = (await call('GET', '/admin/ai/connections')).body;
-    assert.deepEqual(meta.providers, ['anthropic', 'openai', 'openrouter', 'gemini', 'groq', 'ollama', 'openai-compatible']);
+    assert.deepEqual(meta.providers, ['anthropic', 'openai', 'openrouter', 'gemini', 'groq', 'gapgpt', 'ollama', 'openai-compatible']);
+    assert.equal(meta.presets.gapgpt.baseUrl, 'https://api.gapgpt.app/v1');
     assert.equal(meta.presets.groq.baseUrl, 'https://api.groq.com/openai/v1');
 
     const local = await call('POST', '/admin/ai/connections', { provider: 'ollama', model: 'qwen-coder', baseUrl: aiUrl });
