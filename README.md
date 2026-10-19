@@ -87,6 +87,16 @@ browser only, never on the server.
 - The CSS cannot close its `<style>` tag (`<` is stored as the CSS escape `\3c `), and it is limited to 50,000
   characters.
 
+## Custom HTML tags
+
+- **Site settings → Custom HTML tags** adds your own tags to every page as you write them: one box for the end of
+  `<head>` (analytics, verification `<meta>` tags, extra `<link>`s) and one for the end of `<body>` (chat widgets,
+  `<noscript>` pixels). They come with the first page a visitor opens and stay while they move around the site.
+- Only the **owner** sees and changes them: their scripts run as the site, with the signed-in visitor's session.
+- Their `<script>` tags get the page's CSP nonce. A page with custom HTML lets styles, fonts, frames and requests go to
+  any HTTPS address, and when it has scripts they may load more (`'strict-dynamic'`); pages without it keep the strict
+  policy. Each box holds up to 20,000 characters.
+
 ## Header
 
 - **Site theme → Header** picks its look (each page can choose another in the editor's Design tab): a solid bar, frosted

@@ -27,6 +27,7 @@ import type { SiteSettings } from '~/composables/useSite';
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
 const api = useApi();
+const { isOwner } = useAuth();
 const settings = ref<
   (SiteSettings & { notifyEmail: string; loader: LoaderSettings; business: BusinessInfo; seo: SeoSettings; header: HeaderSettings }) | null
 >(null);
@@ -48,6 +49,9 @@ const loaderStyleOptions: { value: LoaderStyle; label: string }[] = [
 ];
 
 const cssPlaceholder = '.site h1 {\n  letter-spacing: -0.02em;\n}';
+// Written in two parts: the whole word would end this <script> block.
+const headHtmlPlaceholder = '<meta name="…" content="…">\n<script async src="https://…"></' + 'script>';
+const bodyHtmlPlaceholder = '<noscript><img src="https://…" alt=""></noscript>';
 
 const imageField = (key: string, label: string): FieldDef => ({ key, label, type: 'image' });
 
@@ -67,6 +71,8 @@ async function load() {
   }
   s.defaultLocale ??= '';
   s.customCss ??= '';
+  s.headHtml ??= '';
+  s.bodyHtml ??= '';
   const seo = cleanSeo(s.seo);
   for (const l of locales) {
     seo.titleTemplate[l.code] ??= '';
@@ -117,6 +123,8 @@ async function save() {
       seo,
       defaultLocale,
       customCss,
+      headHtml,
+      bodyHtml,
     } = settings.value;
     await api('/admin/settings', {
       method: 'PUT',
@@ -137,6 +145,8 @@ async function save() {
         seo,
         defaultLocale,
         customCss,
+        // Only the owner may change custom HTML (the API refuses it from anyone else).
+        ...(isOwner.value ? { headHtml, bodyHtml } : {}),
       },
     });
     message.value = { kind: 'ok', text: translate('Settings saved') };
@@ -428,6 +438,42 @@ onMounted(load);
               'Tip: every block has the class .pf-block and one for its kind (e.g. .pf-spotlight), or use the anchor set in its settings (#services). The page is inside .site and the menu is header.',
             )
           }}
+        </p>
+      </section>
+
+      <section v-if="isOwner" class="rounded-[2rem] bg-white p-7 shadow-sm">
+        <h2 class="font-black">{{ $t('Custom HTML tags') }}</h2>
+        <p class="mt-1 text-xs text-slate-400">
+          {{
+            $t(
+              'Tags added to every page of the site as you write them: analytics, chat widgets, verification meta tags, extra links. Scripts here can do anything on the site, so only paste code you trust.',
+            )
+          }}
+        </p>
+        <label class="mt-4 block text-sm font-bold" for="head-html">{{ $t('At the end of the head') }}</label>
+        <textarea
+          id="head-html"
+          v-model="settings.headHtml"
+          rows="6"
+          class="input mt-2 font-mono text-xs leading-relaxed"
+          dir="ltr"
+          spellcheck="false"
+          :placeholder="headHtmlPlaceholder"
+          data-testid="head-html"
+        />
+        <label class="mt-4 block text-sm font-bold" for="body-html">{{ $t('At the end of the body') }}</label>
+        <textarea
+          id="body-html"
+          v-model="settings.bodyHtml"
+          rows="6"
+          class="input mt-2 font-mono text-xs leading-relaxed"
+          dir="ltr"
+          spellcheck="false"
+          :placeholder="bodyHtmlPlaceholder"
+          data-testid="body-html"
+        />
+        <p class="mt-1 text-[11px] text-slate-400">
+          {{ $t('They load with the first page a visitor opens and stay while they move around the site.') }}
         </p>
       </section>
 

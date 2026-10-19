@@ -25,6 +25,7 @@ const SUITES = [
   'sites',
   'custom-blocks',
   'custom-css',
+  'custom-html',
   'studio',
   'folio',
   'spatial',

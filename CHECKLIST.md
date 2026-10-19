@@ -235,7 +235,7 @@ Spatial (the playful shapes-and-giant-letters look of undplus.com; the "Spatial 
 - [ ] Footer and social links as settings, used by the header/footer blocks
 - [ ] Multiple menus and dropdowns
 - [x] Redirects manager (old URL → new URL; 301/302, visit counts), applied by the site before "not found"
-- [ ] Custom CSS / head code (admin only)
+- [x] Custom CSS (Site settings and each page) and custom HTML tags for the head and body (owner only)
 
 ## Phase 10: Templates and multi-site
 - [x] Page templates ("About", "Services", "Contact", two home pages) to start from, in English and Persian

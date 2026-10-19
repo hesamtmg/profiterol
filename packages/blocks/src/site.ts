@@ -164,6 +164,23 @@ export function cleanCss(input: unknown): string {
   return input.slice(0, MAX_CUSTOM_CSS).replace(/</g, '\\3c ').trim();
 }
 
+/** The most custom HTML kept for the site's <head> or the end of its <body>. */
+export const MAX_CUSTOM_HTML = 20_000;
+
+/**
+ * HTML tags the site's owner adds to every page (Site settings → Custom HTML tags): analytics and chat snippets,
+ * verification <meta> tags, extra <link>s. It is written into the page as it is, so only owners may set it.
+ */
+export function cleanCustomHtml(input: unknown): string {
+  if (typeof input !== 'string') return '';
+  return input.slice(0, MAX_CUSTOM_HTML).trim();
+}
+
+/** Whether custom HTML has a <script>, so the page's Content-Security-Policy has to let it load more scripts. */
+export function customHtmlHasScript(html: unknown): boolean {
+  return typeof html === 'string' && /<script\b/i.test(html);
+}
+
 /** Widths of the WebP copies made for every uploaded photo (never larger than the original). */
 export const imageWidths = [480, 960, 1600, 2400] as const;
 
