@@ -13,12 +13,14 @@ import {
   BlockNode,
   cleanCss,
   cleanTheme,
+  cloneBlock,
   findBlock,
   fontNames,
   formBlockTypes,
   isLocale,
   locales,
   mapRichText,
+  newBlockId,
   templateBlocks,
   validateBlocks,
 } from '@profiterol/blocks';
@@ -31,7 +33,7 @@ import { purgePageCache } from '../common/page-cache';
 import { currentSite, currentSiteId, runInSite } from '../sites/site-context';
 import { SitesService } from '../sites/sites.service';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
-import { CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
+import { AddBlocksDto, CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
 import { Page, PageRevision, PageSnapshot, PageTranslation, RevisionKind } from './page.entity';
 
 /** One page or item in the sitemap: its address in each language, when it last changed and its pictures. */
@@ -285,6 +287,29 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       }
       const saved = await manager.save(page);
       await this.record(manager, saved, 'restore', author);
+      return saved;
+    });
+  }
+
+  /**
+   * Adds copies of blocks (usually from another page) to this page's draft in one language, at the start or the end.
+   * The copies get fresh ids, so the same blocks can be added again and forms keep their own submissions.
+   */
+  async addBlocks(id: string, dto: AddBlocksDto, author = '') {
+    const page = await this.get(id);
+    const custom = await this.customBlocks.liveDefs();
+    this.assertBlocks(dto.blocks, dto.locale, custom);
+    const translation = page.translations.find((t) => t.locale === dto.locale);
+    if (!translation) throw new NotFoundException('This page has no such language');
+    const copies = mapRichText(
+      (dto.blocks as BlockNode[]).map((b) => cloneBlock(b, newBlockId)),
+      cleanHtml,
+      custom,
+    );
+    translation.blocks = dto.position === 'start' ? [...copies, ...translation.blocks] : [...translation.blocks, ...copies];
+    return this.save(async (manager) => {
+      const saved = await manager.save(page);
+      await this.record(manager, saved, 'save', author);
       return saved;
     });
   }

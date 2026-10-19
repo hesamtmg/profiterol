@@ -8,7 +8,7 @@ import { SettingsService } from '../settings/settings.controller';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard';
 
 type Authed = { user: AuthUser };
-import { CreatePageDto, UpdatePageDto } from './pages.dto';
+import { AddBlocksDto, CreatePageDto, UpdatePageDto } from './pages.dto';
 import { PagesService } from './pages.service';
 
 /** Public, read-only endpoints used by the site renderer. */
@@ -91,6 +91,13 @@ export class AdminPagesController {
   @HttpCode(200)
   publish(@Param('id', ParseUUIDPipe) id: string, @Req() req: Authed) {
     return this.pages.publish(id, req.user.email);
+  }
+
+  /** Adds copies of blocks (e.g. from the page being edited) to another page's draft. */
+  @Post(':id/blocks')
+  @HttpCode(200)
+  addBlocks(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AddBlocksDto, @Req() req: Authed) {
+    return this.pages.addBlocks(id, dto, req.user.email);
   }
 
   @Post(':id/duplicate')

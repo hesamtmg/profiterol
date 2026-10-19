@@ -12,6 +12,8 @@ export interface EditorContext {
   select(id: string, scroll?: boolean): void;
   move(id: string, delta: number): void;
   duplicate(id: string): void;
+  /** Opens the panel to copy this block to another page. */
+  copyToPage(id: string): void;
   remove(id: string): void;
   inlineEdit(block: BlockNode, path: string, value: string): void;
   hiddenOnDevice(block: BlockNode): boolean;

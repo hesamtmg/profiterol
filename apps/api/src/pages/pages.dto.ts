@@ -1,5 +1,7 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayNotEmpty,
   IsArray,
   IsBoolean,
   IsDateString,
@@ -79,6 +81,23 @@ export class CreatePageDto {
   @ValidateNested({ each: true })
   @Type(() => TranslationDto)
   translations?: TranslationDto[];
+}
+
+/** Copies of blocks from another page, added to this page's draft in one language. */
+export class AddBlocksDto {
+  @IsIn(localeCodes)
+  locale: string;
+
+  /** Validated against the block registry in the service. */
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(100)
+  blocks: unknown[];
+
+  /** Before the page's blocks or after them (the default). */
+  @IsOptional()
+  @IsIn(['start', 'end'])
+  position?: 'start' | 'end';
 }
 
 export class UpdatePageDto {

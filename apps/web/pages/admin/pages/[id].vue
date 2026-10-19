@@ -35,6 +35,7 @@ import FieldInput from '~/components/admin/FieldInput.vue';
 import PageHistory from '~/components/admin/PageHistory.vue';
 import PageSchedule from '~/components/admin/PageSchedule.vue';
 import AdminLangSwitch from '~/components/admin/AdminLangSwitch.vue';
+import CopyToPage from '~/components/admin/CopyToPage.vue';
 import ThemeEditor from '~/components/admin/ThemeEditor.vue';
 import PageTransition from '~/components/site/PageTransition.vue';
 import SiteCursor from '~/components/site/SiteCursor.vue';
@@ -485,6 +486,20 @@ function duplicate(id: string) {
   select(copy.id, true);
 }
 
+// ---------- Copying blocks to another page ----------
+
+/** The blocks ticked when the "Copy to another page" panel is open (null when it is closed). */
+const copyPicked = ref<string[] | null>(null);
+/** What can be copied: the page's blocks, plus the selected block first when it sits inside a column. */
+const copyable = computed(() => {
+  const nested = copyPicked.value && selectedId.value ? placeOf(selectedId.value) : null;
+  return nested?.parent ? [nested.block, ...current.value.blocks] : current.value.blocks;
+});
+function copyToPage(id?: string) {
+  copyPicked.value = id ? [id] : current.value.blocks.map((b) => b.id);
+  if (id) select(id);
+}
+
 function remove(id: string) {
   const here = placeOf(id);
   if (!here) return;
@@ -525,6 +540,7 @@ provide(editorKey, {
   select,
   move,
   duplicate,
+  copyToPage,
   remove,
   inlineEdit,
   hiddenOnDevice,
@@ -1018,6 +1034,15 @@ function deleteTheme(key: string) {
             <button
               type="button"
               class="btn-light !px-3"
+              :title="$t('Copy to another page')"
+              data-testid="copy-block-to-page"
+              @click="copyToPage(selected.id)"
+            >
+              <i class="mdi mdi-file-move-outline" />
+            </button>
+            <button
+              type="button"
+              class="btn-light !px-3"
               :title="$t('Save as a section to reuse on other pages')"
               @click="saveSection(selected)"
             >
@@ -1080,6 +1105,9 @@ function deleteTheme(key: string) {
                 <i class="mdi mdi-content-duplicate" /> {{ $t('Copy blocks from {lang}', { lang: l.label }) }}
               </button>
             </div>
+            <button type="button" class="btn-light w-full" :disabled="!current.blocks.length" @click="copyToPage()">
+              <i class="mdi mdi-file-move-outline" /> {{ $t('Copy blocks to another page') }}
+            </button>
             <p class="text-[11px] leading-relaxed text-slate-400">
               {{ $t('Click any text on the page to edit it there. Drop a photo onto a block to use it as that block’s image.') }}
             </p>
@@ -1105,6 +1133,15 @@ function deleteTheme(key: string) {
         <i class="mdi mdi-check-circle-outline text-emerald-400" /> {{ notice }}
       </p>
     </Transition>
+
+    <CopyToPage
+      v-if="copyPicked && page"
+      :page-id="page.id"
+      :blocks="copyable"
+      :initial="copyPicked"
+      :locale="locale"
+      @close="copyPicked = null"
+    />
 
     <PageHistory
       v-if="historyOpen && page"
