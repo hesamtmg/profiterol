@@ -153,6 +153,20 @@ describe('AI models (each admin their own, per site)', () => {
     assert.equal((await call('POST', '/admin/ai/connections', { model: 'x', provider: 'anthropic' })).status, 400, 'a key is required');
   });
 
+  test('each model has its own timeout', async () => {
+    assert.equal(conn.timeoutSeconds, 600, 'ten minutes unless set');
+    const slower = await call('PUT', `/admin/ai/connections/${conn.id}`, { timeoutSeconds: 1200 });
+    assert.equal(slower.body.timeoutSeconds, 1200);
+    for (const timeoutSeconds of [29, 3601]) {
+      assert.equal(
+        (await call('PUT', `/admin/ai/connections/${conn.id}`, { timeoutSeconds })).status,
+        400,
+        `${timeoutSeconds} s is refused`,
+      );
+    }
+    await call('PUT', `/admin/ai/connections/${conn.id}`, { timeoutSeconds: 600 });
+  });
+
   test('an admin can add any model, and choose the default', async () => {
     const second = await call('POST', '/admin/ai/connections', {
       provider: 'anthropic',
@@ -284,6 +298,55 @@ describe('custom blocks', () => {
     assert.equal(block.conversation.at(-1).text, 'ok', 'the builder shows the summary');
     assert.equal(block.conversation.at(-1).model, 'Stand-in (test-model)', 'and which model answered');
     assert.match(block.draft.compiled, /export default function \(Vue\)/);
+  });
+
+  test('with "Prefer: respond-async" the AI works in the background and the builder asks for the result', async () => {
+    const start = async (body, bearer = token) => {
+      const res = await fetch(`${API}/admin/custom-blocks`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', prefer: 'respond-async', authorization: `Bearer ${bearer}` },
+        body: JSON.stringify(body),
+      });
+      return { status: res.status, body: await res.json() };
+    };
+    const result = async (job, bearer = token) => {
+      for (;;) {
+        const res = await call('GET', `/admin/custom-blocks/jobs/${job}`, undefined, bearer);
+        if (res.status !== 200 || res.body.state === 'done') return res;
+        await new Promise((r) => setTimeout(r, 100));
+      }
+    };
+    // The first answer fails the checks, so the job reports a fix round.
+    answers.push({ summary: 'first try', def_json: '{', source: SOURCE });
+    const started = await start({ prompt: 'A pricing table' });
+    assert.equal(started.status, 202, JSON.stringify(started.body));
+    assert.match(started.body.job, /^[0-9a-f-]{36}$/);
+    const other = await otherAdmin();
+    assert.equal(
+      (await call('GET', `/admin/custom-blocks/jobs/${started.body.job}`, undefined, other)).status,
+      404,
+      'only its admin sees it',
+    );
+    const done = await result(started.body.job);
+    assert.equal(done.status, 200, JSON.stringify(done.body));
+    assert.match(done.body.block.type, /^ai-price-cards-/);
+    assert.deepEqual(
+      done.body.steps.map((s) => `${s.kind} ${s.round}`),
+      ['asking 1', 'problems 1', 'asking 2'],
+      'what the AI did, for the builder to show',
+    );
+    assert.deepEqual(done.body.steps[1].problems, ['def_json is not valid JSON']);
+    assert.equal(done.body.steps[0].model, 'Stand-in (test-model)');
+    assert.equal((await call('GET', `/admin/custom-blocks/${done.body.block.id}`)).body.id, done.body.block.id, 'and it is saved');
+    assert.equal((await call('DELETE', `/admin/custom-blocks/${done.body.block.id}`)).status, 204);
+
+    // Errors come back from the job with the status and message the request would have answered with.
+    const failing = await start({ prompt: 'A pricing table' }, other);
+    assert.equal(failing.status, 202);
+    const failed = await result(failing.body.job, other);
+    assert.equal(failed.status, 400);
+    assert.match(failed.body.message, /Connect an AI model/);
+    assert.equal((await call('GET', '/admin/custom-blocks/jobs/00000000-0000-4000-8000-000000000000')).status, 404);
   });
 
   test('unapproved blocks cannot be used or loaded', async () => {
