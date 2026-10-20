@@ -18,6 +18,10 @@ export interface SavedTheme {
 export const loaderStyles = ['percent', 'bar', 'name', 'logo', 'spinner', 'dots', 'curtain', 'typing', 'pulse'] as const;
 export type LoaderStyle = (typeof loaderStyles)[number];
 
+/** How big the loader's name, counter and logo are drawn. */
+export const loaderSizes = ['small', 'medium', 'large'] as const;
+export type LoaderSize = (typeof loaderSizes)[number];
+
 /** The screen shown while the site loads (minicms's page loader). */
 export interface LoaderSettings {
   enabled: boolean;
@@ -26,11 +30,46 @@ export interface LoaderSettings {
   text: Record<string, string>;
   /** Optional background picture, blurred and sharpening as it loads. */
   background: string;
+  /** Picture used instead of `background` on phones (narrow screens); `background` when empty. */
+  backgroundMobile: string;
   /** Show it only on the first page of a visit. */
   oncePerSession: boolean;
+  /** Color of the name, counter and line; white when empty. */
+  textColor: string;
+  /** Color of the bar, ring, dots and fill; the theme's main color when empty. */
+  accentColor: string;
+  /** Color of the cover behind everything; the theme's dark color when empty. */
+  backgroundColor: string;
+  /** How dark the shade over the background picture is, 0–80 (%). */
+  overlay: number;
+  /** Blur the background picture and sharpen it as the page loads. */
+  blur: boolean;
+  size: LoaderSize;
+  /** A picture used instead of the site logo (logo and pulse styles); the site logo when empty. */
+  logo: string;
+  /** The loader stays at least this long, in seconds (0.5–6). */
+  minSeconds: number;
+  /** Do not show it on phones (narrow screens). */
+  hideOnMobile: boolean;
 }
 
-export const defaultLoader: LoaderSettings = { enabled: false, style: 'percent', text: {}, background: '', oncePerSession: true };
+export const defaultLoader: LoaderSettings = {
+  enabled: false,
+  style: 'percent',
+  text: {},
+  background: '',
+  backgroundMobile: '',
+  oncePerSession: true,
+  textColor: '',
+  accentColor: '',
+  backgroundColor: '',
+  overlay: 50,
+  blur: true,
+  size: 'medium',
+  logo: '',
+  minSeconds: 1.2,
+  hideOnMobile: false,
+};
 
 /** Font names end up in CSS, so only letters (any script), digits, spaces, dashes and underscores. */
 const FONT_NAME = /^[\p{L}\p{N} _-]{1,40}$/u;
@@ -97,20 +136,41 @@ export function cleanSavedThemes(input: unknown, customFonts: string[] = []): Sa
   return out;
 }
 
+const LOADER_PICTURE = /^\/uploads\/[\w-]+\.(jpg|png|webp|avif|gif)$/;
+/** Colors end up in style attributes, so only #rgb, #rgba, #rrggbb and #rrggbbaa. */
+const LOADER_COLOR = /^#([0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
+
+function pick(v: unknown, pattern: RegExp): string {
+  return typeof v === 'string' && pattern.test(v) ? v : '';
+}
+
+function clampNumber(v: unknown, min: number, max: number, fallback: number): number {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN;
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : fallback;
+}
+
 export function cleanLoader(input: unknown): LoaderSettings {
   const src = (typeof input === 'object' && input !== null ? input : {}) as Record<string, unknown>;
   const text: Record<string, string> = {};
   if (typeof src.text === 'object' && src.text !== null) {
     for (const [k, v] of Object.entries(src.text)) if (/^[a-z]{2}$/.test(k) && typeof v === 'string') text[k] = v.slice(0, 120);
   }
-  const bg =
-    typeof src.background === 'string' && /^\/uploads\/[\w-]+\.(jpg|png|webp|avif|gif)$/.test(src.background) ? src.background : '';
   return {
     enabled: src.enabled === true,
     style: loaderStyles.includes(src.style as LoaderStyle) ? (src.style as LoaderStyle) : 'percent',
     text,
-    background: bg,
+    background: pick(src.background, LOADER_PICTURE),
+    backgroundMobile: pick(src.backgroundMobile, LOADER_PICTURE),
     oncePerSession: src.oncePerSession !== false,
+    textColor: pick(src.textColor, LOADER_COLOR),
+    accentColor: pick(src.accentColor, LOADER_COLOR),
+    backgroundColor: pick(src.backgroundColor, LOADER_COLOR),
+    overlay: Math.round(clampNumber(src.overlay, 0, 80, defaultLoader.overlay)),
+    blur: src.blur !== false,
+    size: loaderSizes.includes(src.size as LoaderSize) ? (src.size as LoaderSize) : 'medium',
+    logo: pick(src.logo, LOADER_PICTURE),
+    minSeconds: Math.round(clampNumber(src.minSeconds, 0.5, 6, defaultLoader.minSeconds) * 10) / 10,
+    hideOnMobile: src.hideOnMobile === true,
   };
 }
 

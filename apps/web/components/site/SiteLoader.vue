@@ -8,6 +8,7 @@
  * `preview` (Site settings) replays it in place without remembering anything.
  * Styles: a percentage counter, a thin bar, the name filling with color, the logo in a filling ring, a spinning ring,
  * bouncing dots, pulsing circles, the name typed out, and a curtain that opens on the site.
+ * Its colors, size, pictures (with a separate one for phones), logo and shortest time come from the settings.
  */
 import type { LoaderSettings } from '@profiterol/blocks';
 
@@ -20,6 +21,7 @@ const percent = ref(0);
 const finishing = ref(false);
 let frame = 0;
 let failsafe: ReturnType<typeof setTimeout> | undefined;
+const root = ref<HTMLElement | null>(null);
 
 if (!props.preview && props.loader.oncePerSession) {
   useHead({
@@ -61,23 +63,29 @@ onMounted(() => {
     shown.value = false;
     return;
   }
+  // "Not on phones" hides it with CSS (so it is never painted); then there is nothing to count.
+  if (root.value && getComputedStyle(root.value).display === 'none') {
+    shown.value = false;
+    return;
+  }
+  const minMs = props.loader.minSeconds * 1000;
   const started = performance.now();
   const images = Array.from(document.images).filter((img) => img.loading !== 'lazy');
   let windowLoaded = document.readyState === 'complete' && !props.preview;
   if (!windowLoaded) window.addEventListener('load', () => (windowLoaded = true), { once: true });
-  if (props.preview) setTimeout(() => (windowLoaded = true), 1800);
+  if (props.preview) setTimeout(() => (windowLoaded = true), Math.max(1800, minMs));
 
-  // The counter heads for a target based on what has loaded, never jumping, and takes at least ~1.2 s.
+  // The counter heads for a target based on what has loaded, never jumping, and takes at least `minSeconds`.
   const tick = (now: number) => {
     const loaded = images.length ? images.filter((i) => i.complete).length / images.length : 1;
     const target = windowLoaded ? 100 : Math.min(92, 20 + loaded * 70 + Math.min(20, (now - started) / 150));
-    const minTime = Math.min(100, ((now - started) / 1200) * 100);
+    const minTime = Math.min(100, ((now - started) / minMs) * 100);
     percent.value = Math.min(target, minTime, percent.value + Math.max(0.4, (target - percent.value) * 0.08));
     if (percent.value >= 99.5) finish();
     else frame = requestAnimationFrame(tick);
   };
   frame = requestAnimationFrame(tick);
-  failsafe = setTimeout(finish, 8000);
+  failsafe = setTimeout(finish, Math.max(8000, minMs + 1000));
 });
 
 onBeforeUnmount(() => {
@@ -101,15 +109,42 @@ const letters = computed(() => Array.from(props.siteName));
 const typed = computed(() => letters.value.slice(0, Math.ceil((letters.value.length * percent.value) / 100)).join(''));
 /** Styles drawn on a dark full-screen cover; the curtain draws its own two halves instead. */
 const covered = computed(() => props.loader.style !== 'curtain');
+
+/** The chosen colors replace the theme's for the loader only; colors are checked by cleanLoader, so they are safe here. */
+const colors = computed(() => ({
+  ...(props.loader.accentColor ? { '--c-primary': props.loader.accentColor } : {}),
+  ...(props.loader.backgroundColor ? { '--c-dark': props.loader.backgroundColor } : {}),
+  ...(props.loader.textColor ? { color: props.loader.textColor } : {}),
+}));
+const logoSrc = computed(() => props.loader.logo || props.logo);
+const scale = computed(() => ({ small: 0.75, medium: 1, large: 1.3 })[props.loader.size] ?? 1);
+const shade = computed(() => {
+  const o = props.loader.overlay;
+  return `linear-gradient(to bottom, rgb(0 0 0 / ${o * 0.6}%), rgb(0 0 0 / ${Math.min(100, o * 1.2)}%))`;
+});
+/** The background picture(s): the phone picture, when there is one, replaces the other on narrow screens. */
+const pictures = computed(() => {
+  const { background, backgroundMobile } = props.loader;
+  if (backgroundMobile && background) {
+    return [
+      { url: backgroundMobile, cls: 'site-loader-narrow' },
+      { url: background, cls: 'site-loader-wide' },
+    ];
+  }
+  const url = backgroundMobile || background;
+  return url ? [{ url, cls: '' }] : [];
+});
+const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30 * (1 - percent.value / 100))}px)` : undefined));
 </script>
 
 <template>
   <Transition leave-active-class="transition-opacity duration-700" leave-to-class="opacity-0">
     <div
       v-if="shown && loader.style === 'bar'"
-      class="site-loader site-loader-bar pointer-events-none z-[120] h-1 bg-primary"
-      :class="preview ? 'absolute inset-x-0 top-0' : 'fixed inset-x-0 top-0'"
-      :style="{ transform: `scaleX(${percent / 100})` }"
+      ref="root"
+      class="site-loader site-loader-bar pointer-events-none z-[120] bg-primary"
+      :class="[preview ? 'absolute inset-x-0 top-0' : 'fixed inset-x-0 top-0', { 'site-loader-wide-only': loader.hideOnMobile }]"
+      :style="{ ...colors, height: `${Math.round(4 * scale)}px`, transform: `scaleX(${percent / 100})` }"
       role="progressbar"
       :aria-valuenow="shownPercent"
       aria-valuemin="0"
@@ -117,8 +152,10 @@ const covered = computed(() => props.loader.style !== 'curtain');
     />
     <div
       v-else-if="shown"
+      ref="root"
       class="site-loader z-[120] flex flex-col items-center justify-center overflow-hidden text-white"
-      :class="[preview ? 'absolute inset-0' : 'fixed inset-0', covered ? 'bg-dark' : '']"
+      :class="[preview ? 'absolute inset-0' : 'fixed inset-0', covered ? 'bg-dark' : '', { 'site-loader-wide-only': loader.hideOnMobile }]"
+      :style="colors"
       role="progressbar"
       :aria-valuenow="shownPercent"
       aria-valuemin="0"
@@ -146,17 +183,22 @@ const covered = computed(() => props.loader.style !== 'curtain');
       </template>
 
       <!-- Background picture, sharpening as the page loads -->
-      <div
-        v-if="loader.background && covered"
-        class="absolute -inset-10 bg-cover bg-center opacity-60"
-        :style="{ backgroundImage: `url('${loader.background}')`, filter: `blur(${Math.max(0, 30 * (1 - percent / 100))}px)` }"
-        aria-hidden="true"
-      />
-      <div v-if="covered" class="absolute inset-0 bg-gradient-to-b from-black/30 to-black/60" aria-hidden="true" />
+      <template v-if="covered">
+        <div
+          v-for="pic in pictures"
+          :key="pic.url"
+          class="absolute -inset-10 bg-cover bg-center opacity-60"
+          :class="pic.cls"
+          :style="{ backgroundImage: `url('${pic.url}')`, filter: pictureFilter }"
+          aria-hidden="true"
+        />
+      </template>
+      <div v-if="covered" class="absolute inset-0" :style="{ backgroundImage: shade }" aria-hidden="true" />
 
       <div
         class="relative px-6 text-center transition-opacity duration-300"
         :class="{ 'opacity-0': loader.style === 'curtain' && finishing }"
+        :style="scale !== 1 ? { transform: `scale(${scale})` } : undefined"
       >
         <!-- Name filling with color: both copies share one grid cell, so they wrap and sit exactly on top of each other -->
         <div
@@ -164,7 +206,7 @@ const covered = computed(() => props.loader.style !== 'curtain');
           class="grid text-5xl font-black leading-tight tracking-tight @3xl:text-8xl"
           :dir="locale === 'fa' ? 'rtl' : 'ltr'"
         >
-          <span class="[grid-area:1/1] text-transparent [-webkit-text-stroke:1px_rgb(255_255_255/0.35)]">{{ siteName }}</span>
+          <span class="site-loader-outline [grid-area:1/1] text-transparent">{{ siteName }}</span>
           <span class="[grid-area:1/1] text-primary" :style="{ clipPath: fillClip }" aria-hidden="true">{{ siteName }}</span>
         </div>
 
@@ -172,7 +214,7 @@ const covered = computed(() => props.loader.style !== 'curtain');
         <div v-else-if="loader.style === 'logo'" class="flex flex-col items-center">
           <div class="relative flex h-40 w-40 items-center justify-center">
             <svg class="absolute inset-0 -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
-              <circle cx="60" cy="60" r="54" fill="none" stroke="rgb(255 255 255 / 0.15)" stroke-width="2" />
+              <circle cx="60" cy="60" r="54" fill="none" stroke="currentColor" stroke-opacity="0.15" stroke-width="2" />
               <circle
                 cx="60"
                 cy="60"
@@ -186,8 +228,8 @@ const covered = computed(() => props.loader.style !== 'curtain');
               />
             </svg>
             <img
-              v-if="logo"
-              :src="logo"
+              v-if="logoSrc"
+              :src="logoSrc"
               :alt="siteName"
               class="max-h-16 max-w-24 object-contain transition duration-500"
               :class="finishing ? 'scale-110' : ''"
@@ -199,7 +241,7 @@ const covered = computed(() => props.loader.style !== 'curtain');
 
         <!-- Spinning ring -->
         <div v-else-if="loader.style === 'spinner'" class="flex flex-col items-center">
-          <div class="h-14 w-14 animate-spin rounded-full border-2 border-white/15 border-t-primary" aria-hidden="true" />
+          <div class="site-loader-track-border h-14 w-14 animate-spin rounded-full border-2" aria-hidden="true" />
           <p class="mt-6 text-3xl font-black tracking-tight @3xl:text-5xl" dir="auto">{{ siteName }}</p>
         </div>
 
@@ -225,7 +267,7 @@ const covered = computed(() => props.loader.style !== 'curtain');
             :style="{ animationDelay: `${(i - 1) * 600}ms` }"
             aria-hidden="true"
           />
-          <img v-if="logo" :src="logo" :alt="siteName" class="relative max-h-16 max-w-28 object-contain" />
+          <img v-if="logoSrc" :src="logoSrc" :alt="siteName" class="relative max-h-16 max-w-28 object-contain" />
           <span v-else class="relative px-4 text-2xl font-black leading-tight" dir="auto">{{ siteName }}</span>
         </div>
 
@@ -252,7 +294,7 @@ const covered = computed(() => props.loader.style !== 'curtain');
             </p>
             <p v-else key="name" class="text-5xl font-black tracking-tight @3xl:text-7xl" dir="auto">{{ siteName }}</p>
           </Transition>
-          <div class="mx-auto mt-6 h-0.5 w-56 overflow-hidden rounded-full bg-white/15">
+          <div class="site-loader-track mx-auto mt-6 h-0.5 w-56 overflow-hidden rounded-full">
             <div class="h-full origin-left bg-primary" :style="{ transform: `scaleX(${percent / 100})` }" />
           </div>
         </template>
@@ -276,6 +318,30 @@ const covered = computed(() => props.loader.style !== 'curtain');
 .site-loader-bar {
   transform-origin: left;
   transition: transform 0.2s linear;
+}
+/* Faint copies of the text color: the outline of the name and the empty part of the bars and rings. */
+.site-loader-outline {
+  -webkit-text-stroke: 1px color-mix(in srgb, currentColor 35%, transparent);
+}
+.site-loader-track {
+  background-color: color-mix(in srgb, currentColor 15%, transparent);
+}
+.site-loader-track-border {
+  border-color: color-mix(in srgb, currentColor 15%, transparent);
+  border-top-color: var(--c-primary);
+}
+/* Phones (narrow containers, like the blocks' @3xl): the phone picture, and "Not on phones". */
+.site-loader-narrow {
+  display: none;
+}
+@container (max-width: 47.99rem) {
+  .site-loader-narrow {
+    display: block;
+  }
+  .site-loader-wide,
+  .site-loader.site-loader-wide-only {
+    display: none;
+  }
 }
 /* Pulsing circles and the typing caret. */
 .site-loader-ring {

@@ -11,6 +11,7 @@ import {
   type FieldDef,
   type HeaderSettings,
   type LoaderSettings,
+  type LoaderSize,
   type LoaderStyle,
   type SeoSettings,
   type ThemeTokens,
@@ -33,6 +34,18 @@ const settings = ref<
 >(null);
 const customFonts = computed(() => fontNames(settings.value?.fonts));
 const loaderPreview = ref(0);
+const loaderDevice = ref<'desktop' | 'phone'>('desktop');
+const loaderSizeOptions: { value: LoaderSize; label: string }[] = [
+  { value: 'small', label: 'Small' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'large', label: 'Large' },
+];
+/** The loader's own colors; empty means "as the theme" (white text, the theme's main and dark colors). */
+const loaderColorFields = computed(() => [
+  { key: 'textColor' as const, label: 'Text color', fallback: '#ffffff' },
+  { key: 'accentColor' as const, label: 'Bar, ring and dots color', fallback: settings.value?.theme.primary ?? '#000000' },
+  { key: 'backgroundColor' as const, label: 'Background color', fallback: settings.value?.theme.dark ?? '#000000' },
+]);
 const saving = ref(false);
 const message = ref<{ kind: 'ok' | 'error'; text: string } | null>(null);
 
@@ -397,12 +410,93 @@ onMounted(load);
             v-model="settings.loader.background"
             :field="imageField('loaderBg', $t('Background picture (blurred, sharpening as it loads)'))"
           />
+          <FieldInput
+            v-model="settings.loader.backgroundMobile"
+            :field="imageField('loaderBgMobile', $t('Background picture on phones (empty: the same picture)'))"
+          />
+          <FieldInput v-model="settings.loader.logo" :field="imageField('loaderLogo', $t('Loader logo (empty: the site logo)'))" />
+          <div class="space-y-1.5 sm:col-span-2 sm:grid sm:grid-cols-3 sm:gap-3 sm:space-y-0">
+            <div v-for="c in loaderColorFields" :key="c.key" class="flex items-center gap-2.5">
+              <input
+                type="color"
+                :value="settings.loader[c.key] || c.fallback"
+                class="h-8 w-10 shrink-0 cursor-pointer rounded-lg border border-slate-200 bg-white p-0.5"
+                :aria-label="$t(c.label)"
+                @input="settings.loader[c.key] = ($event.target as HTMLInputElement).value"
+              />
+              <span class="flex-1 text-xs">
+                {{ $t(c.label) }}
+                <span v-if="!settings.loader[c.key]" class="block text-[10px] text-slate-400">{{ $t('As the theme') }}</span>
+              </span>
+              <button
+                v-if="settings.loader[c.key]"
+                type="button"
+                class="text-slate-400 hover:text-slate-700"
+                :title="$t('Back to the theme color')"
+                @click="settings.loader[c.key] = ''"
+              >
+                <i class="mdi mdi-backup-restore" />
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="field-label" for="loader-size">{{ $t('Size') }}</label>
+            <select id="loader-size" v-model="settings.loader.size" class="input">
+              <option v-for="s in loaderSizeOptions" :key="s.value" :value="s.value">{{ $t(s.label) }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="loader-min">{{ $t('Shortest time on screen (seconds)') }}</label>
+            <input
+              id="loader-min"
+              v-model.number="settings.loader.minSeconds"
+              type="number"
+              min="0.5"
+              max="6"
+              step="0.1"
+              class="input"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label class="field-label" for="loader-overlay">{{ $t('Shade over the picture: {n}%', { n: settings.loader.overlay }) }}</label>
+            <input id="loader-overlay" v-model.number="settings.loader.overlay" type="range" min="0" max="80" step="5" class="w-full" />
+          </div>
+          <div class="space-y-2 self-end pb-2 text-sm">
+            <label class="flex items-center gap-2">
+              <input v-model="settings.loader.blur" type="checkbox" class="h-4 w-4 rounded" />
+              {{ $t('Blur the picture, sharpening as the page loads') }}
+            </label>
+            <label class="flex items-center gap-2">
+              <input v-model="settings.loader.hideOnMobile" type="checkbox" class="h-4 w-4 rounded" />
+              {{ $t('Not on phones') }}
+            </label>
+          </div>
         </div>
         <div v-if="settings.loader.enabled" class="mt-4">
-          <button type="button" class="btn-light" @click="loaderPreview++"><i class="mdi mdi-play" /> {{ $t('Preview') }}</button>
-          <div v-if="loaderPreview" class="relative mt-3 h-64 overflow-hidden rounded-2xl bg-slate-100">
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" class="btn-light" @click="loaderPreview++"><i class="mdi mdi-play" /> {{ $t('Preview') }}</button>
+            <div class="flex gap-1 rounded-xl bg-slate-100 p-1 text-xs" role="group" :aria-label="$t('Screen')">
+              <button
+                v-for="d in ['desktop', 'phone'] as const"
+                :key="d"
+                type="button"
+                class="rounded-lg px-2.5 py-1"
+                :class="loaderDevice === d ? 'bg-white shadow-sm' : 'text-slate-500'"
+                :aria-pressed="loaderDevice === d"
+                @click="((loaderDevice = d), loaderPreview++)"
+              >
+                <i class="mdi" :class="d === 'desktop' ? 'mdi-monitor' : 'mdi-cellphone'" /> {{ $t(d === 'desktop' ? 'Desktop' : 'Phone') }}
+              </button>
+            </div>
+          </div>
+          <div
+            v-if="loaderPreview"
+            class="relative mx-auto mt-3 overflow-hidden rounded-2xl bg-slate-100"
+            :class="loaderDevice === 'phone' ? '@container h-[32rem] w-[20rem] max-w-full' : 'h-80'"
+          >
             <SiteLoader
-              :key="loaderPreview"
+              :key="`${loaderPreview}-${loaderDevice}`"
               :loader="settings.loader"
               :site-name="settings.siteName.en || 'Your site'"
               :logo="settings.logo"

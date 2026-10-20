@@ -61,6 +61,7 @@ This combines:
 - [x] Maintenance mode with a message per language
 - [x] Site header with menu (hovering one link blurs the others, as in AMSR), a language switch that keeps you on the same page, and a mobile overlay menu
 - [x] Page loader (minicms): percentage, top bar or site-name fill; real loading progress, a blurred background picture that sharpens, once per visit; removed by CSS after 8 s without JavaScript
+- [x] Loader look options: text, accent and background colors, a separate background picture for phones, its own logo, size, shade over the picture, blur on/off, shortest time on screen, and "not on phones"; desktop/phone preview in Site settings
 - [x] Section-by-section scroll mode (minicms “magic scroll”), a theme setting per site or page
 - [ ] Canonical URL setting (minicms hardcoded its domain)
 - [x] Self-host fonts (no Google Fonts call): every theme font from Fontsource, downloaded only when a page uses it
