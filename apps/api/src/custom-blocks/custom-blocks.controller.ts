@@ -17,14 +17,15 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { IsObject, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsObject, IsOptional, IsString, IsUUID, Max, MaxLength, Min, MinLength } from 'class-validator';
 import type { Response } from 'express';
 import { readFileSync } from 'node:fs';
 import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS, readAttachments } from '../ai/attachments';
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { MAX_SOURCE } from './compile';
 import type { CustomBlock } from './custom-block.entity';
-import { type AiStep, CustomBlocksService, moduleUrl } from './custom-blocks.service';
+import { type AiStep, CustomBlocksService, MAX_SITE_COMPONENTS, moduleUrl } from './custom-blocks.service';
 
 type Authed = { user: AuthUser };
 
@@ -35,6 +36,32 @@ class PromptDto {
   prompt: string;
 
   /** Which of the admin's own AI models to ask; their default when left out. */
+  @IsOptional()
+  @IsUUID()
+  connectionId?: string;
+}
+
+class SiteDto {
+  /** The website to copy components from, e.g. https://example.com/pricing. */
+  @IsString()
+  @MinLength(4)
+  @MaxLength(2000)
+  url: string;
+
+  /** At most this many blocks (5 when left out). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(MAX_SITE_COMPONENTS)
+  max?: number;
+
+  /** What to copy, or how ("only the pricing table", "in dark colors"). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+
   @IsOptional()
   @IsUUID()
   connectionId?: string;
@@ -108,8 +135,11 @@ export class AdminCustomBlocksController {
    */
   @Get('jobs/:job')
   async job(@Param('job', ParseUUIDPipe) job: string, @Req() req: Authed) {
-    const { block, startedAt, steps } = this.blocks.job(req.user.sub, job);
-    return block ? { state: 'done', block: view(block), startedAt, steps } : { state: 'running', startedAt, steps };
+    const { result, startedAt, steps } = this.blocks.job(req.user.sub, job);
+    if (!result) return { state: 'running', startedAt, steps };
+    return Array.isArray(result)
+      ? { state: 'done', blocks: result.map(view), startedAt, steps }
+      : { state: 'done', block: view(result), startedAt, steps };
   }
 
   @Get(':id')
@@ -133,6 +163,31 @@ export class AdminCustomBlocksController {
     );
   }
 
+  /**
+   * Copies a website's components as new draft blocks ("Copy from a website"). Like generate(), JSON or multipart
+   * (e.g. with a screenshot of the site under "files"); answers with the blocks, or a job with "Prefer: respond-async".
+   */
+  @Post('from-site')
+  @UseInterceptors(attachments)
+  async fromSite(
+    @Body() dto: SiteDto,
+    @Req() req: Authed,
+    @Headers('prefer') prefer: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
+    const attached = await readAttachments(files);
+    return this.answer(prefer, res, req.user.sub, (report) =>
+      this.blocks.importSite(
+        { url: dto.url, max: dto.max, note: dto.note?.trim() },
+        { id: req.user.sub, email: req.user.email },
+        dto.connectionId,
+        attached,
+        report,
+      ),
+    );
+  }
+
   @Post(':id/refine')
   @HttpCode(200)
   @UseInterceptors(attachments)
@@ -151,16 +206,19 @@ export class AdminCustomBlocksController {
   }
 
   /**
-   * The block once the AI is done, or, with "Prefer: respond-async" (what the builder sends), 202 and a job id right
+   * The block (or blocks) once the AI is done, or, with "Prefer: respond-async" (what the builder sends), 202 and a job id right
    * away, to fetch from GET jobs/:job.
    */
   private async answer(
     prefer: string | undefined,
     res: Response,
     userId: string,
-    work: (report?: (step: AiStep) => void) => Promise<CustomBlock>,
+    work: (report?: (step: AiStep) => void) => Promise<CustomBlock | CustomBlock[]>,
   ) {
-    if (!/\brespond-async\b/i.test(prefer ?? '')) return view(await work());
+    if (!/\brespond-async\b/i.test(prefer ?? '')) {
+      const result = await work();
+      return Array.isArray(result) ? result.map(view) : view(result);
+    }
     res.status(202);
     return { job: this.blocks.background(userId, work) };
   }

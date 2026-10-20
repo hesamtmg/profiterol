@@ -35,6 +35,8 @@ jobs:
       # The domains agent's routes (the site tests play the agent).
       INTERNAL_TOKEN: ci-agent-token
       UPLOAD_DIR: /tmp/uploads
+      # "Copy from a website" reads the e2e tests' stand-in site on 127.0.0.1.
+      SITE_IMPORT_ALLOW_PRIVATE: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

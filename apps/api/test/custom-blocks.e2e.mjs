@@ -88,6 +88,26 @@ before(async () => {
         );
         return;
       }
+      // A website to copy components from (the API reads it like any site; see "Copy from a website").
+      if (req.method === 'GET' && req.url.startsWith('/site')) {
+        if (req.url === '/site/old') {
+          res.writeHead(301, { location: '/site/' });
+          res.end();
+          return;
+        }
+        if (req.url === '/site/style.css') {
+          res.setHeader('content-type', 'text/css');
+          res.end(':root { --brand: #e11d48; } .hero { padding: 4rem; }');
+          return;
+        }
+        res.setHeader('content-type', 'text/html; charset=utf-8');
+        res.end(
+          '<html><head><title>Acme</title><link rel="stylesheet" href="/site/style.css"></head><body>' +
+            '<script>steal()</script><section class="hero" onclick="x()"><h1>Ship faster</h1><img data-src="/site/a.jpg"></section>' +
+            '<section class="plans"><h2>Pricing</h2><div class="plan">Basic $5</div></section></body></html>',
+        );
+        return;
+      }
       const body = JSON.parse(raw);
       requests.push({ auth: req.headers.authorization, body });
       if (body.model === 'GPT-6' || body.model === 'gpt-7') {
@@ -525,6 +545,64 @@ describe('custom blocks', () => {
     });
     assert.equal(res.status, 400);
     assert.match((await res.json()).message, /cannot be attached/);
+  });
+
+  test('copy from a website: the AI picks its components and each becomes a draft block', async () => {
+    const site = aiUrl.replace(/\/v1$/, '/site/old');
+    answers.push({
+      summary: 'A landing page with a hero and pricing.',
+      components_json: JSON.stringify([
+        { name: 'Hero', brief: 'A big title over a picture.', html: '<section class="hero"><h1>Ship faster</h1></section>' },
+        { name: 'Pricing', brief: 'Plans side by side.', html: '<section class="plans"></section>' },
+        { name: 'Nameless' },
+      ]),
+    });
+    const before = requests.length;
+    const res = await call('POST', '/admin/custom-blocks/from-site', { url: site, max: 3, note: 'Keep it simple', connectionId: conn.id });
+    assert.equal(res.status, 201, JSON.stringify(res.body));
+    assert.equal(res.body.length, 2, 'one block per usable component');
+    assert.ok(res.body.every((b) => b.status === 'draft' && /^ai-price-cards-/.test(b.type)));
+    assert.match(res.body[0].conversation[0].text, /^Copy the "Hero" component of http:\/\/127\.0\.0\.1:\d+\/site\/\.\n\nA big title/);
+
+    const [find, build] = requests.slice(before).map((r) => r.body.messages.at(-1).content);
+    const page = typeof find === 'string' ? find : JSON.stringify(find);
+    assert.match(page, /Maximum components: 3/);
+    assert.match(page, /The admin asks: Keep it simple/);
+    assert.match(page, /<h1>Ship faster<\/h1>/, 'the page HTML');
+    assert.match(page, /\/site\/a\.jpg/, 'lazy pictures get their real address');
+    assert.match(page, /--brand:#e11d48/, 'the stylesheet');
+    assert.doesNotMatch(page, /steal\(\)|onclick/, 'without scripts');
+    assert.match(JSON.stringify(build), /The component's HTML on/, "each build gets its component's HTML");
+    assert.equal(requests.length - before, 3, 'one request to find the components, one per block');
+    for (const b of res.body) assert.equal((await call('DELETE', `/admin/custom-blocks/${b.id}`)).status, 204);
+  });
+
+  test('copy from a website: only http(s) addresses, and the job reports its steps', async () => {
+    assert.equal((await call('POST', '/admin/custom-blocks/from-site', { url: 'file:///etc/passwd' })).status, 400);
+    assert.equal((await call('POST', '/admin/custom-blocks/from-site', { url: 'https://example.com', max: 50 })).status, 400);
+
+    answers.push({ summary: 'One part.', components_json: '[{"name":"Hero","brief":"A title.","html":""}]' });
+    const started = await fetch(`${API}/admin/custom-blocks/from-site`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', prefer: 'respond-async', authorization: `Bearer ${token}` },
+      body: JSON.stringify({ url: aiUrl.replace(/\/v1$/, '/site/'), connectionId: conn.id }),
+    });
+    assert.equal(started.status, 202);
+    const { job } = await started.json();
+    let done;
+    for (;;) {
+      done = await call('GET', `/admin/custom-blocks/jobs/${job}`);
+      if (done.status !== 200 || done.body.state === 'done') break;
+      await new Promise((r) => setTimeout(r, 100));
+    }
+    assert.equal(done.status, 200, JSON.stringify(done.body));
+    assert.equal(done.body.blocks.length, 1);
+    assert.deepEqual(
+      done.body.steps.map((s) => s.kind),
+      ['reading', 'asking', 'found', 'building', 'asking'],
+    );
+    assert.deepEqual(done.body.steps[2].names, ['Hero']);
+    assert.equal((await call('DELETE', `/admin/custom-blocks/${done.body.blocks[0].id}`)).status, 204);
   });
 
   test('the daily limit is kept, per model', async () => {

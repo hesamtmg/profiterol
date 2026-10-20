@@ -15,7 +15,11 @@ export interface ChatMessage {
 /** What the API reports of a request in progress (apps/api/src/custom-blocks/custom-blocks.service.ts AiStep). */
 export type AiStep =
   | { kind: 'asking'; at: string; round: number; rounds: number; model: string }
-  | { kind: 'problems'; at: string; round: number; summary: string; problems: string[] };
+  | { kind: 'problems'; at: string; round: number; summary: string; problems: string[] }
+  | { kind: 'reading'; at: string; url: string }
+  | { kind: 'found'; at: string; summary: string; names: string[] }
+  | { kind: 'building'; at: string; index: number; total: number; name: string }
+  | { kind: 'skipped'; at: string; name: string; message: string };
 
 export interface PendingRequest {
   text: string;
@@ -26,6 +30,7 @@ export interface PendingRequest {
 }
 
 const props = defineProps<{ messages: ChatMessage[]; pending?: PendingRequest | null }>();
+const { t } = useAdminI18n();
 
 // The waiting time, counted up every second while the AI works.
 const now = ref(Date.now());
@@ -44,8 +49,28 @@ const elapsed = computed(() => {
   const s = Math.max(0, Math.round((now.value - (props.pending?.startedAt ?? now.value)) / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 });
-const asking = computed(() => [...(props.pending?.steps ?? [])].reverse().find((s) => s.kind === 'asking'));
-const fixes = computed(() => props.pending?.steps.filter((s) => s.kind === 'problems') ?? []);
+// Copying from a website builds several blocks in a row: the AI's rounds and fixes shown are the current block's.
+const steps = computed(() => props.pending?.steps ?? []);
+const lastBuilding = computed(() => steps.value.findLastIndex((s) => s.kind === 'building'));
+const current = computed(() => steps.value.slice(Math.max(0, lastBuilding.value)));
+const asking = computed(() => [...current.value].reverse().find((s) => s.kind === 'asking'));
+const fixes = computed(() => current.value.filter((s) => s.kind === 'problems'));
+const building = computed(() =>
+  lastBuilding.value >= 0 ? (steps.value[lastBuilding.value] as Extract<AiStep, { kind: 'building' }>) : null,
+);
+const reading = computed(() => steps.value.find((s) => s.kind === 'reading'));
+/** What happened on the website so far: the components found, the blocks made, and the ones skipped. */
+const siteSteps = computed(() =>
+  steps.value.filter((s, i) => s.kind === 'found' || s.kind === 'skipped' || (s.kind === 'building' && i < lastBuilding.value)),
+);
+const skippedNames = computed(() => new Set(steps.value.flatMap((s) => (s.kind === 'skipped' ? [s.name] : []))));
+const status = computed(() => {
+  if (asking.value && asking.value.round > 1)
+    return t('Fixing the block (try {round} of {rounds})…', { round: asking.value.round, rounds: asking.value.rounds });
+  if (building.value) return t('Building {index} of {total}: {name}…', { ...building.value });
+  if (reading.value) return asking.value ? t('Finding the website’s components…') : t('Reading the website…');
+  return t('Building the block…');
+});
 
 // The newest message stays in view.
 const listEl = ref<HTMLElement>();
@@ -104,6 +129,22 @@ watch(
         <span class="block text-[10px] font-semibold uppercase tracking-wider text-slate-400">
           {{ asking ? `${$t('AI')} · ${asking.model}` : $t('AI') }}
         </span>
+        <p v-if="reading" class="mb-1.5 text-xs text-slate-600">
+          <i class="mdi mdi-web" /> <span dir="ltr">{{ reading.url }}</span>
+        </p>
+        <p v-for="(s, i) in siteSteps" :key="`site-${i}`" class="mb-1.5 text-xs text-slate-600">
+          <template v-if="s.kind === 'found'">
+            <span class="block" dir="auto">{{ s.summary }}</span>
+            {{ $t('Components to copy:') }} {{ s.names.join(' · ') }}
+          </template>
+          <template v-else-if="s.kind === 'skipped'">
+            <i class="mdi mdi-alert-circle-outline text-amber-600" />
+            {{ $t('Skipped {name}:', { name: s.name }) }} <span dir="auto">{{ s.message }}</span>
+          </template>
+          <template v-else-if="s.kind === 'building' && !skippedNames.has(s.name)">
+            <i class="mdi mdi-check-circle-outline text-emerald-600" /> {{ s.name }}
+          </template>
+        </p>
         <p v-for="(f, i) in fixes" :key="i" class="mb-1.5 text-xs text-slate-600">
           <i class="mdi mdi-alert-circle-outline text-amber-600" />
           {{ $t('Try {round}: the checks found problems, so the AI is fixing them:', { round: f.round }) }}
@@ -112,13 +153,7 @@ watch(
         <span v-if="pending.error" class="whitespace-pre-line">{{ pending.error }}</span>
         <span v-else class="flex items-center gap-2">
           <i class="mdi mdi-loading mdi-spin" />
-          <span>
-            {{
-              asking && asking.round > 1
-                ? $t('Fixing the block (try {round} of {rounds})…', { round: asking.round, rounds: asking.rounds })
-                : $t('Building the block…')
-            }}
-          </span>
+          <span>{{ status }}</span>
           <span class="ms-auto tabular-nums text-xs text-slate-500" dir="ltr">{{ elapsed }}</span>
         </span>
       </li>
