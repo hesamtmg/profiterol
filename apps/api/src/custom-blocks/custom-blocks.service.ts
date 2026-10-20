@@ -288,12 +288,7 @@ export class CustomBlocksService {
         throw err;
       }
       problems = [];
-      let def: unknown = null;
-      try {
-        def = JSON.parse(String(answer.def_json ?? ''));
-      } catch {
-        problems.push('def_json is not valid JSON');
-      }
+      const def = readDef(answer.def_json, problems);
       const version = def ? this.build(def, String(answer.source ?? ''), type, problems) : null;
       const reply = { role: 'assistant' as const, content: JSON.stringify(answer) };
       if (version) {
@@ -309,6 +304,29 @@ export class CustomBlocksService {
       message: 'The AI could not build a block that passes the checks. Try rephrasing the request.',
       problems,
     });
+  }
+}
+
+/**
+ * The definition from the AI's answer. It should be a string of JSON, but only OpenAI enforces the answer's shape:
+ * other services' models (e.g. gpt-4o-mini through GapGPT) often send the object itself, or the JSON in a code
+ * fence; both are taken as meant. Otherwise returns null and says exactly what is wrong, so the AI can fix it.
+ */
+export function readDef(value: unknown, problems: string[]): unknown {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value;
+  if (typeof value !== 'string' || !value.trim()) {
+    problems.push('def_json is missing: give the block definition as a string of JSON');
+    return null;
+  }
+  const text = value.trim().replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/, '$1');
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    const start = text.length > 80 ? `${text.slice(0, 80)}…` : text;
+    problems.push(
+      `def_json is not valid JSON (${err instanceof Error ? err.message : 'parse error'}). It began: ${start} — give the whole definition as one valid JSON object, with every key and string in double quotes and no comments or trailing commas`,
+    );
+    return null;
   }
 }
 

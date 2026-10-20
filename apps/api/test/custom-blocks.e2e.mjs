@@ -335,7 +335,8 @@ describe('custom blocks', () => {
       ['asking 1', 'problems 1', 'asking 2'],
       'what the AI did, for the builder to show',
     );
-    assert.deepEqual(done.body.steps[1].problems, ['def_json is not valid JSON']);
+    assert.equal(done.body.steps[1].problems.length, 1);
+    assert.match(done.body.steps[1].problems[0], /^def_json is not valid JSON \(/);
     assert.equal(done.body.steps[0].model, 'Stand-in (test-model)');
     assert.equal((await call('GET', `/admin/custom-blocks/${done.body.block.id}`)).body.id, done.body.block.id, 'and it is saved');
     assert.equal((await call('DELETE', `/admin/custom-blocks/${done.body.block.id}`)).status, 204);
@@ -347,6 +348,29 @@ describe('custom blocks', () => {
     assert.equal(failed.status, 400);
     assert.match(failed.body.message, /Connect an AI model/);
     assert.equal((await call('GET', '/admin/custom-blocks/jobs/00000000-0000-4000-8000-000000000000')).status, 404);
+  });
+
+  test('a definition sent as an object or in a code fence is taken as meant; broken JSON is explained', async () => {
+    // Models other services serve (e.g. gpt-4o-mini) often answer with the object itself instead of a JSON string.
+    answers.push({ summary: 'object', def_json: DEF, source: SOURCE });
+    let before = requests.length;
+    const asObject = await call('POST', '/admin/custom-blocks', { prompt: 'A pricing table' });
+    assert.equal(asObject.status, 201, JSON.stringify(asObject.body));
+    assert.equal(requests.length - before, 1, 'no fix round needed');
+    assert.equal((await call('DELETE', `/admin/custom-blocks/${asObject.body.id}`)).status, 204);
+
+    answers.push({ summary: 'fenced', def_json: '```json\n' + JSON.stringify(DEF) + '\n```', source: SOURCE });
+    const fenced = await call('POST', '/admin/custom-blocks', { prompt: 'A pricing table' });
+    assert.equal(fenced.status, 201, JSON.stringify(fenced.body));
+    assert.equal((await call('DELETE', `/admin/custom-blocks/${fenced.body.id}`)).status, 204);
+
+    answers.push({ summary: 'broken', def_json: "{ label: 'Price cards', }", source: SOURCE });
+    before = requests.length;
+    const fixed = await call('POST', '/admin/custom-blocks', { prompt: 'A pricing table' });
+    assert.equal(fixed.status, 201, JSON.stringify(fixed.body));
+    const told = requests[before + 1].body.messages.at(-1).content;
+    assert.match(told, /def_json is not valid JSON \(.+\)\. It began: \{ label: 'Price cards', \}/, 'the AI is told what is wrong');
+    assert.equal((await call('DELETE', `/admin/custom-blocks/${fixed.body.id}`)).status, 204);
   });
 
   test('unapproved blocks cannot be used or loaded', async () => {
