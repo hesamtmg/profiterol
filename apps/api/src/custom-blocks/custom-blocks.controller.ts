@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Header,
+  Headers,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -23,7 +24,7 @@ import { MAX_ATTACHMENT_BYTES, MAX_ATTACHMENTS, readAttachments } from '../ai/at
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { MAX_SOURCE } from './compile';
 import type { CustomBlock } from './custom-block.entity';
-import { CustomBlocksService, moduleUrl } from './custom-blocks.service';
+import { type AiStep, CustomBlocksService, moduleUrl } from './custom-blocks.service';
 
 type Authed = { user: AuthUser };
 
@@ -101,6 +102,16 @@ export class AdminCustomBlocksController {
     return (await this.blocks.list()).map(view);
   }
 
+  /**
+   * A request started with "Prefer: respond-async" (see answer()): its block once ready, else what the AI has done so
+   * far (for the builder's conversation), or the request's error.
+   */
+  @Get('jobs/:job')
+  async job(@Param('job', ParseUUIDPipe) job: string, @Req() req: Authed) {
+    const { block, startedAt, steps } = this.blocks.job(req.user.sub, job);
+    return block ? { state: 'done', block: view(block), startedAt, steps } : { state: 'running', startedAt, steps };
+  }
+
   @Get(':id')
   async get(@Param('id', ParseUUIDPipe) id: string) {
     return view(await this.blocks.get(id));
@@ -109,9 +120,17 @@ export class AdminCustomBlocksController {
   /** JSON, or multipart with up to 5 attached pictures, PDFs or text files under "files". */
   @Post()
   @UseInterceptors(attachments)
-  async generate(@Body() dto: PromptDto, @Req() req: Authed, @UploadedFiles() files?: Express.Multer.File[]) {
+  async generate(
+    @Body() dto: PromptDto,
+    @Req() req: Authed,
+    @Headers('prefer') prefer: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+    @UploadedFiles() files?: Express.Multer.File[],
+  ) {
     const attached = await readAttachments(files);
-    return view(await this.blocks.generate(dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId, attached));
+    return this.answer(prefer, res, req.user.sub, (report) =>
+      this.blocks.generate(dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId, attached, report),
+    );
   }
 
   @Post(':id/refine')
@@ -121,10 +140,29 @@ export class AdminCustomBlocksController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: PromptDto,
     @Req() req: Authed,
+    @Headers('prefer') prefer: string | undefined,
+    @Res({ passthrough: true }) res: Response,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     const attached = await readAttachments(files);
-    return view(await this.blocks.refine(id, dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId, attached));
+    return this.answer(prefer, res, req.user.sub, (report) =>
+      this.blocks.refine(id, dto.prompt.trim(), { id: req.user.sub, email: req.user.email }, dto.connectionId, attached, report),
+    );
+  }
+
+  /**
+   * The block once the AI is done, or, with "Prefer: respond-async" (what the builder sends), 202 and a job id right
+   * away, to fetch from GET jobs/:job.
+   */
+  private async answer(
+    prefer: string | undefined,
+    res: Response,
+    userId: string,
+    work: (report?: (step: AiStep) => void) => Promise<CustomBlock>,
+  ) {
+    if (!/\brespond-async\b/i.test(prefer ?? '')) return view(await work());
+    res.status(202);
+    return { job: this.blocks.background(userId, work) };
   }
 
   @Put(':id/draft')

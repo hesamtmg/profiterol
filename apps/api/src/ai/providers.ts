@@ -125,9 +125,16 @@ export interface ProviderOptions {
   model: string;
   apiKey: string;
   baseUrl?: string;
+  /** How long one answer may take (the admin's setting); 10 minutes when not given. */
+  timeoutSeconds?: number;
 }
 
-const TIMEOUT_MS = 10 * 60 * 1000;
+const timeoutMs = (opts: ProviderOptions) => (opts.timeoutSeconds ?? 600) * 1000;
+
+const timedOut = (opts: ProviderOptions) =>
+  new AiError(
+    `The AI provider did not answer within ${opts.timeoutSeconds ?? 600} seconds. Raise the timeout in your AI models, or ask for a simpler block.`,
+  );
 
 function parseAnswer(text: string): Record<string, unknown> {
   // Some OpenAI-compatible servers wrap JSON in a code fence even when asked not to.
@@ -145,7 +152,7 @@ class AnthropicProvider implements AiProvider {
   private readonly client: Anthropic;
 
   constructor(private readonly opts: ProviderOptions) {
-    this.client = new Anthropic({ apiKey: opts.apiKey, baseURL: opts.baseUrl || undefined, timeout: TIMEOUT_MS, maxRetries: 1 });
+    this.client = new Anthropic({ apiKey: opts.apiKey, baseURL: opts.baseUrl || undefined, timeout: timeoutMs(opts), maxRetries: 1 });
   }
 
   async generateJson(req: AiRequest) {
@@ -162,6 +169,7 @@ class AnthropicProvider implements AiProvider {
         })
         .finalMessage();
     } catch (err) {
+      if (err instanceof Anthropic.APIConnectionTimeoutError) throw timedOut(this.opts);
       throw anthropicError(err);
     }
     if (message.stop_reason === 'refusal') throw new AiError('The AI declined this request. Try describing the block differently.');
@@ -222,6 +230,8 @@ class OpenAiProvider implements AiProvider {
         ? { type: 'json_schema', json_schema: { name: 'answer', strict: true, schema: req.schema } }
         : { type: 'json_object' },
     };
+    // One deadline for the whole answer, including a second try within a smaller limit (below).
+    const deadline = AbortSignal.timeout(timeoutMs(this.opts));
     const send = async (maxTokens: number) => {
       const sized = { ...body, ...(official ? { max_completion_tokens: maxTokens } : { max_tokens: maxTokens }) };
       let res: Response;
@@ -230,12 +240,16 @@ class OpenAiProvider implements AiProvider {
           method: 'POST',
           headers: { 'content-type': 'application/json', ...authHeader(this.opts.apiKey) },
           body: JSON.stringify(sized),
-          signal: AbortSignal.timeout(TIMEOUT_MS),
+          signal: deadline,
         });
       } catch {
+        if (deadline.aborted) throw timedOut(this.opts);
         throw new AiError('Could not reach the AI provider. Check the base URL and the server’s internet access.');
       }
-      const data = (await res.json().catch(() => null)) as {
+      const data = (await res.json().catch(() => {
+        if (deadline.aborted) throw timedOut(this.opts);
+        return null;
+      })) as {
         error?: { message?: string };
         choices?: { message?: { content?: string; refusal?: string }; finish_reason?: string }[];
       } | null;

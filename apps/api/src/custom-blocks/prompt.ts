@@ -136,7 +136,7 @@ When the admin asks for a change, answer with the complete new definition and co
 field keys when their meaning stays the same, so content the admin already entered keeps working.
 
 ## Example of a good answer
-def_json:
+def_json (the answer's def_json is this object written as a JSON string):
 ${JSON.stringify(EXAMPLE_DEF, null, 2)}
 
 source:

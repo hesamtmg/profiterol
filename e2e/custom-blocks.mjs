@@ -105,9 +105,13 @@ await ad.fill('#ai-model', 'stand-in');
 await ad.fill('#ai-name', 'Stand-in');
 await ad.fill('#ai-key', 'sk-e2e-secret-key-1234');
 await ad.fill('#ai-base', `http://127.0.0.1:${ai.address().port}/v1`);
+check('ai models: a timeout per model, ten minutes to start with', (await ad.inputValue('#ai-timeout')) === '600');
+await ad.fill('#ai-timeout', '900');
 await ad.locator('[data-testid="ai-connections"]').screenshot({ path: out + 'ai-models-form.png' });
 await ad.click('button:has-text("Save model")');
 await ad.waitForSelector('text=AI model saved.');
+const savedModel = (await api(token, 'GET', '/admin/ai/connections')).connections.find((c) => c.name === 'Stand-in');
+check('ai models: the timeout is saved', savedModel?.timeoutSeconds === 900, JSON.stringify(savedModel));
 const row = ad.locator('[data-connection="Stand-in"]');
 check(
   'ai models: the key is not shown again, only its end',
@@ -122,6 +126,12 @@ await ad.click('button:has-text("Hide your AI models")');
 // ---------- Build a block ----------
 await ad.fill('#block-prompt', 'A list of questions that open to show the answer');
 await ad.click('button:has-text("Build it")');
+// The conversation shows the request and the AI at work while the block is built in the background.
+await ad.waitForSelector('li[data-pending="working"]', { timeout: 2000 });
+check(
+  'chat: the request shows at once, with the AI at work',
+  (await ad.locator('li[data-pending="request"]').textContent()).includes('questions that open'),
+);
 await ad.waitForSelector('h2:has-text("Toggle list")', { timeout: 20000 });
 const frame = ad.frameLocator('iframe[title="Block preview"]');
 await frame.locator('h2.title').waitFor({ timeout: 10000 });
