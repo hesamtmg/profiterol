@@ -73,6 +73,15 @@ developer or a deploy:
    Later changes stay in the draft until approved again. A block can be disabled, and it can be deleted once no page
    uses it.
 
+**Copy from a website**: instead of describing a block, give the address of a website you like (and, if you like,
+how many blocks, what to copy, and a screenshot). The API reads the page and its first stylesheets
+(`apps/api/src/custom-blocks/site-import.ts`), the AI picks its components (hero, features, pricing, footer…), and
+each becomes a draft block like the ones above, to refine and approve. A component the AI cannot build is skipped,
+the others are kept. Only public http(s) addresses on the usual ports are read: names that resolve to private,
+loopback or link-local addresses are refused (checked when connecting, and again on each redirect), and the page
+and its styles are limited in size and time. `SITE_IMPORT_ALLOW_PRIVATE=true` lifts that, for tests only. Copy the
+layout and look; the site's texts are just example content to replace with your own.
+
 The component can only import a few functions from `vue` and may not use `v-html`, `fetch`, `document`, cookies,
 storage or `eval`. The page's Content-Security-Policy still applies on top of that. Approved blocks render in the
 browser only, never on the server.

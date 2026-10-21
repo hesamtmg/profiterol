@@ -35,4 +35,9 @@ export const config = {
   extraDomains: (process.env.EXTRA_DOMAINS ?? '').split(/[\s,]+/).filter(Boolean),
   /** Shared with the domains agent (docker/domains), which calls /api/internal/*. Without it those routes are off. */
   internalToken: process.env.INTERNAL_TOKEN ?? '',
+  /**
+   * Lets the AI block builder read websites on private networks and any port ("Copy from a website"). Off: an admin
+   * could otherwise make the API fetch addresses on its own network. Only for tests and trusted setups.
+   */
+  siteImportAllowPrivate: process.env.SITE_IMPORT_ALLOW_PRIVATE === 'true',
 };

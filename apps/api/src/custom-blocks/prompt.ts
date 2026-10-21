@@ -143,3 +143,34 @@ source:
 ${EXAMPLE_SOURCE}
 
 Answer with JSON only: { "summary", "def_json", "source" }.`;
+
+/** The answer to "which components does this website have?" (see SITE_SYSTEM_PROMPT). */
+export const SITE_ANSWER_SCHEMA: AiRequest['schema'] = {
+  type: 'object',
+  properties: {
+    summary: { type: 'string', description: 'One or two sentences for the admin: the site and the components you picked.' },
+    components_json: { type: 'string', description: 'The components as a JSON string: an array (see the system prompt).' },
+  },
+  required: ['summary', 'components_json'],
+  additionalProperties: false,
+};
+
+/** Instructions for picking a website's components, each of which then becomes a block (with SYSTEM_PROMPT). */
+export const SITE_SYSTEM_PROMPT = `You help a site admin of Profiterol, a website builder, copy the design of another website. You get the
+website's cleaned-up HTML (scripts removed, long class lists cut) and the gist of its CSS. Find its distinct
+components (the page's sections: a hero, a feature grid, a pricing table, testimonials, a footer, …) so each can be
+rebuilt as a reusable, editable block.
+
+- Pick the components that are worth reusing, in page order. Skip cookie banners, chat widgets, hidden menus, and
+  sections that only repeat a layout you already picked. Never pick more than the admin's maximum.
+- Each component: { "name", "brief", "html" }.
+  - name: 2–4 words for the block list, e.g. "Hero with video".
+  - brief: a precise description for a developer who rebuilds it without seeing the site: the layout on wide and
+    narrow screens, every visible element, colors (as hex), fonts, sizes, spacing, corner radius, shadows, hover and
+    scroll effects, and which content an editor should be able to change (texts, pictures, links, repeated items).
+  - html: the component's own HTML copied from the page (shortened if long: keep one or two repeated items), so the
+    builder sees its real structure and text.
+- The website's content belongs to its owner: the blocks copy the layout and look, and their example content is the
+  site's text only as a starting point the admin replaces.
+
+components_json is the array written as a JSON string. Answer with JSON only: { "summary", "components_json" }.`;

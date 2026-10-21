@@ -3,6 +3,8 @@
  * The AI block builder: the admin describes a block, the AI writes it (fields + Vue component), the API checks and
  * compiles it, and it is tried here in a sandboxed preview. Only the owner can approve a block; then it appears in
  * the page editor under "Custom blocks (AI)". Further requests and code edits stay in the draft until approved again.
+ * "Copy from a website" gives the AI a site's address instead: it picks the site's components and builds each as a
+ * draft block, which is then refined and approved like any other.
  */
 import { fontNames, resolveTheme, type BlockDef, type ThemeTokens } from '@profiterol/blocks';
 import AiAttachments from '~/components/admin/AiAttachments.vue';
@@ -150,19 +152,23 @@ function onDrop(e: DragEvent) {
  * The AI can take minutes, longer than nginx or a proxy in front keeps a request open. So the API answers at once
  * with a job id and builds in the background, and this asks every few seconds whether the block is ready.
  */
-async function askInBackground(path: string, body: FormData | object, onSteps: (steps: AiStep[]) => void): Promise<CustomBlockView> {
+async function askInBackground<T extends CustomBlockView | CustomBlockView[] = CustomBlockView>(
+  path: string,
+  body: FormData | object,
+  onSteps: (steps: AiStep[]) => void,
+): Promise<T> {
   // Attached files can take a while to upload on a slow connection.
   const { job } = await api<{ job: string }>(path, { method: 'POST', body, headers: { prefer: 'respond-async' }, timeout: 120_000 });
   let misses = 0;
   while (!left) {
     await new Promise((resolve) => setTimeout(resolve, 2500));
     try {
-      const res = await api<{ state: 'running'; steps: AiStep[] } | { state: 'done'; block: CustomBlockView; steps: AiStep[] }>(
-        `/admin/custom-blocks/jobs/${job}`,
-      );
+      const res = await api<
+        { state: 'running'; steps: AiStep[] } | { state: 'done'; block?: CustomBlockView; blocks?: CustomBlockView[]; steps: AiStep[] }
+      >(`/admin/custom-blocks/jobs/${job}`);
       misses = 0;
       onSteps(res.steps);
-      if (res.state === 'done') return res.block;
+      if (res.state === 'done') return (res.blocks ?? res.block) as T;
     } catch (err) {
       // A dropped connection or a moment of "bad gateway" is no answer: keep asking. The API's own errors end it.
       const status = (err as { statusCode?: number }).statusCode;
@@ -209,6 +215,54 @@ const ask = () =>
     files.value = [];
     tab.value = 'preview';
     if (!selected.value) router.replace({ query: { id: block.id } });
+  });
+
+/** A new block from a description, or blocks copied from a website. */
+const mode = ref<'describe' | 'site'>('describe');
+const siteUrl = ref('');
+const siteMax = ref(5);
+const siteNote = ref('');
+/** A web address as typed, without the scheme ("example.com" is fine). */
+const siteUrlOk = computed(() => /^(https?:\/\/)?[^\s/.]+\.[^\s]{2,}$/i.test(siteUrl.value.trim()));
+
+const copySite = () =>
+  run(async () => {
+    const url = siteUrl.value.trim();
+    if (!siteUrlOk.value) return;
+    const note = siteNote.value.trim();
+    const fields: Record<string, string> = { url, max: String(siteMax.value), ...(note ? { note } : {}) };
+    if (connectionId.value) fields.connectionId = connectionId.value;
+    let body: FormData | Record<string, string | number> = { ...fields, max: siteMax.value };
+    if (files.value.length) {
+      const form = new FormData();
+      for (const [k, v] of Object.entries(fields)) form.append(k, v);
+      for (const f of files.value) form.append('files', f);
+      body = form;
+    }
+    pending.value = {
+      blockId: null,
+      text: [t('Copy the components of {url}', { url }), note].filter(Boolean).join('\n'),
+      files: files.value.map((f) => f.name),
+      startedAt: Date.now(),
+      steps: [],
+    };
+    const request = pending.value;
+    let blocks: CustomBlockView[];
+    try {
+      blocks = await askInBackground<CustomBlockView[]>('/admin/custom-blocks/from-site', body, (steps) => {
+        request.steps = steps;
+      });
+    } catch (err) {
+      request.error = errorText(err);
+      return;
+    }
+    pending.value = null;
+    for (const b of [...blocks].reverse()) replace(b);
+    siteUrl.value = '';
+    siteNote.value = '';
+    files.value = [];
+    tab.value = 'preview';
+    router.replace({ query: { id: blocks[0].id } });
   });
 
 const saveCode = () =>
@@ -316,9 +370,96 @@ onMounted(load);
       <section class="min-w-0">
         <p v-if="error" class="mb-4 whitespace-pre-line rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{{ error }}</p>
 
-        <!-- A new block: just the request. -->
+        <!-- A new block: described, or copied from a website. -->
+        <div v-if="creating" class="mb-3 flex w-fit rounded-full bg-white p-1 text-sm shadow-sm" role="tablist">
+          <button
+            v-for="m in ['describe', 'site'] as const"
+            :key="m"
+            type="button"
+            role="tab"
+            :aria-selected="mode === m"
+            class="flex items-center gap-1.5 rounded-full px-4 py-1.5"
+            :class="mode === m ? 'bg-slate-900 text-white' : 'text-slate-600'"
+            :disabled="busy"
+            @click="mode = m"
+          >
+            <i class="mdi" :class="m === 'describe' ? 'mdi-creation' : 'mdi-web'" />
+            {{ m === 'describe' ? $t('Describe it') : $t('Copy from a website') }}
+          </button>
+        </div>
         <form
-          v-if="creating"
+          v-if="creating && mode === 'site'"
+          class="rounded-[2rem] bg-white p-6 shadow-sm"
+          :class="{ 'ring-2 ring-[#00a998]': dropping }"
+          data-form="from-site"
+          @submit.prevent="copySite"
+          @dragover.prevent="dropping = true"
+          @dragleave="dropping = false"
+          @drop.prevent="onDrop"
+        >
+          <p class="mb-4 text-sm text-slate-500">
+            {{
+              $t(
+                'Give the address of a website you like. The AI reads the page, picks its components (hero, features, pricing, footer…) and builds each as a draft block with editable fields.',
+              )
+            }}
+          </p>
+          <label class="field-label" for="site-url">{{ $t('Website address') }}</label>
+          <input
+            id="site-url"
+            v-model="siteUrl"
+            type="text"
+            inputmode="url"
+            class="input"
+            dir="ltr"
+            placeholder="https://example.com"
+            autocomplete="url"
+          />
+          <div class="mt-4 grid gap-4 sm:grid-cols-[10rem_1fr]">
+            <div>
+              <label class="field-label" for="site-max">{{ $t('At most') }}</label>
+              <select id="site-max" v-model.number="siteMax" class="input">
+                <option v-for="n in 8" :key="n" :value="n">{{ $t('{n} blocks', { n }) }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label" for="site-note">{{ $t('Anything to know? (optional)') }}</label>
+              <input
+                id="site-note"
+                v-model="siteNote"
+                type="text"
+                class="input"
+                :placeholder="$t('E.g. only the pricing table and the testimonials')"
+              />
+            </div>
+          </div>
+          <p class="mt-4 text-xs text-slate-500">
+            {{ $t('A screenshot of the page helps the AI match its look. Paste or drop one here.') }}
+          </p>
+          <AiAttachments ref="attach" v-model="files" class="mt-2" :disabled="busy" />
+          <p class="mt-3 text-xs text-slate-400">
+            {{ $t('Each block costs a few AI requests. Copy the layout and look; replace the site’s texts and pictures with your own.') }}
+          </p>
+          <div class="mt-4 flex items-center gap-3">
+            <button type="submit" class="btn-dark" :disabled="busy || !ready || !isAdmin || !siteUrlOk">
+              <i class="mdi" :class="busy ? 'mdi-loading mdi-spin' : 'mdi-web'" />
+              {{ busy ? $t('Copying… this can take a few minutes') : $t('Copy its components') }}
+            </button>
+            <select v-if="connections && connections.length > 1" v-model="connectionId" class="input !w-auto" :aria-label="$t('AI model')">
+              <option v-for="c in connections" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+            <span v-else-if="connections?.length" class="text-xs text-slate-500">{{
+              $t('With {name}', { name: connections[0].name })
+            }}</span>
+          </div>
+          <div v-if="pendingFor(null)" class="mt-5 flex max-h-[32rem] flex-col border-t border-slate-100 pt-4">
+            <h3 class="mb-2 px-1 text-sm font-semibold">{{ $t('Conversation with the AI') }}</h3>
+            <CustomBlockChat :messages="[]" :pending="pendingFor(null)" />
+          </div>
+        </form>
+
+        <form
+          v-else-if="creating"
           class="rounded-[2rem] bg-white p-6 shadow-sm"
           :class="{ 'ring-2 ring-[#00a998]': dropping }"
           @submit.prevent="ask"
