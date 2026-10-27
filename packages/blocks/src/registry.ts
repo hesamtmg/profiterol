@@ -6,6 +6,7 @@ import { folioDefinitions } from './folio.js';
 import { spatialDefinitions } from './spatial.js';
 import { layoutDefinitions, styleDefaults, styleFields, topLevelOnlyTypes } from './layout.js';
 import { studioDefinitions } from './studio.js';
+import { atelierDefinitions } from './atelier.js';
 
 const button: FieldDef[] = [
   { key: 'buttonLabel', label: 'Button label', type: 'text' },
@@ -546,6 +547,7 @@ const definitions: BlockDef[] = [
   ...studioDefinitions,
   ...folioDefinitions,
   ...spatialDefinitions,
+  ...atelierDefinitions,
   ...classicDefinitions,
   ...layoutDefinitions,
 ];
