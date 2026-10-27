@@ -398,3 +398,28 @@ test('the sublimation designer keeps real-world photos per product', () => {
   const old = { ...block, props: { ...block.props, products: [{ surface: 'tshirt', name: 'T-shirt', price: '', sizes: '' }] } };
   assert.deepEqual(validateBlocks([old]), []);
 });
+
+test('model photos mark the print area with four corners', async () => {
+  const { parseQuad } = await import('../dist/esm/index.js');
+  assert.deepEqual(parseQuad('0.1,0.2,0.9,0.2,0.9,0.8,0.1,0.8'), [
+    [0.1, 0.2],
+    [0.9, 0.2],
+    [0.9, 0.8],
+    [0.1, 0.8],
+  ]);
+  for (const bad of ['', '1,2,3', '0,0,1,0,1,1,0,x', '0,0,1,0,1,1,0,9', '0,0,1,0,1,1,0,1,0']) assert.equal(parseQuad(bad), null, bad);
+
+  const block = createBlock('textile-designer');
+  const withModel = (area) => ({
+    ...block,
+    props: {
+      ...block.props,
+      products: [
+        { surface: 'tshirt', name: 'T-shirt', price: '', sizes: '', models: [{ image: '/uploads/m.jpg', area, mask: '', label: '' }] },
+      ],
+    },
+  });
+  assert.deepEqual(validateBlocks([withModel('0.3,0.3,0.7,0.3,0.7,0.7,0.3,0.7')]), []);
+  assert.deepEqual(validateBlocks([withModel('')]), []);
+  assert.ok(validateBlocks([withModel('0.3,0.3,0.7')]).length > 0);
+});

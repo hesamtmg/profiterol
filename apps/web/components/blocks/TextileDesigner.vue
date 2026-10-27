@@ -7,7 +7,7 @@
  * under Admin → Print orders and call back. Everything is drawn on canvases in the browser; photos never leave it
  * until the design is sent.
  */
-import { printSurfaces } from '@profiterol/blocks';
+import { parseQuad, printSurfaces } from '@profiterol/blocks';
 import EditableText from '../site/EditableText.vue';
 import {
   drawDesign,
@@ -29,6 +29,7 @@ import {
   type Repeat,
   type TextLayer,
 } from './print/design';
+import { loadPhoto, prepareModel, renderOnModel, type ModelPhoto } from './print/onModel';
 import { surfaces } from './print/surfaces';
 
 interface Product {
@@ -38,6 +39,8 @@ interface Product {
   sizes: string;
   /** Photos of this product printed for real customers. Missing on blocks saved before the setting existed. */
   photos?: { image: string; caption: string }[];
+  /** Photos of a person wearing the product, with the print's corners marked on them. */
+  models?: { image: string; area: string; mask: string; label: string }[];
 }
 
 const props = defineProps<{
@@ -152,6 +155,10 @@ const EN = {
   closePhoto: 'Close',
   prevPhoto: 'Previous photo',
   nextPhoto: 'Next photo',
+  onModel: 'On a model',
+  seeOnModel: 'See it on a model',
+  download: 'Download',
+  modelFailed: 'This photo could not be loaded.',
 } as const;
 
 const FA: Record<keyof typeof EN, string> = {
@@ -241,6 +248,10 @@ const FA: Record<keyof typeof EN, string> = {
   closePhoto: 'بستن',
   prevPhoto: 'عکس قبلی',
   nextPhoto: 'عکس بعدی',
+  onModel: 'روی مدل',
+  seeOnModel: 'دیدن طرح روی مدل',
+  download: 'دانلود',
+  modelFailed: 'این عکس باز نشد.',
 };
 
 const t = computed(() => (fa.value ? FA : EN));
@@ -334,6 +345,87 @@ watch(sampleOpen, (open) => {
   else window.addEventListener('keydown', onSampleKey);
 });
 onBeforeUnmount(() => import.meta.client && window.removeEventListener('keydown', onSampleKey));
+
+// ── On a model ──────────────────────────────────────────────────────────────────────────────────────────────
+
+/** The chosen product's model photos that have their print area marked. */
+const models = computed(() =>
+  (product.value?.models ?? []).flatMap((m) => {
+    const area = m.image ? parseQuad(m.area ?? '') : null;
+    return area ? [{ ...m, corners: area }] : [];
+  }),
+);
+const modelOpen = ref<number | null>(null);
+const modelBusy = ref(false);
+const modelError = ref('');
+const modelEl = ref<HTMLCanvasElement | null>(null);
+/** Each photo is read once (keyed by photo, corners and mask). */
+const modelCache = new Map<string, Promise<ModelPhoto>>();
+
+function preparedModel(m: (typeof models.value)[number]): Promise<ModelPhoto> {
+  const key = `${m.image}|${m.area}|${m.mask}`;
+  let ready = modelCache.get(key);
+  if (!ready) {
+    ready = Promise.all([loadPhoto(m.image), m.mask ? loadPhoto(m.mask).catch(() => null) : null]).then(([photo, mask]) =>
+      prepareModel(photo.img, photo.readable, m.corners, mask?.img),
+    );
+    ready.catch(() => modelCache.delete(key));
+    modelCache.set(key, ready);
+  }
+  return ready;
+}
+
+let modelRun = 0;
+async function drawOnModel() {
+  const i = modelOpen.value;
+  const m = i === null ? undefined : models.value[i];
+  if (!m) return;
+  const run = ++modelRun;
+  modelBusy.value = true;
+  modelError.value = '';
+  try {
+    await document.fonts?.ready;
+    const prepared = await preparedModel(m);
+    if (run !== modelRun || !modelEl.value) return;
+    // The design at about the size it covers on the photo, so it stays sharp without wasting time.
+    const [pw, ph] = printPixels(printCm.value);
+    const k = Math.min(1, 1200 / Math.max(pw, ph));
+    const d = document.createElement('canvas');
+    d.width = Math.max(1, Math.round(pw * k));
+    d.height = Math.max(1, Math.round(ph * k));
+    drawDesign(d.getContext('2d')!, design, d.width, d.height, images, new Map());
+    renderOnModel(modelEl.value, prepared, d, base.value);
+  } catch {
+    if (run === modelRun) modelError.value = t.value.modelFailed;
+  } finally {
+    if (run === modelRun) modelBusy.value = false;
+  }
+}
+
+async function downloadOnModel() {
+  if (!modelEl.value) return;
+  const url = URL.createObjectURL(await toBlob(modelEl.value, 'image/jpeg', 0.92));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${product.value?.name || 'design'}.jpg`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+const onModelKey = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') modelOpen.value = null;
+};
+watch(modelOpen, async (open) => {
+  if (!import.meta.client) return;
+  window.removeEventListener('keydown', onModelKey);
+  if (open === null) return;
+  window.addEventListener('keydown', onModelKey);
+  await nextTick();
+  drawOnModel();
+});
+watch(base, () => modelOpen.value !== null && drawOnModel());
+watch(models, (list) => modelOpen.value !== null && modelOpen.value >= list.length && (modelOpen.value = null));
+onBeforeUnmount(() => import.meta.client && window.removeEventListener('keydown', onModelKey));
 
 /** Where the design is edited: mugs are edited unrolled, everything else on the product itself. */
 const stage = computed(() =>
@@ -1172,6 +1264,14 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
                 <i class="mdi mdi-trash-can-outline" />
               </button>
             </template>
+            <button
+              v-if="models.length"
+              type="button"
+              class="btn-pill border border-slate-200 bg-white !px-3 !py-1.5 text-xs hover:border-slate-400"
+              @click="modelOpen = 0"
+            >
+              <i class="mdi mdi-human-handsdown" /> {{ t.onModel }}
+            </button>
             <button v-if="hasContent" type="button" class="ms-auto text-xs text-muted underline-offset-2 hover:underline" @click="clearAll">
               {{ t.clear }}
             </button>
@@ -1639,6 +1739,14 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
 
           <!-- 3 · Send -->
           <form v-else-if="step === 'send'" class="mt-5 space-y-4" novalidate @submit.prevent="submit">
+            <button
+              v-if="models.length"
+              type="button"
+              class="btn-pill w-full border border-slate-200 bg-white hover:border-slate-400"
+              @click="modelOpen = 0"
+            >
+              <i class="mdi mdi-human-handsdown" /> {{ t.seeOnModel }}
+            </button>
             <div class="rounded-3xl bg-slate-50 p-4 text-sm">
               <p class="mb-2 font-bold">{{ t.summary }}</p>
               <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
@@ -1775,6 +1883,61 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="modelOpen !== null && models[modelOpen]"
+        class="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-black/90 p-4"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="t.onModel"
+        :dir="fa ? 'rtl' : 'ltr'"
+        @click.self="modelOpen = null"
+      >
+        <div class="relative flex min-h-0 w-full flex-1 items-center justify-center" @click.self="modelOpen = null">
+          <canvas
+            ref="modelEl"
+            class="max-h-full max-w-full rounded-2xl bg-slate-800 object-contain shadow-2xl transition-opacity"
+            :class="modelBusy ? 'opacity-60' : ''"
+            data-on-model
+          />
+          <i v-if="modelBusy" class="mdi mdi-loading absolute animate-spin text-4xl text-white" />
+          <p v-if="modelError" class="absolute rounded-xl bg-white px-4 py-2 text-sm text-red-600">{{ modelError }}</p>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-2">
+          <template v-if="models.length > 1">
+            <button
+              v-for="(m, i) in models"
+              :key="i"
+              type="button"
+              class="h-14 w-14 overflow-hidden rounded-xl border-2 transition"
+              :class="modelOpen === i ? 'border-white' : 'border-transparent opacity-60 hover:opacity-100'"
+              :aria-label="m.label || `${t.onModel} ${i + 1}`"
+              :aria-pressed="modelOpen === i"
+              @click="modelOpen = i"
+            >
+              <img :src="m.image" alt="" class="h-full w-full object-cover" />
+            </button>
+          </template>
+          <button
+            type="button"
+            class="btn-pill bg-white text-sm text-slate-900"
+            :disabled="modelBusy || !!modelError"
+            @click="downloadOnModel"
+          >
+            <i class="mdi mdi-download" /> {{ t.download }}
+          </button>
+        </div>
+        <button
+          type="button"
+          class="absolute end-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-xl text-white hover:bg-white/25"
+          :aria-label="t.closePhoto"
+          @click="modelOpen = null"
+        >
+          <i class="mdi mdi-close" />
+        </button>
+      </div>
+    </Teleport>
 
     <Teleport to="body">
       <div

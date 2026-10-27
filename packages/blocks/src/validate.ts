@@ -22,6 +22,13 @@ export function isSafeUrl(value: string): boolean {
   return ['http', 'https', 'mailto', 'tel'].includes(scheme[1].toLowerCase());
 }
 
+/** Reads a `quad` value into four [x, y] corners, or null when it is empty or malformed. */
+export function parseQuad(value: string): [number, number][] | null {
+  const n = value.split(',').map((v) => (v.trim() === '' ? NaN : Number(v)));
+  if (n.length !== 8 || n.some((v) => !Number.isFinite(v) || v < -0.5 || v > 1.5)) return null;
+  return [0, 2, 4, 6].map((i) => [n[i], n[i + 1]] as [number, number]);
+}
+
 function checkValue(field: FieldDef, value: unknown, path: string, errors: ValidationError[]): void {
   switch (field.type) {
     case 'number':
@@ -49,6 +56,9 @@ function checkValue(field: FieldDef, value: unknown, path: string, errors: Valid
       if (value.length > MAX_STRING) errors.push({ path, message: 'is too long' });
       if ((field.type === 'url' || field.type === 'image' || field.type === 'video') && !isSafeUrl(value)) {
         errors.push({ path, message: 'must be a relative path or an http(s), mailto or tel link' });
+      }
+      if (field.type === 'quad' && value !== '' && !parseQuad(value)) {
+        errors.push({ path, message: 'must be four corners: eight numbers separated by commas' });
       }
       if (field.type === 'color' && value !== '' && !/^#[0-9a-f]{3,8}$/i.test(value)) {
         errors.push({ path, message: 'must be a hex color like #00a998' });

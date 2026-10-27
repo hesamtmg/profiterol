@@ -108,6 +108,8 @@ The **Sublimation designer** block (in the editor's Contact blocks) lets visitor
    fabric by the meter, mouse pad or mug, each with its own name, price and sizes), a base color and a fabric. Give a
    product **Real-world photos** (up to 12, with optional captions) of prints you made for customers: they show under
    the products when a visitor picks it, and open full screen.
+   Give it **Model photos** too, and visitors get an **On a model** button that shows their design on a real person
+   (see below).
 2. **Design**: add photos (button, drag-and-drop or paste), texts in the site's fonts (outline, bold, curved),
    stickers and background patterns (stripes, dots, gingham, zigzag, waves, gradient). Drag to move; pinch, scroll or
    pull the corner handles to resize and the top handle to rotate (it snaps to 45°). Photos can be flipped, faded,
@@ -116,6 +118,14 @@ The **Sublimation designer** block (in the editor's Contact blocks) lets visitor
    Mugs are edited unrolled, with a live preview of the cup.
 3. **Send**: name, phone, optional email and notes. The browser renders the print file (150 dpi at the product's
    print size, PNG with no ink where the design is empty, or JPEG if that is too large) and a mock-up preview.
+
+**On a model**: upload a photo of someone wearing the product (front-facing, a plain light shirt, even light, no
+logo), then drag the four corners of **Print area** to where the print's corners sit on it. The visitor's design is
+bent onto those corners in perspective, pushed along the fabric's folds and shaded with the photo's own light, and the
+shirt takes the color they picked. The fabric is found automatically by growing from the print area over light,
+colorless pixels; when a light wall touches the shirt, add a **Fabric mask** (a PNG the size of the photo, white where
+the fabric is). It is all drawn in the visitor's browser: the design is not uploaded to show it, and the visitor can
+download the picture.
 
 Designs arrive in **Admin → Print orders** (a badge counts new ones), with the preview, the print file to download,
 the order details and the list of layers. Call or WhatsApp the customer from there, keep your own notes, and move the

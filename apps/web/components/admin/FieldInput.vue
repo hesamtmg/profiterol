@@ -4,10 +4,12 @@ import { createListItem, type FieldDef } from '@profiterol/blocks';
 import FieldInput from './FieldInput.vue';
 import LinkInput from './LinkInput.vue';
 import MediaPicker from './MediaPicker.vue';
+import QuadInput from './QuadInput.vue';
 import RichTextInput from './RichTextInput.vue';
 
 /** `locale`: the language of the page being edited, so the link picker offers that language's addresses. */
-const props = defineProps<{ field: FieldDef; dir?: string; locale?: string }>();
+/** `siblings`: the other values of the list item this field belongs to (a `quad` is drawn on one of its images). */
+const props = defineProps<{ field: FieldDef; dir?: string; locale?: string; siblings?: Record<string, unknown> }>();
 /** Links the label to its input, for screen readers and for clicking the label. */
 const uid = useId();
 const model = defineModel<unknown>();
@@ -82,7 +84,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
 
 <template>
   <div>
-    <label class="field-label" :for="field.type === 'list' || field.type === 'boolean' ? undefined : uid">{{ $t(field.label) }}</label>
+    <label class="field-label" :for="['list', 'boolean', 'quad'].includes(field.type) ? undefined : uid">{{ $t(field.label) }}</label>
 
     <input v-if="field.type === 'text'" :id="uid" v-model="model" type="text" class="input" :dir="dir" />
     <LinkInput
@@ -105,6 +107,12 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
       <option v-if="!collections?.length" disabled value="">{{ $t('No collections yet') }}</option>
       <option v-for="c in collections ?? []" :key="c.key" :value="c.key">{{ c.name.en || c.key }}</option>
     </select>
+    <QuadInput
+      v-else-if="field.type === 'quad'"
+      :model-value="(model as string) ?? ''"
+      :image="String(siblings?.[field.imageField ?? 'image'] ?? '')"
+      @update:model-value="model = $event"
+    />
     <div v-else-if="field.type === 'color'" class="flex items-center gap-2">
       <input
         type="color"
@@ -199,6 +207,7 @@ const atMax = computed(() => props.field.max !== undefined && list.value.length 
             :dir="dir"
             :locale="locale"
             :model-value="item[sub.key]"
+            :siblings="item"
             @update:model-value="(v) => setItemField(i, sub.key, v)"
           />
         </div>
