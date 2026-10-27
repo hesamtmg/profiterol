@@ -13,6 +13,8 @@ export interface SiteContext {
   https: boolean;
   /** The admin panel's language for people who have not picked one ('' follows their browser). */
   adminLang: '' | 'en' | 'fa';
+  /** Whether the owner has allowed the sublimation designer (and its Print orders) on this site. */
+  printDesigner: boolean;
   /**
    * The port the request came in on, when its address had one (development, e.g. localhost:8080). Behind nginx
    * there is none. Links in emails keep it, so they work where the admin is running.

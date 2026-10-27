@@ -7,15 +7,17 @@ const nav = [
   { to: '/admin', label: 'Pages', icon: 'mdi-file-document-multiple-outline' },
   { to: '/admin/collections', label: 'Collections', icon: 'mdi-view-dashboard-variant-outline' },
   { to: '/admin/inbox', label: 'Inbox', icon: 'mdi-inbox-outline' },
-  { to: '/admin/designs', label: 'Print orders', icon: 'mdi-tshirt-crew-outline' },
+  { to: '/admin/designs', label: 'Print orders', icon: 'mdi-tshirt-crew-outline', printDesigner: true },
   { to: '/admin/media', label: 'Media', icon: 'mdi-image-multiple-outline' },
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
   { to: '/admin/redirects', label: 'Redirects', icon: 'mdi-directions-fork' },
   { to: '/admin/users', label: 'Users', icon: 'mdi-account-multiple-outline', admin: true },
   { to: '/admin/sites', label: 'Sites', icon: 'mdi-web', owner: true },
 ];
-const { isAdmin, isOwner } = useAuth();
-const visibleNav = computed(() => nav.filter((item) => (!item.admin || isAdmin.value) && (!item.owner || isOwner.value)));
+const { isAdmin, isOwner, printDesigner } = useAuth();
+const visibleNav = computed(() =>
+  nav.filter((item) => (!item.admin || isAdmin.value) && (!item.owner || isOwner.value) && (!item.printDesigner || printDesigner.value)),
+);
 
 // Unread form messages and new print designs, shown as badges on Inbox and Print orders. Their pages keep them up to date.
 const api = useApi();
@@ -24,7 +26,10 @@ const newDesigns = useState<number>('designs-new', () => 0);
 async function refreshUnread() {
   try {
     [unread.value, newDesigns.value] = (
-      await Promise.all([api<{ count: number }>('/admin/submissions/unread-count'), api<{ count: number }>('/admin/designs/new-count')])
+      await Promise.all([
+        api<{ count: number }>('/admin/submissions/unread-count'),
+        printDesigner.value ? api<{ count: number }>('/admin/designs/new-count') : { count: 0 },
+      ])
     ).map((r) => r.count);
   } catch {
     // Not critical; leave the badges as they are.

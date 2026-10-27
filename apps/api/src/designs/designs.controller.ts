@@ -13,6 +13,9 @@ import {
   Query,
   Req,
   Res,
+  type CanActivate,
+  Injectable,
+  NotFoundException,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -24,6 +27,7 @@ import type { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
 import { AuthGuard } from '../auth/auth.guard';
 import { RateLimiter } from '../common/rate-limit';
+import { currentSite } from '../sites/site-context';
 import { designStatuses, type DesignStatus } from './design-request.entity';
 import { type DesignAnswers, DesignsService, type UploadedPicture } from './designs.service';
 
@@ -63,7 +67,17 @@ class UpdateDesignDto {
 const MAX_PRINT_BYTES = 22 * 1024 * 1024;
 const limiter = new RateLimiter(4, 10 * 60 * 1000, 'Too many designs. Please try again in a few minutes.');
 
+/** The designer exists only on sites the owner has allowed it on (Admin → Sites); elsewhere its routes do not. */
+@Injectable()
+export class PrintDesignerGuard implements CanActivate {
+  canActivate() {
+    if (!currentSite().printDesigner) throw new NotFoundException('The print designer is not enabled on this site');
+    return true;
+  }
+}
+
 @Controller('public/designs')
+@UseGuards(PrintDesignerGuard)
 export class PublicDesignsController {
   constructor(private readonly designs: DesignsService) {}
 
@@ -134,7 +148,7 @@ export class PublicDesignsController {
 }
 
 @Controller('admin/designs')
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, PrintDesignerGuard)
 export class AdminDesignsController {
   constructor(private readonly designs: DesignsService) {}
 

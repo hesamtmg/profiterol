@@ -94,6 +94,11 @@ class CreateSiteDto {
   @IsOptional()
   @IsIn(SITE_LOCALES)
   defaultLocale?: string;
+
+  /** Allow the sublimation designer block and Print orders on this site. */
+  @IsOptional()
+  @IsBoolean()
+  printDesigner?: boolean;
 }
 
 class UpdateSiteDto {
@@ -117,6 +122,11 @@ class UpdateSiteDto {
   @IsOptional()
   @IsIn(ADMIN_LANGS)
   adminLang?: AdminLang;
+
+  /** Allow the sublimation designer block and Print orders on this site. */
+  @IsOptional()
+  @IsBoolean()
+  printDesigner?: boolean;
 }
 
 class DeleteSiteDto {
@@ -145,6 +155,7 @@ const view = (s: Site) => {
     domains: c.domains,
     url: siteOrigin(c),
     adminLang: s.adminLang,
+    printDesigner: s.printDesigner,
     sslMode: s.sslMode,
     ssl: s.ssl,
     sslMessage: s.sslMessage,
@@ -197,7 +208,7 @@ export class AdminSitesController {
   @Post()
   async create(@Body() dto: CreateSiteDto) {
     const domains = await this.sites.checkDomains(dto.domain, dto.aliases ?? []);
-    const site = await this.sites.create(dto.name ?? '', domains, dto.ssl ?? false, dto.adminLang ?? '');
+    const site = await this.sites.create(dto.name ?? '', domains, dto.ssl ?? false, dto.adminLang ?? '', dto.printDesigner ?? false);
     const ctx = toContext(site);
     let invite: { email: string; link: string; emailed: boolean } | null = null;
     await runInSite(ctx, async () => {
@@ -224,6 +235,7 @@ export class AdminSitesController {
     const before = toContext(site).domains;
     if (dto.name !== undefined) site = await this.sites.rename(id, dto.name);
     if (dto.adminLang !== undefined) site = await this.sites.setAdminLang(id, dto.adminLang);
+    if (dto.printDesigner !== undefined) site = await this.sites.setPrintDesigner(id, dto.printDesigner);
     if (dto.domain !== undefined || dto.aliases !== undefined) {
       const c = toContext(site);
       site = await this.sites.setDomains(id, dto.domain ?? c.primary, dto.aliases ?? c.domains.slice(1));

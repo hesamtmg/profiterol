@@ -97,6 +97,11 @@ browser only, never on the server.
 
 ## Sublimation designer and print orders
 
+It is only on the sites an owner allows it on: **Admin → Sites**, a site's settings, **Allow the sublimation designer
+and Print orders** (or the same box when adding a site). Elsewhere the block is not in the editor, pages cannot be saved
+with it, it is left out of published pages, and Print orders and its routes do not exist. Sites that already used it
+when this setting arrived keep it.
+
 The **Sublimation designer** block (in the editor's Contact blocks) lets visitors design their own print:
 
 1. **Product**: the products you list in the block (T-shirt, hoodie, apron, tote bag, cushion, silk scarf, flag,
