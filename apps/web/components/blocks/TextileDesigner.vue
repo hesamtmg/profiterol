@@ -7,7 +7,7 @@
  * under Admin → Print orders and call back. Everything is drawn on canvases in the browser; photos never leave it
  * until the design is sent.
  */
-import { parseQuad, printSurfaces } from '@profiterol/blocks';
+import { parseMesh, printSurfaces } from '@profiterol/blocks';
 import EditableText from '../site/EditableText.vue';
 import {
   drawDesign,
@@ -351,8 +351,8 @@ onBeforeUnmount(() => import.meta.client && window.removeEventListener('keydown'
 /** The chosen product's model photos that have their print area marked. */
 const models = computed(() =>
   (product.value?.models ?? []).flatMap((m) => {
-    const area = m.image ? parseQuad(m.area ?? '') : null;
-    return area ? [{ ...m, corners: area }] : [];
+    const mesh = m.image ? parseMesh(m.area ?? '') : null;
+    return mesh ? [{ ...m, mesh }] : [];
   }),
 );
 const modelOpen = ref<number | null>(null);
@@ -367,7 +367,7 @@ function preparedModel(m: (typeof models.value)[number]): Promise<ModelPhoto> {
   let ready = modelCache.get(key);
   if (!ready) {
     ready = Promise.all([loadPhoto(m.image), m.mask ? loadPhoto(m.mask).catch(() => null) : null]).then(([photo, mask]) =>
-      prepareModel(photo.img, photo.readable, m.corners, mask?.img),
+      prepareModel(photo.img, photo.readable, m.mesh, mask?.img),
     );
     ready.catch(() => modelCache.delete(key));
     modelCache.set(key, ready);

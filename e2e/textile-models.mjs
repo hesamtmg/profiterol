@@ -1,7 +1,7 @@
 // The sublimation designer's "On a model" view: the visitor's design bent onto a photo of a person wearing the product,
-// and the admin's print-area editor where its four corners are marked.
+// and the admin's print-area editor where a grid of points is marked.
 import { createRequire } from 'node:module';
-import { createBlock } from '../packages/blocks/dist/esm/index.js';
+import { createBlock, formatMesh, parseMesh } from '../packages/blocks/dist/esm/index.js';
 import { ADMIN, api, apiToken, BASE, check, finish, launch, shots, upload, watch } from './lib.mjs';
 
 const sharp = createRequire(new URL('../apps/api/package.json', import.meta.url))('sharp');
@@ -29,16 +29,19 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
 </svg>`;
 const photoBytes = await sharp(Buffer.from(svg)).jpeg({ quality: 90 }).toBuffer();
 const modelUrl = await upload(token, photoBytes, 'model.jpg', 'image/jpeg');
-// The print area: a square on the chest, in fractions of the photo.
-const area = [
-  [0.3, 0.36],
-  [0.7, 0.36],
-  [0.7, 0.68],
-  [0.3, 0.68],
-];
+// The print area: a square on the chest, in fractions of the photo, as a 3×3 grid of points.
+const grid = {
+  cols: 3,
+  rows: 3,
+  points: Array.from({ length: 9 }, (_, i) => [0.3 + 0.2 * (i % 3), 0.36 + 0.16 * Math.floor(i / 3)]),
+};
 
 const block = createBlock('textile-designer');
-block.props.products[0].models = [{ image: modelUrl, area: area.flat().join(','), mask: '', label: 'Store' }];
+block.props.products[0].models = [
+  { image: modelUrl, area: formatMesh(grid), mask: '', label: 'Store' },
+  // Saved before grids existed: four corners, clockwise.
+  { image: modelUrl, area: '0.3,0.36,0.7,0.36,0.7,0.68,0.3,0.68', mask: '', label: 'Corners' },
+];
 
 const page0 = await api(token, 'POST', '/admin/pages', { name: 'On a model' });
 await api(token, 'PATCH', `/admin/pages/${page0.id}`, {
@@ -101,6 +104,22 @@ const text = await page.evaluate(() => {
 });
 check('the design is on the shirt', text > 50, String(text));
 
+const darkInPrint = () =>
+  page.evaluate(() => {
+    const c = document.querySelector('canvas[data-on-model]');
+    const d = c.getContext('2d').getImageData(Math.round(c.width * 0.32), Math.round(c.height * 0.48), Math.round(c.width * 0.36), 40).data;
+    let dark = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i] + d[i + 1] + d[i + 2] < 200) dark++;
+    return dark;
+  });
+await viewer.getByRole('button', { name: 'Corners' }).click();
+await page.waitForFunction(() => !document.querySelector('[role=dialog] .mdi-loading'));
+await page.waitForTimeout(200);
+const legacy = await darkInPrint();
+check('four corners saved before grids still work, the same as a flat grid', Math.abs(legacy - text) < text * 0.1, `${legacy} vs ${text}`);
+await viewer.getByRole('button', { name: 'Store' }).click();
+await page.waitForFunction(() => !document.querySelector('[role=dialog] .mdi-loading'));
+
 const [download] = await Promise.all([page.waitForEvent('download'), viewer.getByRole('button', { name: 'Download' }).click()]);
 check('Download saves a JPEG', download.suggestedFilename().endsWith('.jpg'));
 await page.keyboard.press('Escape');
@@ -122,7 +141,7 @@ check(
 );
 await mobile.screenshot({ path: out + 'fa-mobile.png' });
 
-// The admin marks the print area by dragging the corners.
+// The admin marks the print area: drags a point, picks more points, moves the whole grid.
 const admin = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 watch(admin);
 await admin.goto(`${BASE}/admin/login`, { waitUntil: 'networkidle' });
@@ -133,24 +152,30 @@ await admin.waitForURL(`${BASE}/admin`);
 await admin.goto(`${BASE}/admin/pages/${page0.id}`, { waitUntil: 'networkidle' });
 await admin.click('button:has-text("English")');
 await admin.locator('main [id^=blk-] h2').first().click();
-const corner = admin.locator('aside [data-corner="2"]');
-await corner.waitFor();
-await corner.scrollIntoViewIfNeeded();
-const from = await corner.boundingBox();
-await admin.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
-await admin.mouse.down();
-await admin.mouse.move(from.x + 30, from.y + 40, { steps: 5 });
-await admin.mouse.up();
+const drag = async (locator, dx, dy) => {
+  await locator.scrollIntoViewIfNeeded();
+  const b = await locator.boundingBox();
+  await admin.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+  await admin.mouse.down();
+  await admin.mouse.move(b.x + b.width / 2 + dx, b.y + b.height / 2 + dy, { steps: 5 });
+  await admin.mouse.up();
+};
+const editor = admin.locator('aside [data-mesh="cols"]').first().locator('xpath=../..');
+await editor.locator('[data-corner="8"]').waitFor();
+check('the editor shows one handle per point', (await editor.locator('[data-corner]').count()) === 9);
+await drag(editor.locator('[data-corner="8"]'), 30, 40);
+await editor.locator('[data-mesh="cols"]').selectOption('4');
+check('picking more points adds handles', (await editor.locator('[data-corner]').count()) === 12);
+await drag(editor.locator('[data-mesh="area"]'), 20, 0);
 await admin.screenshot({ path: out + 'admin-area.png' });
 await admin.getByRole('button', { name: 'Save', exact: true }).click();
 await admin.waitForTimeout(800);
 const saved = await api(token, 'GET', `/admin/pages/${page0.id}`);
-const savedArea = saved.translations
-  .find((t) => t.locale === 'en')
-  .blocks[0].props.products[0].models[0].area.split(',')
-  .map(Number);
-check('dragging a corner moves it', savedArea[4] > 0.7 && savedArea[5] > 0.68, savedArea.join(','));
-check('the other corners stay', savedArea[0] === 0.3 && savedArea[1] === 0.36);
+const savedMesh = parseMesh(saved.translations.find((t) => t.locale === 'en').blocks[0].props.products[0].models[0].area);
+check('saved as a 4×3 grid', savedMesh?.cols === 4 && savedMesh?.rows === 3, JSON.stringify(savedMesh));
+const [tl, br] = [savedMesh.points[0], savedMesh.points[11]];
+check('dragging inside moves the whole grid', tl[0] > 0.31 && Math.abs(tl[1] - 0.36) < 0.005, tl.join(','));
+check('the dragged point kept its place when points were added', br[0] - tl[0] > 0.42 && br[1] > 0.7, br.join(','));
 
 await api(token, 'DELETE', `/admin/pages/${page0.id}`);
 await browser.close();

@@ -15,8 +15,9 @@ export type FieldType =
   /** Formatted text (HTML). The API cleans it on save, keeping only safe tags. */
   | 'richtext'
   /**
-   * Four corners on a photo (top-left, top-right, bottom-right, bottom-left) as fractions of its size:
-   * "x1,y1,x2,y2,x3,y3,x4,y4", or empty. Drawn on the sibling image named by `imageField`.
+   * A grid of points on a photo, as fractions of its size: "CxR:x,y,x,y,…" with C columns and R rows of points, row by
+   * row from the top left (2 to 6 each), or empty. The older "x1,y1,…,x4,y4" (four corners, clockwise from the top
+   * left) still reads as a 2×2 grid. Drawn on the sibling image named by `imageField`.
    */
   | 'quad';
 

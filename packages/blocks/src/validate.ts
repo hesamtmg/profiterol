@@ -22,11 +22,38 @@ export function isSafeUrl(value: string): boolean {
   return ['http', 'https', 'mailto', 'tel'].includes(scheme[1].toLowerCase());
 }
 
-/** Reads a `quad` value into four [x, y] corners, or null when it is empty or malformed. */
-export function parseQuad(value: string): [number, number][] | null {
-  const n = value.split(',').map((v) => (v.trim() === '' ? NaN : Number(v)));
-  if (n.length !== 8 || n.some((v) => !Number.isFinite(v) || v < -0.5 || v > 1.5)) return null;
-  return [0, 2, 4, 6].map((i) => [n[i], n[i + 1]] as [number, number]);
+/** A `quad` field's grid: `cols` × `rows` points, row by row from the top left, as fractions of the photo. */
+export interface Mesh {
+  cols: number;
+  rows: number;
+  points: [number, number][];
+}
+
+export const MESH_MIN = 2;
+export const MESH_MAX = 6;
+
+/** Reads a `quad` value ("CxR:x,y,…", or four clockwise corners) into its grid, or null when empty or malformed. */
+export function parseMesh(value: string): Mesh | null {
+  const head = value.match(/^\s*(\d)x(\d)\s*:/);
+  const [cols, rows] = head ? [Number(head[1]), Number(head[2])] : [2, 2];
+  if (cols < MESH_MIN || cols > MESH_MAX || rows < MESH_MIN || rows > MESH_MAX) return null;
+  const n = value
+    .slice(head ? head[0].length : 0)
+    .split(',')
+    .map((v) => (v.trim() === '' ? NaN : Number(v)));
+  if (n.length !== cols * rows * 2 || n.some((v) => !Number.isFinite(v) || v < -0.5 || v > 1.5)) return null;
+  const points = Array.from({ length: cols * rows }, (_, i) => [n[i * 2], n[i * 2 + 1]] as [number, number]);
+  // The older form goes round the corners clockwise; the grid goes row by row.
+  if (!head) [points[2], points[3]] = [points[3], points[2]];
+  return { cols, rows, points };
+}
+
+/** Writes a grid back as a `quad` value. */
+export function formatMesh({ cols, rows, points }: Mesh): string {
+  return `${cols}x${rows}:${points
+    .flat()
+    .map((v) => +v.toFixed(4))
+    .join(',')}`;
 }
 
 function checkValue(field: FieldDef, value: unknown, path: string, errors: ValidationError[]): void {
@@ -57,8 +84,8 @@ function checkValue(field: FieldDef, value: unknown, path: string, errors: Valid
       if ((field.type === 'url' || field.type === 'image' || field.type === 'video') && !isSafeUrl(value)) {
         errors.push({ path, message: 'must be a relative path or an http(s), mailto or tel link' });
       }
-      if (field.type === 'quad' && value !== '' && !parseQuad(value)) {
-        errors.push({ path, message: 'must be four corners: eight numbers separated by commas' });
+      if (field.type === 'quad' && value !== '' && !parseMesh(value)) {
+        errors.push({ path, message: `must be a grid of points: "CxR:" (${MESH_MIN} to ${MESH_MAX} each), then x,y for each point` });
       }
       if (field.type === 'color' && value !== '' && !/^#[0-9a-f]{3,8}$/i.test(value)) {
         errors.push({ path, message: 'must be a hex color like #00a998' });
