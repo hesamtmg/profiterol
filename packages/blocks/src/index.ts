@@ -18,3 +18,4 @@ export * from './templates.js';
 export * from './business.js';
 export * from './seo.js';
 export * from './custom.js';
+export * from './print.js';

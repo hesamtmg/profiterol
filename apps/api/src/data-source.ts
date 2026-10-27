@@ -4,6 +4,7 @@ import { Collection, CollectionItem, ItemTranslation } from './collections/colle
 import { AiConnection } from './ai/ai-connection.entity';
 import { config } from './config';
 import { CustomBlock } from './custom-blocks/custom-block.entity';
+import { DesignRequest } from './designs/design-request.entity';
 import { FormSubmission } from './forms/form-submission.entity';
 import { Media } from './media/media.entity';
 import { Page, PageRevision, PageTranslation } from './pages/page.entity';
@@ -31,6 +32,7 @@ export const dataSourceOptions: DataSourceOptions = {
     CollectionItem,
     ItemTranslation,
     FormSubmission,
+    DesignRequest,
     CustomBlock,
     AiConnection,
   ],

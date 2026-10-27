@@ -7,6 +7,7 @@ const nav = [
   { to: '/admin', label: 'Pages', icon: 'mdi-file-document-multiple-outline' },
   { to: '/admin/collections', label: 'Collections', icon: 'mdi-view-dashboard-variant-outline' },
   { to: '/admin/inbox', label: 'Inbox', icon: 'mdi-inbox-outline' },
+  { to: '/admin/designs', label: 'Print orders', icon: 'mdi-tshirt-crew-outline' },
   { to: '/admin/media', label: 'Media', icon: 'mdi-image-multiple-outline' },
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
   { to: '/admin/redirects', label: 'Redirects', icon: 'mdi-directions-fork' },
@@ -16,16 +17,20 @@ const nav = [
 const { isAdmin, isOwner } = useAuth();
 const visibleNav = computed(() => nav.filter((item) => (!item.admin || isAdmin.value) && (!item.owner || isOwner.value)));
 
-// Unread form messages, shown as a badge on Inbox. The inbox page keeps it up to date.
+// Unread form messages and new print designs, shown as badges on Inbox and Print orders. Their pages keep them up to date.
 const api = useApi();
 const unread = useState<number>('inbox-unread', () => 0);
+const newDesigns = useState<number>('designs-new', () => 0);
 async function refreshUnread() {
   try {
-    unread.value = (await api<{ count: number }>('/admin/submissions/unread-count')).count;
+    [unread.value, newDesigns.value] = (
+      await Promise.all([api<{ count: number }>('/admin/submissions/unread-count'), api<{ count: number }>('/admin/designs/new-count')])
+    ).map((r) => r.count);
   } catch {
-    // Not critical; leave the badge as it is.
+    // Not critical; leave the badges as they are.
   }
 }
+const badge = (to: string) => (to === '/admin/inbox' ? unread.value : to === '/admin/designs' ? newDesigns.value : 0);
 watch(() => route.path, refreshUnread, { immediate: true });
 
 function isActive(to: string) {
@@ -55,11 +60,11 @@ useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, di
             <i class="mdi" :class="item.icon" />
             <span class="hidden whitespace-nowrap sm:inline">{{ $t(item.label) }}</span>
             <span
-              v-if="item.to === '/admin/inbox' && unread"
+              v-if="badge(item.to)"
               class="rounded-full bg-[#00a998] px-1.5 text-[10px] font-bold leading-4 text-white"
-              :aria-label="$t('{n} unread', { n: unread })"
+              :aria-label="$t(item.to === '/admin/inbox' ? '{n} unread' : '{n} new', { n: badge(item.to) })"
             >
-              {{ unread }}
+              {{ badge(item.to) }}
             </span>
           </NuxtLink>
         </nav>

@@ -14,6 +14,7 @@ import {
   cleanCss,
   cleanTheme,
   cloneBlock,
+  designBlockTypes,
   findBlock,
   fontNames,
   formBlockTypes,
@@ -439,8 +440,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
         if (b.children) {
           return { ...b, children: await Promise.all(b.children.map((column) => this.expandBlocks(column, locale, pageId))) };
         }
-        // Forms post back to /public/forms/<page>/<block>, so they need to know their page.
-        if (formBlockTypes.includes(b.type)) return { ...b, data: { pageId, blockId: b.id } };
+        // Forms post back to /public/forms/<page>/<block> (designs to /public/designs/…), so they need to know their page.
+        if (formBlockTypes.includes(b.type) || designBlockTypes.includes(b.type)) return { ...b, data: { pageId, blockId: b.id } };
         if (b.type !== 'collection-list') return b;
         const p = b.props as { collection?: string; limit?: number; tag?: string };
         const data = await this.collections.listPublished(locale, String(p.collection ?? ''), {
