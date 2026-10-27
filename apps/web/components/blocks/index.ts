@@ -67,6 +67,16 @@ import ShapeParade from './spatial/ShapeParade.vue';
 import TickerBand from './spatial/TickerBand.vue';
 import WaveCta from './spatial/WaveCta.vue';
 import WorkDone from './spatial/WorkDone.vue';
+import CapabilityStack from './atelier/CapabilityStack.vue';
+import CraftHero from './atelier/CraftHero.vue';
+import PhotoCta from './atelier/PhotoCta.vue';
+import PlaceFacts from './atelier/PlaceFacts.vue';
+import PlacePhotos from './atelier/PlacePhotos.vue';
+import QuoteFan from './atelier/QuoteFan.vue';
+import Showroom from './atelier/Showroom.vue';
+import StepCards from './atelier/StepCards.vue';
+import StoryTabs from './atelier/StoryTabs.vue';
+import SwatchLibrary from './atelier/SwatchLibrary.vue';
 import ContactSplit from './classic/ContactSplit.vue';
 import Horizon from './classic/Horizon.vue';
 import HorizonSide from './classic/HorizonSide.vue';
@@ -161,6 +171,17 @@ export const blockComponents: Record<string, Component> = {
   'lit-paragraph': LitParagraph,
   'wave-cta': WaveCta,
   'pill-footer': PillFooter,
+  // The whitecotton.pt look
+  'craft-hero': CraftHero,
+  'step-cards': StepCards,
+  showroom: Showroom,
+  'story-tabs': StoryTabs,
+  'place-photos': PlacePhotos,
+  'capability-stack': CapabilityStack,
+  'swatch-library': SwatchLibrary,
+  'quote-fan': QuoteFan,
+  'place-facts': PlaceFacts,
+  'photo-cta': PhotoCta,
   // The 12 section kinds of minicms
   'video-cover': VideoCover,
   triple: Triple,

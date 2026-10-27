@@ -1,11 +1,14 @@
 /**
  * Builds the FikkoPrint site (fikkoprint.com) in Persian and English: a printing company that does sublimation
- * printing only — mugs, polyester clothing, phone cases, cushions, metal photo panels and more. The page is made mostly
- * of animated blocks, with generated placeholder pictures of the products and the process.
+ * printing only — mugs, polyester clothing, phone cases, cushions, metal photo panels and more — with generated
+ * placeholder pictures of the products and the process, and a News collection of real sublimation stories.
+ * Two looks: the warm workshop look of whitecotton.pt in the Atelier blocks (the default, see fikkoprint-atelier.mjs),
+ * or a page made mostly of animated blocks (--look=animated).
  * It only talks to the admin API, so it works against a local site or a live one.
  *
  *   node scripts/seed-fikkoprint.mjs           a separate page at /fa/چاپ-سابلیمیشن and /en/sublimation-printing (safe)
  *   node scripts/seed-fikkoprint.mjs --home    replaces the home page, and sets the site name, logo, menu and colors
+ *   add --look=animated                         for the animated page instead of the Atelier one
  *
  * Settings: API_URL (default http://localhost:8080/api), ADMIN_EMAIL, ADMIN_PASSWORD, and SITE (the site's address)
  * when the installation has several sites, e.g. SITE=fikkoprint.com.
@@ -13,12 +16,14 @@
  * On the server, see the "FikkoPrint content" section of DEPLOY.md.
  */
 import { createRequire } from 'node:module';
+import { atelierContent } from './fikkoprint-atelier.mjs';
 
 const API = (process.env.API_URL ?? 'http://localhost:8080/api').replace(/\/$/, '');
 // With several sites, the one to fill: its address, e.g. SITE=fikkoprint.com (sent as X-Forwarded-Host).
 const SITE = process.env.SITE ? { 'x-forwarded-host': process.env.SITE } : {};
 const ADMIN = { email: process.env.ADMIN_EMAIL ?? 'admin@example.com', password: process.env.ADMIN_PASSWORD ?? 'admin12345' };
 const HOME = process.argv.includes('--home');
+const LOOK = process.argv.includes('--look=animated') ? 'animated' : 'atelier';
 
 /** sharp comes with the API: next to this file in the repository, or in /app inside the API image. */
 function loadSharp() {
@@ -228,24 +233,28 @@ function logo() {
 }
 
 const up = async (buf, name) => upload(await buf, name, 'image/jpeg');
-const img = {
-  mug: await up(product('mug', { palette: 'sunset', seed: 3, bg: ['#fff7ed', '#fda4af'] }), 'mug.jpg'),
-  mugBlank: await up(product('mug', { blank: true, bg: ['#f8fafc', '#94a3b8'] }), 'mug-blank.jpg'),
-  mugAfter: await up(product('mug', { palette: 'candy', seed: 7, bg: ['#fdf2f8', '#c4b5fd'] }), 'mug-printed.jpg'),
-  tshirt: await up(product('tshirt', { palette: 'ocean', seed: 5, bg: ['#ecfeff', '#67e8f9'] }), 'tshirt.jpg'),
-  phone: await up(product('phone', { palette: 'berry', seed: 11, bg: ['#fdf4ff', '#d8b4fe'] }), 'phone-case.jpg'),
-  cushion: await up(product('cushion', { palette: 'jungle', seed: 13, bg: ['#f7fee7', '#a3e635'] }), 'cushion.jpg'),
-  panel: await up(product('panel', { palette: 'sunset', seed: 17, bg: ['#1e293b', '#020617'] }), 'metal-panel.jpg'),
-  puzzle: await up(product('puzzle', { palette: 'candy', seed: 19, bg: ['#fefce8', '#fde047'] }), 'puzzle.jpg'),
-  mousepad: await up(product('mousepad', { palette: 'ocean', seed: 23, bg: ['#eef2ff', '#818cf8'] }), 'mousepad.jpg'),
-  bottle: await up(product('bottle', { palette: 'berry', seed: 29, bg: ['#fff1f2', '#fb7185'] }), 'bottle.jpg'),
-  jersey: await up(product('jersey', { palette: 'team', seed: 31, bg: ['#eff6ff', '#60a5fa'] }), 'jersey.jpg'),
-  coaster: await up(product('coaster', { palette: 'jungle', seed: 37, bg: ['#fff7ed', '#fdba74'] }), 'coasters.jpg'),
-  screen: await up(step('screen'), 'step-design.jpg'),
-  paper: await up(step('paper'), 'step-transfer-paper.jpg'),
-  press: await up(step('press'), 'step-heat-press.jpg'),
-  gas: await up(step('gas'), 'step-ink-gas.jpg'),
-};
+// The animated look's pictures; the Atelier look draws its own.
+const img =
+  LOOK !== 'animated'
+    ? {}
+    : {
+        mug: await up(product('mug', { palette: 'sunset', seed: 3, bg: ['#fff7ed', '#fda4af'] }), 'mug.jpg'),
+        mugBlank: await up(product('mug', { blank: true, bg: ['#f8fafc', '#94a3b8'] }), 'mug-blank.jpg'),
+        mugAfter: await up(product('mug', { palette: 'candy', seed: 7, bg: ['#fdf2f8', '#c4b5fd'] }), 'mug-printed.jpg'),
+        tshirt: await up(product('tshirt', { palette: 'ocean', seed: 5, bg: ['#ecfeff', '#67e8f9'] }), 'tshirt.jpg'),
+        phone: await up(product('phone', { palette: 'berry', seed: 11, bg: ['#fdf4ff', '#d8b4fe'] }), 'phone-case.jpg'),
+        cushion: await up(product('cushion', { palette: 'jungle', seed: 13, bg: ['#f7fee7', '#a3e635'] }), 'cushion.jpg'),
+        panel: await up(product('panel', { palette: 'sunset', seed: 17, bg: ['#1e293b', '#020617'] }), 'metal-panel.jpg'),
+        puzzle: await up(product('puzzle', { palette: 'candy', seed: 19, bg: ['#fefce8', '#fde047'] }), 'puzzle.jpg'),
+        mousepad: await up(product('mousepad', { palette: 'ocean', seed: 23, bg: ['#eef2ff', '#818cf8'] }), 'mousepad.jpg'),
+        bottle: await up(product('bottle', { palette: 'berry', seed: 29, bg: ['#fff1f2', '#fb7185'] }), 'bottle.jpg'),
+        jersey: await up(product('jersey', { palette: 'team', seed: 31, bg: ['#eff6ff', '#60a5fa'] }), 'jersey.jpg'),
+        coaster: await up(product('coaster', { palette: 'jungle', seed: 37, bg: ['#fff7ed', '#fdba74'] }), 'coasters.jpg'),
+        screen: await up(step('screen'), 'step-design.jpg'),
+        paper: await up(step('paper'), 'step-transfer-paper.jpg'),
+        press: await up(step('press'), 'step-heat-press.jpg'),
+        gas: await up(step('gas'), 'step-ink-gas.jpg'),
+      };
 const logoUrl = HOME ? await upload(await logo(), 'fikkoprint-logo.png', 'image/png') : '';
 
 // ---------- News: five real stories from the sublimation industry, each summarised in both languages ----------
@@ -994,7 +1003,8 @@ const blocks = (l) => [
 ];
 
 // ---------- Save ----------
-const theme = {
+const atelier = LOOK === 'atelier' ? await atelierContent({ sharp, up, product, step }) : null;
+const animatedTheme = {
   primary: '#e6007e',
   secondary: '#00a0e9',
   dark: '#0d0b14',
@@ -1003,6 +1013,7 @@ const theme = {
   cursor: 'default',
   pageTransition: 'curtain',
 };
+const theme = atelier?.theme ?? animatedTheme;
 const titles = {
   en: 'FikkoPrint — Sublimation printing',
   fa: 'فیکوپرینت — چاپ سابلیمیشن',
@@ -1066,7 +1077,7 @@ if (HOME) {
     logo: logoUrl,
     favicon: settings.favicon,
     theme: { ...settings.theme, ...theme },
-    menu: [
+    menu: atelier?.menu ?? [
       { href: '#process', label: { fa: 'فرایند چاپ', en: 'How it works' } },
       { href: '#products', label: { fa: 'محصولات', en: 'Products' } },
       { href: '#materials', label: { fa: 'جنس‌ها', en: 'Materials' } },
@@ -1099,7 +1110,7 @@ await api('PATCH', `/admin/pages/${page.id}`, {
   name: page.name,
   // On its own page the colors belong to the page; with --home they are the site's.
   theme: HOME ? null : theme,
-  translations: LOCALES.map((l) => ({ locale: l, slug: slugs[l], title: titles[l], ...seo[l], blocks: blocks(l) })),
+  translations: LOCALES.map((l) => ({ locale: l, slug: slugs[l], title: titles[l], ...seo[l], blocks: (atelier?.blocks ?? blocks)(l) })),
 });
 await api('POST', `/admin/pages/${page.id}/publish`);
 console.log(`Published: ${LOCALES.map((l) => `/${l}/${slugs[l]}`).join('  ')}`);

@@ -29,6 +29,7 @@ const SUITES = [
   'studio',
   'folio',
   'spatial',
+  'atelier',
 ];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;

@@ -207,6 +207,28 @@ test('spatial blocks (the undplus.com look) are registered and checked', async (
   assert.match(themeFontsHref(yellow.theme), /family=Outfit/);
 });
 
+test('atelier blocks (the whitecotton.pt look) are registered and checked', async () => {
+  const { atelierDefinitions, isTopLevelOnly, themePresets, cleanTheme } = await import('../dist/esm/index.js');
+  assert.equal(atelierDefinitions.length, 10);
+  assert.ok(atelierDefinitions.every((d) => d.category === 'atelier' && blocks.some((b) => b.type === d.type)));
+  for (const d of atelierDefinitions) assert.deepEqual(validateBlocks([createBlock(d.type)]), [], d.type);
+  for (const type of ['craft-hero', 'capability-stack', 'photo-cta']) assert.ok(isTopLevelOnly(type), type);
+  assert.ok(!isTopLevelOnly('step-cards'));
+
+  const steps = createBlock('step-cards');
+  steps.props.steps[0].link = 'javascript:alert(1)';
+  assert.equal(validateBlocks([steps])[0].path, 'blocks[0].props.steps[0].link');
+  const shelf = createBlock('showroom');
+  shelf.props.items = Array.from({ length: 17 }, () => shelf.props.items[0]);
+  assert.equal(validateBlocks([shelf])[0].path, 'blocks[0].props.items');
+  const place = createBlock('place-photos');
+  place.props.photoSide = 'middle';
+  assert.equal(validateBlocks([place])[0].path, 'blocks[0].props.photoSide');
+
+  const cream = themePresets.find((t) => t.key === 'atelier-cream');
+  assert.deepEqual(cleanTheme(cream.theme), cream.theme);
+});
+
 test('every header style is kept by cleanTheme', async () => {
   const { headerStyles, cleanTheme } = await import('../dist/esm/index.js');
   assert.deepEqual(
