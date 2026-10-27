@@ -385,3 +385,16 @@ describe('templates', () => {
     }
   });
 });
+
+test('the sublimation designer keeps real-world photos per product', () => {
+  const block = createBlock('textile-designer');
+  const withPhotos = (photos) => ({
+    ...block,
+    props: { ...block.props, products: [{ surface: 'tshirt', name: 'T-shirt', price: '', sizes: '', photos }] },
+  });
+  assert.deepEqual(validateBlocks([withPhotos([{ image: '/uploads/shirt.jpg', caption: 'Team shirts' }])]), []);
+  assert.ok(validateBlocks([withPhotos([{ image: 'javascript:alert(1)', caption: '' }])]).length > 0);
+  // Blocks saved before the setting existed have no photos.
+  const old = { ...block, props: { ...block.props, products: [{ surface: 'tshirt', name: 'T-shirt', price: '', sizes: '' }] } };
+  assert.deepEqual(validateBlocks([old]), []);
+});

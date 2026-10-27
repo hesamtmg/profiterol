@@ -36,6 +36,8 @@ interface Product {
   name: string;
   price: string;
   sizes: string;
+  /** Photos of this product printed for real customers. Missing on blocks saved before the setting existed. */
+  photos?: { image: string; caption: string }[];
 }
 
 const props = defineProps<{
@@ -146,6 +148,10 @@ const EN = {
   s_production: 'Being printed',
   s_done: 'Ready',
   s_cancelled: 'Cancelled',
+  samples: 'Made for our customers',
+  closePhoto: 'Close',
+  prevPhoto: 'Previous photo',
+  nextPhoto: 'Next photo',
 } as const;
 
 const FA: Record<keyof typeof EN, string> = {
@@ -231,6 +237,10 @@ const FA: Record<keyof typeof EN, string> = {
   s_production: 'در حال چاپ',
   s_done: 'آماده است',
   s_cancelled: 'لغو شد',
+  samples: 'نمونه‌های چاپ‌شده برای مشتری‌ها',
+  closePhoto: 'بستن',
+  prevPhoto: 'عکس قبلی',
+  nextPhoto: 'عکس بعدی',
 };
 
 const t = computed(() => (fa.value ? FA : EN));
@@ -302,6 +312,28 @@ watch(colors, (list) => (color.value = list.includes(color.value) ? color.value 
 watch(materials, (list) => (material.value = list.includes(material.value) ? material.value : (list[0] ?? '')), { immediate: true });
 watch(sizes, (list) => (size.value = list.includes(size.value) ? size.value : (list[0] ?? '')), { immediate: true });
 watch(products, (list) => (productIndex.value = Math.min(productIndex.value, Math.max(0, list.length - 1))));
+
+/** Photos of the chosen product printed for real customers, and the one open full screen. */
+const samples = computed(() => (product.value?.photos ?? []).filter((s) => s.image));
+const sampleOpen = ref<number | null>(null);
+const openSample = computed(() => (sampleOpen.value === null ? null : samples.value[sampleOpen.value]));
+const stepSample = (by: number) => {
+  if (sampleOpen.value === null || !samples.value.length) return;
+  sampleOpen.value = (sampleOpen.value + by + samples.value.length) % samples.value.length;
+};
+const onSampleKey = (e: KeyboardEvent) => {
+  if (e.key === 'Escape') sampleOpen.value = null;
+  // In RTL the "next" photo is to the left.
+  else if (e.key === 'ArrowRight') stepSample(fa.value ? -1 : 1);
+  else if (e.key === 'ArrowLeft') stepSample(fa.value ? 1 : -1);
+};
+watch(productIndex, () => (sampleOpen.value = null));
+watch(sampleOpen, (open) => {
+  if (!import.meta.client) return;
+  if (open === null) window.removeEventListener('keydown', onSampleKey);
+  else window.addEventListener('keydown', onSampleKey);
+});
+onBeforeUnmount(() => import.meta.client && window.removeEventListener('keydown', onSampleKey));
 
 /** Where the design is edited: mugs are edited unrolled, everything else on the product itself. */
 const stage = computed(() =>
@@ -1252,6 +1284,27 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
               </button>
             </div>
 
+            <div v-if="samples.length">
+              <p class="mb-2 text-sm font-medium">{{ t.samples }}</p>
+              <div class="-mx-1 flex snap-x items-start gap-2 overflow-x-auto px-1 pb-1">
+                <button
+                  v-for="(s, i) in samples"
+                  :key="`${productIndex}-${i}`"
+                  type="button"
+                  class="w-24 shrink-0 snap-start text-start @xl:w-28"
+                  @click="sampleOpen = i"
+                >
+                  <img
+                    :src="s.image"
+                    :alt="s.caption || product?.name"
+                    loading="lazy"
+                    class="aspect-square w-full rounded-xl border border-slate-200 object-cover transition hover:scale-[1.03]"
+                  />
+                  <span v-if="s.caption" class="mt-1 line-clamp-2 block text-[11px] leading-tight text-muted">{{ s.caption }}</span>
+                </button>
+              </div>
+            </div>
+
             <div v-if="colors.length">
               <p class="mb-2 text-sm font-medium">{{ t.baseColor }}</p>
               <div class="flex flex-wrap gap-2">
@@ -1722,5 +1775,45 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
         </div>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="openSample"
+        class="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-3 bg-black/85 p-4"
+        role="dialog"
+        aria-modal="true"
+        :dir="fa ? 'rtl' : 'ltr'"
+        @click="sampleOpen = null"
+      >
+        <img :src="openSample.image" :alt="openSample.caption" class="max-h-[85%] max-w-full rounded-2xl object-contain" @click.stop />
+        <p v-if="openSample.caption" class="max-w-xl text-center text-sm text-white">{{ openSample.caption }}</p>
+        <button
+          type="button"
+          class="absolute end-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/15 text-xl text-white hover:bg-white/25"
+          :aria-label="t.closePhoto"
+          @click.stop="sampleOpen = null"
+        >
+          <i class="mdi mdi-close" />
+        </button>
+        <template v-if="samples.length > 1">
+          <button
+            type="button"
+            class="absolute start-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-2xl text-white hover:bg-white/25"
+            :aria-label="t.prevPhoto"
+            @click.stop="stepSample(-1)"
+          >
+            <i class="mdi" :class="fa ? 'mdi-chevron-right' : 'mdi-chevron-left'" />
+          </button>
+          <button
+            type="button"
+            class="absolute end-4 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-full bg-white/15 text-2xl text-white hover:bg-white/25"
+            :aria-label="t.nextPhoto"
+            @click.stop="stepSample(1)"
+          >
+            <i class="mdi" :class="fa ? 'mdi-chevron-left' : 'mdi-chevron-right'" />
+          </button>
+        </template>
+      </div>
+    </Teleport>
   </section>
 </template>

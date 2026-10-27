@@ -29,7 +29,7 @@ export const printDefinitions: BlockDef[] = [
     icon: 'mdi-tshirt-crew-outline',
     category: 'contact',
     description:
-      'Visitors design their own print: pick a product, color and fabric, add photos and text, move, pinch, rotate, tile them as a pattern, then send the design with their phone number. Designs arrive in Admin → Print orders with a print-ready file.',
+      'Visitors design their own print: pick a product (with photos of real prints made for customers), color and fabric, add photos and text, move, pinch, rotate, tile them as a pattern, then send the design with their phone number. Designs arrive in Admin → Print orders with a print-ready file.',
     fields: [
       { key: 'title', label: 'Title', type: 'text' },
       { key: 'text', label: 'Text', type: 'textarea' },
@@ -44,6 +44,18 @@ export const printDefinitions: BlockDef[] = [
           { key: 'name', label: 'Name', type: 'text' },
           { key: 'price', label: 'Price (optional)', type: 'text', help: 'Shown as written, e.g. “from 450,000 T”.' },
           { key: 'sizes', label: 'Sizes (comma-separated)', type: 'text', help: 'Leave empty when the product has one size.' },
+          {
+            key: 'photos',
+            label: 'Real-world photos',
+            type: 'list',
+            itemLabel: 'caption',
+            max: 12,
+            help: 'Photos of this product printed for real customers. Shown under the products when a visitor picks it.',
+            fields: [
+              { key: 'image', label: 'Photo', type: 'image' },
+              { key: 'caption', label: 'Caption (optional)', type: 'text' },
+            ],
+          },
         ],
       },
       {
@@ -74,13 +86,13 @@ export const printDefinitions: BlockDef[] = [
       title: 'Design your own print',
       text: 'Pick a product, add your photos or text, and send the design. We will call you back to confirm the details.',
       products: [
-        { surface: 'tshirt', name: 'T-shirt', price: '', sizes: 'S, M, L, XL, XXL' },
-        { surface: 'hoodie', name: 'Hoodie', price: '', sizes: 'S, M, L, XL, XXL' },
-        { surface: 'pillow', name: 'Cushion', price: '', sizes: '40×40, 45×45, 50×50' },
-        { surface: 'tote', name: 'Tote bag', price: '', sizes: '' },
-        { surface: 'scarf', name: 'Silk scarf', price: '', sizes: '70×70, 90×90' },
-        { surface: 'fabric', name: 'Fabric by the meter', price: '', sizes: '' },
-        { surface: 'mug', name: 'Mug', price: '', sizes: '' },
+        { surface: 'tshirt', name: 'T-shirt', price: '', sizes: 'S, M, L, XL, XXL', photos: [] },
+        { surface: 'hoodie', name: 'Hoodie', price: '', sizes: 'S, M, L, XL, XXL', photos: [] },
+        { surface: 'pillow', name: 'Cushion', price: '', sizes: '40×40, 45×45, 50×50', photos: [] },
+        { surface: 'tote', name: 'Tote bag', price: '', sizes: '', photos: [] },
+        { surface: 'scarf', name: 'Silk scarf', price: '', sizes: '70×70, 90×90', photos: [] },
+        { surface: 'fabric', name: 'Fabric by the meter', price: '', sizes: '', photos: [] },
+        { surface: 'mug', name: 'Mug', price: '', sizes: '', photos: [] },
       ],
       colors: '#ffffff, #f8f5ee, #e5e7eb, #fef3c7, #dbeafe, #fce7f3',
       materials: 'Polyester, Microfiber, Satin, Polyester-cotton 65/35',
