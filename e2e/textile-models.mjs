@@ -8,6 +8,9 @@ const sharp = createRequire(new URL('../apps/api/package.json', import.meta.url)
 const out = shots('textile-models');
 const browser = await launch();
 const token = await apiToken();
+// The designer is only on sites the owner allows it on.
+const me = await api(token, 'GET', '/auth/me');
+await api(token, 'PATCH', `/admin/sites/${me.site.id}`, { printDesigner: true });
 
 // A stand-in "model": a dark wall, skin, and a white T-shirt lit from the left with one deep diagonal fold.
 const W = 1000;
