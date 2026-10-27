@@ -1,17 +1,22 @@
 /**
- * "On a model": puts a design on a photo of a person wearing the product. The admin marks where the print's four
- * corners sit on the photo; the design is bent onto those corners in perspective, pushed along the fabric's folds
- * and shaded with the photo's own light, so creases and shadows fall across the print as they would on cloth.
- * Everything runs on canvases in the browser.
+ * "On a model": puts a design on a photo of a person wearing the product. The admin marks where the print sits on
+ * the photo with a grid of points (four corners, or more to follow a curved body); each cell of the grid bends its
+ * part of the design in perspective. The print is then pushed along the fabric's folds and shaded with the photo's
+ * own light, so creases and shadows fall across it as they would on cloth. Everything runs on canvases in the browser.
  */
+import type { Mesh } from '@profiterol/blocks';
 
 type Point = [number, number];
 
 export interface ModelPhoto {
   /** The photo, at most MAX_SIDE pixels on its long side. */
   canvas: HTMLCanvasElement;
-  /** The print's corners on `canvas`, in pixels: top-left, top-right, bottom-right, bottom-left. */
-  corners: Point[];
+  /**
+   * Where on the design each pixel of `uvBox` falls (u, v from 0 to 1, two numbers per pixel), or NaN outside the
+   * print. Worked out once from the grid, so drawing only looks it up.
+   */
+  uv: Float32Array;
+  uvBox: [number, number, number, number];
   /** The part of the photo that is worked on: [x, y, w, h]. */
   box: [number, number, number, number];
   /** Per pixel of `box`, 0..1. Null when the photo's pixels cannot be read (see renderOnModel). */
@@ -68,6 +73,56 @@ function invert3(m: number[]): number[] {
   return [A, -(b * i - c * h), b * f - c * e, B, a * i - c * g, -(a * f - c * d), C, -(a * h - b * g), a * e - b * d].map((v) => v / det);
 }
 
+/**
+ * Maps each pixel under the grid to its place on the design. Every cell is a four-cornered piece with its own
+ * perspective; neighbouring cells share their edges, so the print stays in one piece.
+ */
+function mapGrid(cols: number, rows: number, pts: Point[], W: number, H: number) {
+  const xs = pts.map((p) => p[0]);
+  const ys = pts.map((p) => p[1]);
+  const x0 = Math.max(0, Math.floor(Math.min(...xs)));
+  const y0 = Math.max(0, Math.floor(Math.min(...ys)));
+  const w = Math.max(1, Math.min(W, Math.ceil(Math.max(...xs))) - x0);
+  const h = Math.max(1, Math.min(H, Math.ceil(Math.max(...ys))) - y0);
+  const uv = new Float32Array(w * h * 2).fill(NaN);
+  const p = (c: number, r: number) => pts[r * cols + c];
+  const eps = 1e-3;
+  for (let r = 0; r < rows - 1; r++) {
+    for (let c = 0; c < cols - 1; c++) {
+      const cell = [p(c, r), p(c + 1, r), p(c + 1, r + 1), p(c, r + 1)];
+      const inv = invert3(squareToQuad(cell));
+      if (!inv.every(Number.isFinite)) continue;
+      const cx = cell.map((q) => q[0]);
+      const cy = cell.map((q) => q[1]);
+      for (let y = Math.max(y0, Math.floor(Math.min(...cy))); y < Math.min(y0 + h, Math.ceil(Math.max(...cy))); y++) {
+        for (let x = Math.max(x0, Math.floor(Math.min(...cx))); x < Math.min(x0 + w, Math.ceil(Math.max(...cx))); x++) {
+          const sx = x + 0.5;
+          const sy = y + 0.5;
+          const d = inv[6] * sx + inv[7] * sy + inv[8];
+          const u = (inv[0] * sx + inv[1] * sy + inv[2]) / d;
+          const v = (inv[3] * sx + inv[4] * sy + inv[5]) / d;
+          if (u < -eps || v < -eps || u > 1 + eps || v > 1 + eps) continue;
+          const i = ((y - y0) * w + (x - x0)) * 2;
+          uv[i] = (c + Math.min(1, Math.max(0, u))) / (cols - 1);
+          uv[i + 1] = (r + Math.min(1, Math.max(0, v))) / (rows - 1);
+        }
+      }
+    }
+  }
+  return { uv, uvBox: [x0, y0, w, h] as [number, number, number, number] };
+}
+
+/** The grid's outline, clockwise from the top left. */
+function outline(cols: number, rows: number, pts: Point[]): Point[] {
+  const p = (c: number, r: number) => pts[r * cols + c];
+  return [
+    ...Array.from({ length: cols }, (_, c) => p(c, 0)),
+    ...Array.from({ length: rows - 1 }, (_, r) => p(cols - 1, r + 1)),
+    ...Array.from({ length: cols - 1 }, (_, c) => p(cols - 2 - c, rows - 1)),
+    ...Array.from({ length: rows - 2 }, (_, r) => p(0, rows - 2 - r)),
+  ];
+}
+
 /** Is the point inside the (convex or not) polygon? */
 function inside(x: number, y: number, poly: Point[]): boolean {
   let hit = false;
@@ -101,10 +156,10 @@ function blur(a: Float32Array, w: number, h: number, r: number, passes = 2) {
 }
 
 /**
- * Reads the photo once: where the fabric is (the mask image, or light, colorless pixels inside the corners), how
- * its light falls, and which way its folds run. `area` is the four corners as fractions of the photo.
+ * Reads the photo once: where the print goes, where the fabric is (the mask image, or light, colorless pixels
+ * reached from the print), how its light falls, and which way its folds run. `area` is in fractions of the photo.
  */
-export function prepareModel(img: HTMLImageElement, readable: boolean, area: Point[], maskImg?: HTMLImageElement | null): ModelPhoto {
+export function prepareModel(img: HTMLImageElement, readable: boolean, area: Mesh, maskImg?: HTMLImageElement | null): ModelPhoto {
   const k = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
   const W = Math.max(1, Math.round(img.naturalWidth * k));
   const H = Math.max(1, Math.round(img.naturalHeight * k));
@@ -113,10 +168,12 @@ export function prepareModel(img: HTMLImageElement, readable: boolean, area: Poi
   canvas.height = H;
   const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
   ctx.drawImage(img, 0, 0, W, H);
-  const corners = area.map(([x, y]) => [x * W, y * H] as Point);
+  const pts = area.points.map(([x, y]) => [x * W, y * H] as Point);
+  const { uv, uvBox } = mapGrid(area.cols, area.rows, pts, W, H);
+  const corners = outline(area.cols, area.rows, pts);
 
   const box: [number, number, number, number] = [0, 0, W, H];
-  const empty: ModelPhoto = { canvas, corners, box, mask: null, shade: null, dx: null, dy: null };
+  const empty: ModelPhoto = { canvas, uv, uvBox, box, mask: null, shade: null, dx: null, dy: null };
   if (!readable) return empty;
 
   let px: Uint8ClampedArray;
@@ -153,7 +210,7 @@ export function prepareModel(img: HTMLImageElement, readable: boolean, area: Poi
     }
     for (let i = 0; i < n; i++) mask[i] = md ? ((md[i * 4] + md[i * 4 + 1] + md[i * 4 + 2]) / 765) * (md[i * 4 + 3] / 255) : 1;
   } else {
-    // The fabric: light, colorless pixels reached from inside the corners, so the whole shirt is found without the
+    // The fabric: light, colorless pixels reached from inside the print, so the whole shirt is found without the
     // skin, hair or a darker background. A light wall touching the shirt would be taken too: that needs a mask.
     const xs = corners.map((p) => p[0]);
     const ys = corners.map((p) => p[1]);
@@ -219,7 +276,7 @@ export function prepareModel(img: HTMLImageElement, readable: boolean, area: Poi
       dy[i] = Math.max(-limit, Math.min(limit, ((soft[i + bw] - soft[i - bw]) / 2) * strength));
     }
   }
-  return { canvas, corners, box, mask, shade, dx, dy };
+  return { canvas, uv, uvBox, box, mask, shade, dx, dy };
 }
 
 const hex = (c: string): [number, number, number] => {
@@ -232,10 +289,10 @@ const hex = (c: string): [number, number, number] => {
 /**
  * Draws the photo with the design on it into `out` (sized like the prepared photo). `base` is the fabric color the
  * visitor picked. When the photo's pixels could not be read (another site's photo), the design is still bent onto
- * the corners and multiplied over the photo, without folds, shading or a new fabric color.
+ * the grid and multiplied over the photo, without folds, shading or a new fabric color.
  */
 export function renderOnModel(out: HTMLCanvasElement, model: ModelPhoto, design: HTMLCanvasElement, base: string) {
-  const { canvas, corners, box, mask, shade, dx, dy } = model;
+  const { canvas, uv, uvBox, box, mask, shade, dx, dy } = model;
   out.width = canvas.width;
   out.height = canvas.height;
   const ctx = out.getContext('2d')!;
@@ -244,13 +301,9 @@ export function renderOnModel(out: HTMLCanvasElement, model: ModelPhoto, design:
   const dw = design.width;
   const dh = design.height;
   const dpx = design.getContext('2d', { willReadFrequently: true })!.getImageData(0, 0, dw, dh).data;
-  const inv = invert3(squareToQuad(corners));
   const [x0, y0, bw, bh] = box;
   const [br, bg, bb] = hex(base);
-  // Only the print's corners take the design; the rest of the fabric only its color.
-  const xs = corners.map((p) => p[0]);
-  const ys = corners.map((p) => p[1]);
-  const [qx0, qy0, qx1, qy1] = [Math.min(...xs) - 8, Math.min(...ys) - 8, Math.max(...xs) + 8, Math.max(...ys) + 8];
+  const [ux0, uy0, uw, uh] = uvBox;
 
   const target = mask ? ctx.getImageData(x0, y0, bw, bh) : new ImageData(bw, bh);
   const t = target.data;
@@ -259,17 +312,18 @@ export function renderOnModel(out: HTMLCanvasElement, model: ModelPhoto, design:
       const i = y * bw + x;
       const m = mask ? mask[i] : 1;
       if (m <= 0.002) continue;
-      // Where on the design this pixel falls, after following the folds.
-      const sx = x0 + x + 0.5 + (dx ? dx[i] : 0);
-      const sy = y0 + y + 0.5 + (dy ? dy[i] : 0);
-      const w = inv[6] * sx + inv[7] * sy + inv[8];
-      const u = ((inv[0] * sx + inv[1] * sy + inv[2]) / w) * dw - 0.5;
-      const v = ((inv[3] * sx + inv[4] * sy + inv[5]) / w) * dh - 0.5;
+      // Where on the design this pixel falls, after following the folds. Only the print area takes the design; the
+      // rest of the fabric only its color.
+      const gx = Math.round(x0 + x + (dx ? dx[i] : 0)) - ux0;
+      const gy = Math.round(y0 + y + (dy ? dy[i] : 0)) - uy0;
+      const k2 = gx >= 0 && gy >= 0 && gx < uw && gy < uh ? (gy * uw + gx) * 2 : -1;
+      const u = k2 < 0 ? NaN : uv[k2] * dw - 0.5;
+      const v = k2 < 0 ? NaN : uv[k2 + 1] * dh - 0.5;
       let r = 0;
       let g = 0;
       let b = 0;
       let a = 0;
-      if (sx > qx0 && sy > qy0 && sx < qx1 && sy < qy1 && u > -1 && v > -1 && u < dw && v < dh) {
+      if (u === u && v === v) {
         // Bilinear sample, so the print stays smooth when it is enlarged.
         const ux = Math.floor(u);
         const vy = Math.floor(v);

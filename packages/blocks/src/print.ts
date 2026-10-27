@@ -70,7 +70,7 @@ export const printDefinitions: BlockDef[] = [
                 label: 'Print area',
                 type: 'quad',
                 imageField: 'image',
-                help: 'Drag the four corners to where the corners of the print sit on the photo.',
+                help: 'Drag the points to where the print sits on the photo. Use more points to follow a curved body or folds.',
               },
               {
                 key: 'mask',

@@ -120,9 +120,10 @@ The **Sublimation designer** block (in the editor's Contact blocks) lets visitor
    print size, PNG with no ink where the design is empty, or JPEG if that is too large) and a mock-up preview.
 
 **On a model**: upload a photo of someone wearing the product (front-facing, a plain light shirt, even light, no
-logo), then drag the four corners of **Print area** to where the print's corners sit on it. The visitor's design is
-bent onto those corners in perspective, pushed along the fabric's folds and shaded with the photo's own light, and the
-shirt takes the color they picked. The fabric is found automatically by growing from the print area over light,
+logo), then drag the points of **Print area** to where the print sits on it. Four corners (2×2) suit a flat, front-on
+shirt; pick more points (up to 6×6) to follow a curved chest, a body turned to one side or a big fold, and drag inside
+the grid to move it all. Each cell of the grid bends its part of the design in perspective; the print is then pushed
+along the fabric's folds and shaded with the photo's own light, and the shirt takes the color the visitor picked. The fabric is found automatically by growing from the print area over light,
 colorless pixels; when a light wall touches the shirt, add a **Fabric mask** (a PNG the size of the photo, white where
 the fabric is). It is all drawn in the visitor's browser: the design is not uploaded to show it, and the visitor can
 download the picture.

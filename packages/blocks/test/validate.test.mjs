@@ -399,16 +399,44 @@ test('the sublimation designer keeps real-world photos per product', () => {
   assert.deepEqual(validateBlocks([old]), []);
 });
 
-test('model photos mark the print area with four corners', async () => {
-  const { parseQuad } = await import('../dist/esm/index.js');
-  assert.deepEqual(parseQuad('0.1,0.2,0.9,0.2,0.9,0.8,0.1,0.8'), [
-    [0.1, 0.2],
-    [0.9, 0.2],
-    [0.9, 0.8],
-    [0.1, 0.8],
-  ]);
-  for (const bad of ['', '1,2,3', '0,0,1,0,1,1,0,x', '0,0,1,0,1,1,0,9', '0,0,1,0,1,1,0,1,0']) assert.equal(parseQuad(bad), null, bad);
-
+test('model photos mark the print area with a grid of points', async () => {
+  const { parseMesh, formatMesh } = await import('../dist/esm/index.js');
+  // The older four corners go round clockwise; they read as a 2×2 grid, row by row.
+  assert.deepEqual(parseMesh('0.1,0.2,0.9,0.2,0.9,0.8,0.1,0.8'), {
+    cols: 2,
+    rows: 2,
+    points: [
+      [0.1, 0.2],
+      [0.9, 0.2],
+      [0.1, 0.8],
+      [0.9, 0.8],
+    ],
+  });
+  const grid = {
+    cols: 3,
+    rows: 2,
+    points: [
+      [0, 0],
+      [0.5, 0.1],
+      [1, 0],
+      [0, 1],
+      [0.5, 0.9],
+      [1, 1],
+    ],
+  };
+  assert.equal(formatMesh(grid), '3x2:0,0,0.5,0.1,1,0,0,1,0.5,0.9,1,1');
+  assert.deepEqual(parseMesh(formatMesh(grid)), grid);
+  for (const bad of [
+    '',
+    '1,2,3',
+    '0,0,1,0,1,1,0,x',
+    '0,0,1,0,1,1,0,9',
+    '0,0,1,0,1,1,0,1,0',
+    '3x2:0,0,1,0',
+    '7x2:' + '0,'.repeat(27) + '0',
+    '1x2:0,0,0,1',
+  ])
+    assert.equal(parseMesh(bad), null, bad);
   const block = createBlock('textile-designer');
   const withModel = (area) => ({
     ...block,
@@ -421,5 +449,7 @@ test('model photos mark the print area with four corners', async () => {
   });
   assert.deepEqual(validateBlocks([withModel('0.3,0.3,0.7,0.3,0.7,0.7,0.3,0.7')]), []);
   assert.deepEqual(validateBlocks([withModel('')]), []);
+  assert.deepEqual(validateBlocks([withModel('3x3:' + '0.5,'.repeat(17) + '0.5')]), []);
   assert.ok(validateBlocks([withModel('0.3,0.3,0.7')]).length > 0);
+  assert.ok(validateBlocks([withModel('3x3:0.5,0.5')]).length > 0);
 });
