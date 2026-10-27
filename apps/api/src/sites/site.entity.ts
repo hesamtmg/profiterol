@@ -47,6 +47,10 @@ export class Site {
   @Column({ type: 'varchar', length: 8, default: '' })
   adminLang: AdminLang;
 
+  /** The sublimation (textile) designer block and Admin → Print orders. Only owners turn it on, site by site. */
+  @Column({ default: false })
+  printDesigner: boolean;
+
   @Column({ type: 'varchar', length: 16, default: 'off' })
   sslMode: SslMode;
 

@@ -41,6 +41,7 @@ export const toContext = (site: Site): SiteContext => {
     id: site.id,
     name: site.name,
     adminLang: site.adminLang ?? '',
+    printDesigner: site.printDesigner ?? false,
     primary: sorted[0]?.domain ?? '',
     domains: sorted.map((d) => d.domain),
     https: site.ssl === 'active' || (!!config.siteUrl.startsWith('https://') && new URL(config.siteUrl).hostname === sorted[0]?.domain),
@@ -141,12 +142,13 @@ export class SitesService {
     return all;
   }
 
-  async create(name: string, domains: string[], ssl: boolean, adminLang: AdminLang = '') {
+  async create(name: string, domains: string[], ssl: boolean, adminLang: AdminLang = '', printDesigner = false) {
     const site = await this.dataSource.transaction(async (m) => {
       const s = await m.save(
         m.create(Site, {
           name: name.trim().slice(0, 120) || domains[0],
           adminLang,
+          printDesigner,
           sslMode: ssl ? 'requested' : 'off',
           ssl: ssl ? 'queued' : 'none',
           domains: domains.map((domain, i) => m.create(SiteDomain, { domain, primary: i === 0 })),
@@ -183,6 +185,14 @@ export class SitesService {
   async setAdminLang(id: string, adminLang: AdminLang) {
     await this.get(id);
     await this.sites.update(id, { adminLang });
+    this.forget();
+    return this.get(id);
+  }
+
+  /** Allows or stops the sublimation designer on the site. */
+  async setPrintDesigner(id: string, printDesigner: boolean) {
+    await this.get(id);
+    await this.sites.update(id, { printDesigner });
     this.forget();
     return this.get(id);
   }

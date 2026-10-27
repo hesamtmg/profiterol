@@ -7,6 +7,7 @@ import {
   blocks as blockDefs,
   cloneBlock,
   createBlock,
+  designBlockTypes,
   findBlock,
   isTopLevelOnly,
   newBlockId,
@@ -60,7 +61,7 @@ const device = ref<'desktop' | 'tablet' | 'mobile'>('desktop');
 const selectedId = ref<string | null>(null);
 const canvasEl = ref<HTMLElement | null>(null);
 const leftTab = ref<'add' | 'layers' | 'design'>('add');
-const { user } = useAuth();
+const { user, printDesigner } = useAuth();
 
 // ---------- Theme ----------
 // The site theme (shared by every page) and this page's own changes (null = uses the site theme).
@@ -119,7 +120,10 @@ const categories: { key: BlockCategory; label: string }[] = [
 /** The site's approved custom blocks (made with the AI block builder), from the API. */
 const customDefs = ref<BlockDef[]>([]);
 const libraryFor = (category: BlockCategory) =>
-  category === 'custom' ? customDefs.value : blockDefs.filter((b) => b.category === category);
+  category === 'custom'
+    ? customDefs.value
+    : // The print designer is only on sites the owner has allowed it on.
+      blockDefs.filter((b) => b.category === category && (printDesigner.value || !designBlockTypes.includes(b.type)));
 
 /** Makes the site's custom blocks known to the editor (getBlock, createBlock) and to BlockView, which loads their code. */
 async function loadCustomBlocks() {

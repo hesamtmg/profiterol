@@ -1,6 +1,10 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'admin', middleware: 'admin' });
 
+// Print orders exist only on sites the owner has allowed the sublimation designer on.
+const { printDesigner } = useAuth();
+if (!printDesigner.value) await navigateTo('/admin', { replace: true });
+
 type Status = 'new' | 'called' | 'production' | 'done' | 'cancelled';
 
 interface DesignRequest {
