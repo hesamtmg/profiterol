@@ -13,7 +13,12 @@ export type FieldType =
   /** Picks one of the site's collections (stored as its key). */
   | 'collection'
   /** Formatted text (HTML). The API cleans it on save, keeping only safe tags. */
-  | 'richtext';
+  | 'richtext'
+  /**
+   * Four corners on a photo (top-left, top-right, bottom-right, bottom-left) as fractions of its size:
+   * "x1,y1,x2,y2,x3,y3,x4,y4", or empty. Drawn on the sibling image named by `imageField`.
+   */
+  | 'quad';
 
 export interface FieldOption {
   value: string;
@@ -30,6 +35,8 @@ export interface FieldDef {
   fields?: FieldDef[];
   /** Which item field to show as the item title in the editor (for `list` fields). */
   itemLabel?: string;
+  /** The image field of the same list item that a `quad` field is marked on. */
+  imageField?: string;
   /** Upper bound for `list` length. */
   max?: number;
   help?: string;

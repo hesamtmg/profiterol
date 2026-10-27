@@ -31,6 +31,7 @@ const SUITES = [
   'spatial',
   'atelier',
   'textile-samples',
+  'textile-models',
 ];
 const only = process.argv.slice(2);
 const dir = new URL('./', import.meta.url).pathname;
