@@ -12,6 +12,7 @@ import Marquee from './Marquee.vue';
 import Spotlight from './Spotlight.vue';
 import Statement from './Statement.vue';
 import TextBlock from './TextBlock.vue';
+import TextileDesigner from './TextileDesigner.vue';
 import VideoHero from './VideoHero.vue';
 import VideoPlayer from './VideoPlayer.vue';
 import MapBlock from './MapBlock.vue';
@@ -114,6 +115,7 @@ export const blockComponents: Record<string, Component> = {
   gallery: Gallery,
   video: VideoPlayer,
   'contact-form': ContactForm,
+  'textile-designer': TextileDesigner,
   pricing: Pricing,
   map: MapBlock,
   spacer: Spacer,

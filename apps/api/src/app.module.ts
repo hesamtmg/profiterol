@@ -6,6 +6,7 @@ import { CollectionsModule } from './collections/collections.module';
 import { config } from './config';
 import { CustomBlocksModule } from './custom-blocks/custom-blocks.module';
 import { dataSourceOptions } from './data-source';
+import { DesignsModule } from './designs/designs.module';
 import { FormsModule } from './forms/forms.module';
 import { HealthController } from './health.controller';
 import { MediaModule } from './media/media.module';
@@ -35,6 +36,7 @@ import { UsersModule } from './users/users.module';
     SettingsModule,
     MediaModule,
     FormsModule,
+    DesignsModule,
     AiModule,
     CustomBlocksModule,
   ],

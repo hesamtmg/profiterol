@@ -15,8 +15,8 @@ interface FormField {
   options: string;
 }
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const PHONE = /^[+\d\s()\-۰-۹٠-٩]{5,25}$/;
+export const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const PHONE = /^[+\d\s()\-۰-۹٠-٩]{5,25}$/;
 
 /** Splits "a, b، c" into choices (Persian comma included). */
 export function choices(options: string): string[] {

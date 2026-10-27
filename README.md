@@ -95,6 +95,36 @@ The component can only import a few functions from `vue` and may not use `v-html
 storage or `eval`. The page's Content-Security-Policy still applies on top of that. Approved blocks render in the
 browser only, never on the server.
 
+## Sublimation designer and print orders
+
+The **Sublimation designer** block (in the editor's Contact blocks) lets visitors design their own print:
+
+1. **Product**: the products you list in the block (T-shirt, hoodie, apron, tote bag, cushion, silk scarf, flag,
+   fabric by the meter, mouse pad or mug, each with its own name, price and sizes), a base color and a fabric.
+2. **Design**: add photos (button, drag-and-drop or paste), texts in the site's fonts (outline, bold, curved),
+   stickers and background patterns (stripes, dots, gingham, zigzag, waves, gradient). Drag to move; pinch, scroll or
+   pull the corner handles to resize and the top handle to rotate (it snaps to 45°). Photos can be flipped, faded,
+   filtered, cut to a circle, heart or star, and repeated across the fabric (grid, brick, half drop, mirror). Each
+   photo shows whether it is sharp enough at the product's real print size. Undo/redo, keyboard arrows and Delete work.
+   Mugs are edited unrolled, with a live preview of the cup.
+3. **Send**: name, phone, optional email and notes. The browser renders the print file (150 dpi at the product's
+   print size, PNG with no ink where the design is empty, or JPEG if that is too large) and a mock-up preview.
+
+Designs arrive in **Admin → Print orders** (a badge counts new ones), with the preview, the print file to download,
+the order details and the list of layers. Call or WhatsApp the customer from there, keep your own notes, and move the
+order through New → Called back → In production → Done (or Cancelled). If **Site settings** has a notification
+address, each design is also emailed with its preview attached.
+
+**Limits and "My designs"**: the block sets how many designs one person may send (default 5, counted per phone
+number however it is typed and per browser; cancelled orders free their place) and how many photos one design may
+have (default 10). Visitors get a **My designs** tab with the preview of each design they sent and where its order
+stands (received, called, being printed, ready). It works without an account: the browser keeps a random key for the
+site and the API stores only its hash, so each browser sees only its own designs.
+
+The pictures are stored in the database, not under `/uploads`, so only the site's admins can open them. The API checks
+each design against the published block (product, color, fabric, size, quantity), checks that both files really are
+pictures, and rate-limits senders.
+
 ## Custom CSS
 
 - **Site settings → Custom CSS** applies to every page; each page can add its own in the editor (**Design → Custom

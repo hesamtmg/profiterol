@@ -4,6 +4,7 @@ import { classicDefinitions, formFieldsField } from './classic.js';
 import { extraDefinitions } from './extras.js';
 import { folioDefinitions } from './folio.js';
 import { spatialDefinitions } from './spatial.js';
+import { printDefinitions } from './print.js';
 import { layoutDefinitions, styleDefaults, styleFields, topLevelOnlyTypes } from './layout.js';
 import { studioDefinitions } from './studio.js';
 import { atelierDefinitions } from './atelier.js';
@@ -549,6 +550,7 @@ const definitions: BlockDef[] = [
   ...spatialDefinitions,
   ...atelierDefinitions,
   ...classicDefinitions,
+  ...printDefinitions,
   ...layoutDefinitions,
 ];
 
