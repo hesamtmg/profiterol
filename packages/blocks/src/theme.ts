@@ -240,6 +240,24 @@ export const themePresets: ThemePreset[] = [
       fontEn: 'Outfit',
     },
   },
+  {
+    // Taken from whitecotton.pt: cream paper, deep brown panels and buttons, soft gray italics and a clean geometric sans.
+    key: 'atelier-cream',
+    name: 'Atelier Cream',
+    theme: {
+      ...defaultTheme,
+      primary: '#6e4b3c',
+      secondary: '#9b948d',
+      background: '#f3efe8',
+      surface: '#fbf9f5',
+      dark: '#2b211c',
+      text: '#16120f',
+      muted: '#766d66',
+      radius: '1.5rem',
+      buttonRadius: '0.25rem',
+      fontEn: 'Manrope',
+    },
+  },
 ];
 
 /** Google Fonts that can be chosen, with the weights each one offers. */

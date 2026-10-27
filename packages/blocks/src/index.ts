@@ -5,6 +5,7 @@ export * from './animated.js';
 export * from './studio.js';
 export * from './folio.js';
 export * from './spatial.js';
+export * from './atelier.js';
 export * from './validate.js';
 export * from './locales.js';
 export * from './theme.js';

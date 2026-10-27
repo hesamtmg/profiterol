@@ -190,6 +190,18 @@ Spatial (the playful shapes-and-giant-letters look of undplus.com; the "Spatial 
 - [x] Pill label footer: underlined links under a pill label, big profile icons, name and cities (`pill-footer`)
 - [x] Seven shapes shared by them (starburst, sun rays, flower, octagon, scalloped circle, four petals, spark)
 - [x] A "Shapes and giant letters" page template and site template using them, in English and Persian
+
+Atelier (the warm workshop look of whitecotton.pt; the "Atelier Cream" theme matches it). Two-tone titles whose second half is a soft gray italic (plain color in Persian), on cream paper or deep brown panels with a faint grain:
+- [x] Photo hero with a soft headline: a darkened full-screen photo or muted video, two quiet buttons; the header floats over it (`craft-hero`)
+- [x] Step cards: up to six white cards with a step label, a title and text, a detail and a link under a line (`step-cards`)
+- [x] Showroom shelf: products lit on a dark shelf, filtered by tabs made from their categories (`showroom`)
+- [x] Story in tabs: roots, craft, promise… each in large type settling in word by word (`story-tabs`)
+- [x] Two photos and a badge: overlapping photos drifting apart while scrolling, beside a title, text and link (`place-photos`)
+- [x] Stacked capability cards: big dark cards with two framed, captioned photos that stick and pile up (`capability-stack`)
+- [x] Material swatches: square material photos with name and spec; tapping one opens its details (`swatch-library`)
+- [x] Fanned quotes: quote cards on a wide arc in depth, the middle one lit, turned by arrows or by themselves (`quote-fan`)
+- [x] Real place, real facts: photo with address and map link, a details card, key facts and certificates (`place-facts`)
+- [x] Photo call to action: a darkened photo, a row of big facts, a button and link columns (`photo-cta`)
 - [x] **Collection list** block: shows a collection's latest items as cards, with optional tag filters and a “see all” link
 
 ## Phase 6: Collections (the Wix "CMS" part)
@@ -228,7 +240,7 @@ Spatial (the playful shapes-and-giant-letters look of undplus.com; the "Spatial 
 - [x] Site name per language, logo, favicon
 - [x] Menu editor (labels per language, page/anchor/URL links)
 - [x] Theme editor: colors, corner radius, fonts, with live preview
-- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red, Folio Night, Spatial Yellow), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
+- [x] Ready-made themes (AMSR Teal, AMSR Night, Sand, Minimal, Ocean, Rose, Studio Red, Folio Night, Spatial Yellow, Atelier Cream), button shape (pill/rounded/square), a wider choice of Persian and Latin fonts
 - [x] Header styles, picked from drawings in the theme (site or page): solid bar, frosted glass, menu button with a full-screen menu (awakeagency.dev), logo in the middle, minimal (gets a background once scrolled), floating dock (hides while scrolling down), a dark bar with the city's local time (mikewilcockdesign.com), shaped buttons (undplus.com: each link a pill, hexagon or square, black or white depending on the panel behind); phones get the full-screen menu
 - [x] Header button ("Get in touch") per language, and an option to float the header over the first block of every page
 - [x] Theme per page: a page uses the site theme or its own; edited from the editor's Design tab with the canvas updating live. A page's own theme is a draft until Publish; site theme changes there apply to every page

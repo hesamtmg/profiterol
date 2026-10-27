@@ -50,6 +50,15 @@ npm run dev:web
 
 The API validation and the editor's property form come from the definition automatically.
 
+## Block looks
+
+Besides the everyday blocks, the library has families taken from sites with a strong look, each with a matching
+ready-made theme: **Animated**, **Studio** (awakeagency.dev, "Studio Red"), **Folio** (mikewilcockdesign.com, "Folio
+Night"), **Spatial** (undplus.com, "Spatial Yellow") and **Atelier** (whitecotton.pt, "Atelier Cream"): a photo hero with
+a two-tone headline, step cards, a showroom shelf with tabs, a story in tabs, two photos and a badge, stacked capability
+cards, material swatches, fanned quotes, a "real place" block with facts and certificates, and a photo call to action.
+The blocks are written for this builder; they borrow each site's look, not its code, pictures or text.
+
 ## Custom blocks built by AI
 
 Admins can have an AI build a block the editor does not have ("a pricing table with three plans…"), without a
@@ -139,7 +148,8 @@ pictures, and rate-limits senders.
   and header**), or **shaped buttons** (the undplus.com look): each link in a pill, hexagon or square, black over light
   panels and white over dark ones.
 - **Site settings → Menu and header** has the links, a header button ("Get in touch") per language, and an option to
-  float the header over the first block of every page. It always floats over the spotlight, big type and giant letters heroes.
+  float the header over the first block of every page. It always floats over the spotlight, big type, giant letters and
+  photo heroes.
 - The full-screen menu shows the email and profile links from **Site settings → Business**.
 
 ## Collections
