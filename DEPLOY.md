@@ -163,7 +163,7 @@ The pictures are generated placeholders, and the numbers and testimonials are ex
 $C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=http://api:3001/api -e SITE=fikkoprint.com api node /seed/seed-fikkoprint.mjs --home
 ```
 
-Without `--home` it adds a separate page, `/fa/چاپ-سابلیمیشن` and `/en/sublimation-printing`. With it, it fills the home page and sets the site name, logo mark, menu, colors and contact email. The product pictures are generated placeholders, and the prices, numbers and testimonials are examples: replace them in the editor. Screenshots are in `screenshots-fikkoprint/`.
+Without `--home` it adds a separate page, `/fa/چاپ-سابلیمیشن` and `/en/sublimation-printing`. It also creates a **News** collection (`/fa/اخبار`, `/en/news`) with five real 2026 sublimation stories (Mimaki TS330-1800 and its EDP award; Epson SC-F20000, SC-F300 and F370 with its cotton primer), each summarised in both languages with a link to its source, and a news block on the page. Running it again updates those stories instead of adding new ones. With `--home`, it fills the home page and sets the site name, logo mark, menu, colors and contact email. The product pictures are generated placeholders, and the prices, numbers and testimonials are examples: replace them in the editor. Screenshots are in `screenshots-fikkoprint/`.
 
 ### Kasra content
 

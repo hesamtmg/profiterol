@@ -248,6 +248,118 @@ const img = {
 };
 const logoUrl = HOME ? await upload(await logo(), 'fikkoprint-logo.png', 'image/png') : '';
 
+// ---------- News: five real stories from the sublimation industry, each summarised in both languages ----------
+// The pictures are drawn here (a wide-format or desktop printer feeding out a print); the stories link to their sources.
+function newsCover({ wide, palette, seed, bg }) {
+  const [x, w] = wide ? [180, 1240] : [470, 660];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+    ${studio(bg, design('art', palette, seed, w - 80, 420))}
+    <svg x="${x + 40}" y="520" width="${w - 80}" height="330"><use href="#art"/></svg>
+    <rect x="${x}" y="300" width="${w}" height="240" rx="36" fill="#1f2937"/>
+    <rect x="${x + 30}" y="330" width="${w - 60}" height="40" rx="12" fill="#374151"/>
+    <rect x="${x + w - 220}" y="400" width="150" height="70" rx="14" fill="#0ea5e9" fill-opacity=".8"/>
+    ${['#00a0e9', '#e6007e', '#ffd400', '#111827'].map((c, i) => `<circle cx="${x + 70 + i * 60}" cy="440" r="20" fill="${c}"/>`).join('')}
+    ${wide ? `<rect x="${x + 40}" y="540" width="40" height="400" fill="#374151"/><rect x="${x + w - 80}" y="540" width="40" height="400" fill="#374151"/>` : ''}
+  </svg>`;
+  return sharp(Buffer.from(svg)).jpeg({ quality: 84 }).toBuffer();
+}
+
+const NEWS = [
+  {
+    slug: { en: 'mimaki-ts330-1800-wide-sublimation-printer', fa: 'میماکی-ts330-1800' },
+    date: { en: '7 January 2026', fa: '۱۷ دی ۱۴۰۴' },
+    source: 'Mimaki',
+    link: 'https://mimaki.com/news/product/entry-438590.html',
+    cover: { wide: true, palette: 'ocean', seed: 41, bg: ['#ecfeff', '#0e7490'] },
+    tags: { en: ['Printers', 'Textiles'], fa: ['چاپگر', 'منسوجات'] },
+    en: {
+      title: 'Mimaki adds a 1.9-metre printer to its TS330 sublimation line',
+      excerpt: 'The TS330-1800 prints up to 1,940 mm wide, so curtains and wide fabrics come out in one seamless piece.',
+      body: 'Japanese printer maker Mimaki began selling the TS330-1800 in January 2026, a wider member of its TS330 family of sublimation transfer printers. It prints up to 1,940 mm wide on media up to 1,950 mm.\n\nThe extra width is aimed at two jobs. Interior fabrics such as curtains and tapestries can be printed as one piece, with no seams to sew or patterns to match. For sports uniforms, body panels in several sizes can sit side by side on the transfer paper, which makes laying out names and numbers easier.\n\nWhy it matters to us: wide transfer printers are what make seamless team kits and large soft signage affordable in short runs.',
+    },
+    fa: {
+      title: 'میماکی چاپگر ۱.۹ متری به خانواده‌ی سابلیمیشن TS330 اضافه کرد',
+      excerpt: 'مدل TS330-1800 تا عرض ۱۹۴۰ میلی‌متر چاپ می‌کند؛ پرده و پارچه‌های عریض یکپارچه و بدون درز درمی‌آیند.',
+      body: 'شرکت ژاپنی میماکی از دی ۱۴۰۴ (ژانویه‌ی ۲۰۲۶) فروش TS330-1800 را آغاز کرد؛ نسخه‌ی عریض‌تر خانواده‌ی چاپگرهای انتقال سابلیمیشن TS330. این دستگاه تا عرض ۱۹۴۰ میلی‌متر روی رسانه‌ای تا ۱۹۵۰ میلی‌متر چاپ می‌کند.\n\nعرض بیشتر برای دو کار است: پارچه‌های دکوراتیو مثل پرده و دیوارکوب یک‌تکه چاپ می‌شوند، بدون دوخت و هم‌ترازی طرح؛ و در لباس تیمی، قطعات بدنه در چند سایز کنار هم روی کاغذ انتقال چیده می‌شوند و جای نام و شماره راحت‌تر تنظیم می‌شود.\n\nچرا برای ما مهم است: چاپگرهای انتقال عریض، لباس تیمی بی‌درز و بنرهای پارچه‌ای بزرگ را در تیراژ کم هم مقرون‌به‌صرفه می‌کنند.',
+    },
+  },
+  {
+    slug: { en: 'epson-surecolor-sc-f20000-industrial-dye-sub', fa: 'اپسون-sc-f20000' },
+    date: { en: '7 May 2026', fa: '۱۷ اردیبهشت ۱۴۰۵' },
+    source: 'Signlink',
+    link: 'https://www.signlink.co.uk/news/epson-launches-new-industrial-dye-sub-printer/',
+    cover: { wide: true, palette: 'sunset', seed: 43, bg: ['#fff7ed', '#c2410c'] },
+    tags: { en: ['Printers', 'Industrial'], fa: ['چاپگر', 'صنعتی'] },
+    en: {
+      title: 'Epson’s SC-F20000: eight printheads and around 306 m² an hour',
+      excerpt: 'Epson’s new industrial dye-sublimation printer is built for sportswear, fashion, homewares and soft signage.',
+      body: 'Epson launched the SureColor SC-F20000 in May 2026, its first dye-sublimation printer with eight PrecisionCore MicroTFP printheads. In its fastest mode it prints up to about 306 square metres an hour at 600 dpi.\n\nIt takes 10-litre ink cartridges with automatic “hot swap” switching, so production does not stop for a refill, and has an intake fan and media cleaner to keep dust from clogging the nozzles. An optional jumbo-roll unit handles larger rolls. Epson showed it at FESPA Global Print Expo 2026 in Barcelona (19–22 May).\n\nWhy it matters to us: industrial speed is what brings the price of all-over printed sportswear closer to that of plain garments.',
+    },
+    fa: {
+      title: 'اپسون SC-F20000؛ هشت هد چاپ و حدود ۳۰۶ مترمربع در ساعت',
+      excerpt: 'چاپگر صنعتی سابلیمیشن جدید اپسون برای لباس ورزشی، پوشاک، منسوجات خانگی و بنر پارچه‌ای ساخته شده است.',
+      body: 'اپسون در اردیبهشت ۱۴۰۵ (مه ۲۰۲۶) از SureColor SC-F20000 رونمایی کرد؛ نخستین چاپگر سابلیمیشن این شرکت با هشت هد PrecisionCore MicroTFP. سرعت آن در سریع‌ترین حالت حدود ۳۰۶ مترمربع در ساعت با وضوح ۶۰۰ dpi است.\n\nکارتریج‌های ۱۰ لیتری با تعویض خودکار (Hot Swap) باعث می‌شوند تولید برای شارژ جوهر متوقف نشود، و فن ورودی و پاک‌کننده‌ی رسانه جلوی گرفتگی نازل‌ها با گردوغبار را می‌گیرند. اپسون این دستگاه را در نمایشگاه FESPA 2026 بارسلونا (۲۹ اردیبهشت تا ۱ خرداد) نشان داد.\n\nچرا برای ما مهم است: سرعت صنعتی، قیمت لباس ورزشی با چاپ سراسری را به قیمت لباس ساده نزدیک‌تر می‌کند.',
+    },
+  },
+  {
+    slug: { en: 'mimaki-ts330-1800-wins-edp-award-2026', fa: 'جایزه-edp-میماکی' },
+    date: { en: '9 June 2026', fa: '۱۹ خرداد ۱۴۰۵' },
+    source: 'Mimaki',
+    link: 'https://mimaki.com/news/product/entry-448040.html',
+    cover: { wide: true, palette: 'candy', seed: 47, bg: ['#fdf4ff', '#7c3aed'] },
+    tags: { en: ['Awards', 'Textiles'], fa: ['جایزه', 'منسوجات'] },
+    en: {
+      title: 'A sublimation printer wins Best Textile Roll-to-Roll at the EDP Awards 2026',
+      excerpt:
+        'Mimaki’s TS330-1800, with eleven ink colours including two fluorescents, won its category at Europe’s print-technology awards.',
+      body: 'At the 19th EDP Awards, judged by the European Digital Press Association, Mimaki’s TS330-1800 won “Best Textile Roll-to-Roll printer under 150 m²/h”. Two of Mimaki’s UV printers won in other categories.\n\nThe judges pointed to its stable media transport and high-capacity ink options for industrial production. The printer reaches about 140 m² an hour and can use up to eleven ink colours, including orange, violet and two fluorescent shades.\n\nWhy it matters to us: fluorescent sublimation inks are what make neon team kits and eye-catching event flags possible.',
+    },
+    fa: {
+      title: 'یک چاپگر سابلیمیشن برنده‌ی جایزه‌ی بهترین چاپگر رول‌به‌رول پارچه در EDP 2026 شد',
+      excerpt: 'TS330-1800 میماکی با یازده رنگ جوهر، از جمله دو رنگ فلورسنت، در جوایز فناوری چاپ اروپا برنده‌ی رشته‌ی خود شد.',
+      body: 'در نوزدهمین دوره‌ی جوایز EDP که انجمن چاپ دیجیتال اروپا داوری می‌کند، TS330-1800 میماکی عنوان «بهترین چاپگر رول‌به‌رول پارچه زیر ۱۵۰ مترمربع در ساعت» را برد. دو چاپگر UV میماکی هم در رشته‌های دیگر برنده شدند.\n\nداوران به حرکت پایدار رسانه و گزینه‌های جوهر پرظرفیت برای تولید صنعتی اشاره کردند. این چاپگر به حدود ۱۴۰ مترمربع در ساعت می‌رسد و تا یازده رنگ جوهر، از جمله نارنجی، بنفش و دو رنگ فلورسنت، به کار می‌برد.\n\nچرا برای ما مهم است: جوهرهای فلورسنت سابلیمیشن، لباس تیمی نئونی و پرچم‌های چشم‌گیر رویدادها را ممکن می‌کنند.',
+    },
+  },
+  {
+    slug: { en: 'epson-sc-f300-a3-desktop-sublimation', fa: 'اپسون-sc-f300' },
+    date: { en: '17 September 2026', fa: '۲۶ شهریور ۱۴۰۵' },
+    source: 'Eye on Display',
+    link: 'https://www.eyeondisplay.com/epson-launches-sc-f300-desktop-dye-sublimation-printer/',
+    cover: { wide: false, palette: 'berry', seed: 53, bg: ['#fff1f2', '#be185d'] },
+    tags: { en: ['Printers', 'Small business'], fa: ['چاپگر', 'کسب‌وکار کوچک'] },
+    en: {
+      title: 'Epson’s SC-F300 brings A3 sublimation to the desktop',
+      excerpt: 'A compact A3 printer with a continuous ink supply, for small shops moving up from A4.',
+      body: 'Epson launched the SureColor SC-F300 in September 2026, a compact A3 dye-sublimation printer for small businesses, promotional-merchandise makers and apparel decorators who have outgrown A4.\n\nIt has a continuous ink supply system to lower running costs and cut the stops for refills, a 150-sheet A4 cassette plus a 15-sheet rear tray for A3, a 2.7-inch touchscreen, and Wi-Fi, Ethernet, USB, AirPrint and Mopria. Epson lists apparel transfers, tote bags, cushion covers, sports accessories, ceramics and promotional signs among its uses.\n\nWhy it matters to us: A3 transfers cover a whole T-shirt front or a large cushion in one sheet.',
+    },
+    fa: {
+      title: 'اپسون SC-F300 چاپ سابلیمیشن A3 را روی میز می‌آورد',
+      excerpt: 'چاپگری جمع‌وجور در اندازه‌ی A3 با سیستم جوهر پیوسته، برای کارگاه‌های کوچکی که از A4 بزرگ‌تر شده‌اند.',
+      body: 'اپسون در شهریور ۱۴۰۵ (سپتامبر ۲۰۲۶) SureColor SC-F300 را عرضه کرد؛ چاپگر سابلیمیشن رومیزی A3 برای کسب‌وکارهای کوچک، تولیدکنندگان کالای تبلیغاتی و چاپ پوشاک که دیگر A4 جوابگویشان نیست.\n\nسیستم جوهر پیوسته (CISS) هزینه‌ی چاپ و توقف برای شارژ را کم می‌کند. یک کاست ۱۵۰ برگی A4 و سینی عقب ۱۵ برگی برای A3 دارد، با صفحه‌ی لمسی ۲.۷ اینچی و اتصال Wi-Fi، اترنت، USB، AirPrint و Mopria. اپسون کاربردهایش را انتقال روی لباس، ساک پارچه‌ای، روکش کوسن، لوازم ورزشی، سرامیک و تابلوهای تبلیغاتی می‌داند.\n\nچرا برای ما مهم است: انتقال A3 جلوی کامل یک تی‌شرت یا یک کوسن بزرگ را با یک برگ می‌پوشاند.',
+    },
+  },
+  {
+    slug: { en: 'epson-surecolor-f370-and-cotton-primer', fa: 'اپسون-f370-پرایمر-پنبه' },
+    date: { en: '23 September 2026', fa: '۱ مهر ۱۴۰۵' },
+    source: 'Engineering.com',
+    link: 'https://www.engineering.com/epson-launches-surecolor-f370-dye-sublimation-printer/',
+    cover: { wide: false, palette: 'jungle', seed: 59, bg: ['#f7fee7', '#15803d'] },
+    tags: { en: ['Printers', 'Cotton'], fa: ['چاپگر', 'پنبه'] },
+    en: {
+      title: 'Epson’s F370 arrives with a primer for sublimating on cotton',
+      excerpt: 'A 13×19-inch printer for makers and schools, plus a liquid primer that lets sublimation work on white and light cotton.',
+      body: 'At PRINTING United Expo 2026 in Las Vegas, Epson introduced the SureColor F370, a dye-sublimation printer for makers, small businesses, schools and customisation shops. It prints up to 13 × 19 inches, with a 150-sheet letter-size cassette and a 15-sheet tray for the large size. The list price is $999.\n\nAlongside it came Sublimation Primer for Cotton ($149.95), a liquid treatment that lets sublimation inks bond with white and light-coloured cotton garments, not only polyester. Both go on sale in November 2026 through Epson partners and the Epson online store.\n\nWhy it matters to us: cotton has always been sublimation’s great limit. A primer opens the door to the cotton T-shirts our customers keep asking about — we will test it before we offer it.',
+    },
+    fa: {
+      title: 'اپسون F370 با پرایمری برای چاپ سابلیمیشن روی پنبه از راه رسید',
+      excerpt: 'چاپگری ۱۳×۱۹ اینچی برای سازندگان و مدارس، همراه با مایعی که سابلیمیشن را روی پارچه‌ی نخی سفید و روشن ممکن می‌کند.',
+      body: 'اپسون در نمایشگاه PRINTING United 2026 لاس‌وگاس، SureColor F370 را معرفی کرد؛ چاپگر سابلیمیشن برای سازندگان، کسب‌وکارهای کوچک، مدارس و کارگاه‌های شخصی‌سازی. تا اندازه‌ی ۱۳ × ۱۹ اینچ چاپ می‌کند، با کاست ۱۵۰ برگی و سینی ۱۵ برگی برای اندازه‌ی بزرگ. قیمت پیشنهادی آن ۹۹۹ دلار است.\n\nهمراه آن «پرایمر سابلیمیشن برای پنبه» (۱۴۹.۹۵ دلار) معرفی شد؛ مایعی که به جوهر سابلیمیشن اجازه می‌دهد با لباس نخی سفید و رنگ روشن هم پیوند بخورد، نه فقط پلی‌استر. هر دو از آبان ۱۴۰۵ (نوامبر ۲۰۲۶) از طریق نمایندگان اپسون و فروشگاه اینترنتی آن عرضه می‌شوند.\n\nچرا برای ما مهم است: پنبه همیشه بزرگ‌ترین محدودیت سابلیمیشن بوده است. این پرایمر راه را برای تی‌شرت‌های نخی که مشتریان ما مدام سراغش را می‌گیرند باز می‌کند؛ پیش از عرضه، آن را آزمایش می‌کنیم.',
+    },
+  },
+];
+const newsCovers = [];
+for (const [i, n] of NEWS.entries()) newsCovers.push(await up(newsCover(n.cover), `news-${i + 1}.jpg`));
+
 // ---------- Content ----------
 const t = (en, fa) => (l) => (l === 'en' ? en : fa);
 const EMAIL = 'info@fikkoprint.com';
@@ -741,6 +853,25 @@ const blocks = (l) => [
     },
   },
   {
+    id: 'news',
+    type: 'collection-list',
+    props: {
+      anchor: 'news',
+      title: t('Sublimation news', 'اخبار سابلیمیشن')(l),
+      subtitle: t(
+        'What is new in the presses, inks and printers of our trade, summed up by our team with a link to each source.',
+        'تازه‌های پرس، جوهر و چاپگرهای حرفه‌ی ما، به قلم تیم ما و با لینک به منبع هر خبر.',
+      )(l),
+      collection: 'news',
+      variant: 'photo',
+      columns: '3',
+      limit: 6,
+      tag: '',
+      showFilters: false,
+      buttonLabel: t('All news', 'همه‌ی اخبار')(l),
+    },
+  },
+  {
     id: 'faq',
     type: 'faq',
     props: {
@@ -889,6 +1020,39 @@ const seo = {
   },
 };
 const LOCALES = ['en', 'fa'];
+// The news collection and its items; running again updates them in place.
+const NEWS_FIELDS = [
+  { key: 'newsDate', label: 'News date', type: 'text', labels: { fa: 'تاریخ خبر' } },
+  { key: 'source', label: 'Source', type: 'text', labels: { fa: 'منبع' } },
+  { key: 'link', label: 'Read the original', type: 'url', labels: { fa: 'خبر اصلی' } },
+];
+const collections = await api('GET', '/admin/collections');
+let news = collections.find((c) => c.key === 'news');
+const newsInfo = { name: { en: 'News', fa: 'اخبار' }, slugs: { en: 'news', fa: 'اخبار' }, fields: NEWS_FIELDS };
+if (news) await api('PATCH', `/admin/collections/${news.id}`, newsInfo);
+else news = await api('POST', '/admin/collections', { key: 'news', ...newsInfo });
+const existing = await api('GET', `/admin/collections/${news.id}/items`);
+// Oldest first, so the newest story is published last and shows first.
+for (const [i, n] of NEWS.entries()) {
+  const item =
+    existing.find((x) => x.translations?.some((tr) => tr.locale === 'en' && tr.slug === n.slug.en)) ??
+    (await api('POST', `/admin/collections/${news.id}/items`, { title: n.en.title }));
+  await api('PATCH', `/admin/collections/${news.id}/items/${item.id}`, {
+    cover: newsCovers[i],
+    translations: LOCALES.map((l) => ({
+      locale: l,
+      slug: n.slug[l],
+      title: n[l].title,
+      excerpt: n[l].excerpt,
+      body: n[l].body,
+      tags: n.tags[l],
+      data: { newsDate: n.date[l], source: n.source, link: n.link },
+      seoDescription: n[l].excerpt,
+    })),
+  });
+  await api('POST', `/admin/collections/${news.id}/items/${item.id}/publish`);
+}
+
 const pages = await api('GET', '/admin/pages');
 let page;
 let slugs;
@@ -907,6 +1071,7 @@ if (HOME) {
       { href: '#products', label: { fa: 'محصولات', en: 'Products' } },
       { href: '#materials', label: { fa: 'جنس‌ها', en: 'Materials' } },
       { href: '#prices', label: { fa: 'قیمت‌ها', en: 'Prices' } },
+      { href: '#news', label: { fa: 'اخبار', en: 'News' } },
       { href: '#faq', label: { fa: 'پرسش‌ها', en: 'FAQ' } },
       { href: '#order', label: { fa: 'سفارش', en: 'Order' } },
     ],
