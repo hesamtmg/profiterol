@@ -100,7 +100,9 @@ browser only, never on the server.
 The **Sublimation designer** block (in the editor's Contact blocks) lets visitors design their own print:
 
 1. **Product**: the products you list in the block (T-shirt, hoodie, apron, tote bag, cushion, silk scarf, flag,
-   fabric by the meter, mouse pad or mug, each with its own name, price and sizes), a base color and a fabric.
+   fabric by the meter, mouse pad or mug, each with its own name, price and sizes), a base color and a fabric. Give a
+   product **Real-world photos** (up to 12, with optional captions) of prints you made for customers: they show under
+   the products when a visitor picks it, and open full screen.
 2. **Design**: add photos (button, drag-and-drop or paste), texts in the site's fonts (outline, bold, curved),
    stickers and background patterns (stripes, dots, gingham, zigzag, waves, gradient). Drag to move; pinch, scroll or
    pull the corner handles to resize and the top handle to rotate (it snaps to 45°). Photos can be flipped, faded,
