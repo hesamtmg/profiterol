@@ -24,6 +24,8 @@ async function call(method, path, body, auth = true) {
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==', 'base64');
 
 let pageId;
+let siteId;
+let wasAllowed;
 let ip = 10;
 
 /** Sends a design from a new address each time, so the rate limit does not get in the way. */
@@ -59,6 +61,9 @@ const good = {
 
 before(async () => {
   token = (await call('POST', '/auth/login', ADMIN, false)).body.token;
+  // The designer is only on sites the owner allows it on.
+  ({ id: siteId, printDesigner: wasAllowed } = (await call('GET', '/auth/me')).body.site);
+  assert.equal((await call('PATCH', `/admin/sites/${siteId}`, { printDesigner: true })).status, 200);
   const page = (await call('POST', '/admin/pages', { name: 'Designer test' })).body;
   pageId = page.id;
   const saved = await call('PATCH', `/admin/pages/${pageId}`, {
@@ -93,6 +98,7 @@ before(async () => {
 
 after(async () => {
   await call('DELETE', `/admin/pages/${pageId}`);
+  await call('PATCH', `/admin/sites/${siteId}`, { printDesigner: wasAllowed });
 });
 
 describe('sublimation designs', () => {
@@ -213,5 +219,37 @@ describe('sublimation designs', () => {
     for (const d of (await call('GET', '/admin/designs')).body.filter((x) => x.pageId === pageId)) {
       await call('DELETE', `/admin/designs/${d.id}`);
     }
+  });
+
+  test('sites the owner has not allowed have no designer and no print orders', async () => {
+    assert.equal((await call('PATCH', `/admin/sites/${siteId}`, { printDesigner: false })).status, 200);
+    try {
+      assert.equal((await call('GET', '/auth/me')).body.site.printDesigner, false);
+      assert.equal((await call('GET', '/public/settings', undefined, false)).body.printDesigner, false);
+      const pub = (await call('GET', '/public/en/page?slug=designer-test', undefined, false)).body;
+      assert.equal(pub.blocks.length, 0, 'the designer is left out of the page');
+      assert.equal((await send(good)).status, 404);
+      assert.equal((await call('GET', '/admin/designs')).status, 404);
+      assert.equal((await call('GET', '/admin/designs/new-count')).status, 404);
+      const saved = await call('PATCH', `/admin/pages/${pageId}`, {
+        translations: [
+          {
+            locale: 'en',
+            title: 'Designer',
+            slug: 'designer-test',
+            blocks: [{ id: 'cols', type: 'columns', props: {}, children: [[{ id: 'd2', type: 'textile-designer', props: {} }], []] }],
+          },
+        ],
+      });
+      assert.equal(saved.status, 400, 'the designer cannot be added, even inside columns');
+      assert.match(saved.body.message, /print designer is not enabled/);
+    } finally {
+      await call('PATCH', `/admin/sites/${siteId}`, { printDesigner: true });
+    }
+  });
+
+  test('only owners can allow the designer', async () => {
+    assert.equal((await call('PATCH', `/admin/sites/${siteId}`, { printDesigner: 'yes' })).status, 400);
+    assert.equal((await fetch(`${API}/admin/sites/${siteId}`, { method: 'PATCH' })).status, 401);
   });
 });

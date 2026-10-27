@@ -5,7 +5,7 @@ export interface AdminUser {
   /** Owners manage every site (Admin → Sites) and are admins on each. */
   role: 'owner' | 'admin' | 'editor';
   /** The site this admin is for (from /auth/me). */
-  site?: { id: string; name: string; primary: string };
+  site?: { id: string; name: string; primary: string; printDesigner?: boolean };
 }
 
 export function useAuth() {
@@ -14,6 +14,8 @@ export function useAuth() {
   const isOwner = computed(() => user.value?.role === 'owner');
   /** Admins and owners: settings, users, collections' fields. */
   const isAdmin = computed(() => user.value?.role === 'admin' || isOwner.value);
+  /** The owner has allowed the sublimation designer and Print orders on this site (Admin → Sites). */
+  const printDesigner = computed(() => !!user.value?.site?.printDesigner);
 
   async function login(email: string, password: string) {
     const res = await api<{ user: AdminUser }>('/auth/login', {
@@ -43,5 +45,5 @@ export function useAuth() {
     return navigateTo('/admin/login');
   }
 
-  return { user, isAdmin, isOwner, login, fetchMe, logout };
+  return { user, isAdmin, isOwner, printDesigner, login, fetchMe, logout };
 }

@@ -49,6 +49,11 @@ export function imagesIn(value: unknown): string[] {
   return [...new Set(JSON.stringify(value ?? '').match(/\/uploads\/[\w-]+\.(?:jpe?g|png|webp|avif|gif)/gi) ?? [])];
 }
 
+/** Whether any block, inside columns too, is one of `types`. */
+export function hasBlockType(blocks: BlockNode[], types: string[]): boolean {
+  return blocks.some((b) => types.includes(b?.type) || (Array.isArray(b?.children) && b.children.some((c) => hasBlockType(c, types))));
+}
+
 /** Versions kept per page; while editing, saves within this many minutes update the latest version. */
 export const KEEP_REVISIONS = 50;
 const SAVE_WINDOW_MINUTES = 10;
@@ -433,23 +438,29 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     ];
   }
 
-  /** Attaches data that blocks need at render time, such as a collection list's items (inside columns too). */
+  /**
+   * Attaches data that blocks need at render time, such as a collection list's items (inside columns too). Leaves out
+   * the print designer on sites where the owner has not allowed it.
+   */
   private async expandBlocks(blocks: BlockNode[], locale: string, pageId: string): Promise<BlockNode[]> {
+    const designer = currentSite().printDesigner;
     return Promise.all(
-      blocks.map(async (b) => {
-        if (b.children) {
-          return { ...b, children: await Promise.all(b.children.map((column) => this.expandBlocks(column, locale, pageId))) };
-        }
-        // Forms post back to /public/forms/<page>/<block> (designs to /public/designs/…), so they need to know their page.
-        if (formBlockTypes.includes(b.type) || designBlockTypes.includes(b.type)) return { ...b, data: { pageId, blockId: b.id } };
-        if (b.type !== 'collection-list') return b;
-        const p = b.props as { collection?: string; limit?: number; tag?: string };
-        const data = await this.collections.listPublished(locale, String(p.collection ?? ''), {
-          limit: Number(p.limit) || 6,
-          tag: p.tag || undefined,
-        });
-        return { ...b, data };
-      }),
+      blocks
+        .filter((b) => designer || !designBlockTypes.includes(b.type))
+        .map(async (b) => {
+          if (b.children) {
+            return { ...b, children: await Promise.all(b.children.map((column) => this.expandBlocks(column, locale, pageId))) };
+          }
+          // Forms post back to /public/forms/<page>/<block> (designs to /public/designs/…), so they need to know their page.
+          if (formBlockTypes.includes(b.type) || designBlockTypes.includes(b.type)) return { ...b, data: { pageId, blockId: b.id } };
+          if (b.type !== 'collection-list') return b;
+          const p = b.props as { collection?: string; limit?: number; tag?: string };
+          const data = await this.collections.listPublished(locale, String(p.collection ?? ''), {
+            limit: Number(p.limit) || 6,
+            tag: p.tag || undefined,
+          });
+          return { ...b, data };
+        }),
     );
   }
 
@@ -476,6 +487,11 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
 
   /** `custom`: the site's approved custom blocks, which pages may use besides the built-in ones. */
   private assertBlocks(blocks: unknown, locale: string, custom: BlockDef[]) {
+    if (!currentSite().printDesigner && Array.isArray(blocks) && hasBlockType(blocks as BlockNode[], designBlockTypes)) {
+      throw new BadRequestException(
+        'The print designer is not enabled on this site. Remove it from the page, or ask the owner to allow it.',
+      );
+    }
     const errors = validateBlocks(blocks, custom);
     if (errors.length) {
       throw new BadRequestException({

@@ -113,6 +113,6 @@ export class AuthController {
     const user = await this.users.findById(req.user.sub);
     if (!user) throw new UnauthorizedException();
     const site = currentSite();
-    return { ...publicUser(user), site: { id: site.id, name: site.name, primary: site.primary } };
+    return { ...publicUser(user), site: { id: site.id, name: site.name, primary: site.primary, printDesigner: site.printDesigner } };
   }
 }

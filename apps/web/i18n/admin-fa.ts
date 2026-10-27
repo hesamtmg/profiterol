@@ -870,6 +870,8 @@ export const adminFa: Record<string, string> = {
   "Invite an admin for this site (optional)": "دعوت از یک مدیر برای این سایت (اختیاری)",
   "Issue an SSL certificate now": "همین حالا گواهی SSL صادر شود",
   "Start with the demo pages": "شروع با صفحه‌های نمونه",
+  "Allow the sublimation designer and Print orders": "اجازه‌ی طراح سابلیمیشن و سفارش‌های چاپ",
+  "Sublimation designer allowed": "طراح سابلیمیشن مجاز است",
   "Before you add it": "پیش از افزودن",
   "At your domain registrar, point an A record for {domain} to this server": "در پنل ثبت دامنه، یک رکورد A برای {domain} به این سرور بسازید",
   "(and the same for {alias})": "(و همین برای {alias})",

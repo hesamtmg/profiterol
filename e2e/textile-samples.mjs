@@ -5,6 +5,9 @@ import { api, apiToken, BASE, check, finish, launch, photo, shots, upload, watch
 const out = shots('textile-samples');
 const browser = await launch();
 const token = await apiToken();
+// The designer is only on sites the owner allows it on.
+const me = await api(token, 'GET', '/auth/me');
+await api(token, 'PATCH', `/admin/sites/${me.site.id}`, { printDesigner: true });
 
 const shirt1 = await upload(token, await photo({ from: '#1d4ed8', to: '#f472b6', label: 'Team' }), 'shirt1.jpg', 'image/jpeg');
 const shirt2 = await upload(token, await photo({ from: '#065f46', to: '#facc15', label: 'Cafe' }), 'shirt2.jpg', 'image/jpeg');

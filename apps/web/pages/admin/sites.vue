@@ -18,6 +18,8 @@ interface SiteRow {
   aliases: string[];
   url: string;
   adminLang: SiteAdminLang;
+  /** The sublimation designer block and Print orders are allowed on this site. */
+  printDesigner: boolean;
   sslMode: 'off' | 'requested';
   ssl: SslState;
   sslMessage: string;
@@ -50,7 +52,7 @@ interface Overview {
 }
 
 const api = useApi();
-const { isOwner, user } = useAuth();
+const { isOwner, user, fetchMe } = useAuth();
 const { numberLocale, lang } = useAdminI18n();
 const data = ref<Overview | null>(null);
 const error = ref('');
@@ -66,6 +68,7 @@ const form = reactive({
   demo: true,
   adminLang: lang.value as SiteAdminLang,
   defaultLocale: '',
+  printDesigner: false,
 });
 const adminLangs: { code: SiteAdminLang; label: string }[] = [
   { code: 'en', label: 'English' },
@@ -77,7 +80,9 @@ const added = ref<{ site: SiteRow; invite: { email: string; link: string; emaile
 const events = reactive<Record<string, SslEvent[]>>({});
 const openTimeline = reactive<Record<string, boolean>>({});
 const seo = reactive<Record<string, SeoCheck | 'loading'>>({});
-const editing = reactive<Record<string, { name: string; primary: string; aliases: string; adminLang: SiteAdminLang } | undefined>>({});
+const editing = reactive<
+  Record<string, { name: string; primary: string; aliases: string; adminLang: SiteAdminLang; printDesigner: boolean } | undefined>
+>({});
 const ownerInvite = reactive({ email: '', open: false, link: '' });
 
 /** example.com from whatever was typed (https://Example.com/path → example.com). */
@@ -139,6 +144,7 @@ const addSite = () =>
         demo: form.demo,
         adminLang: form.adminLang,
         defaultLocale: form.defaultLocale,
+        printDesigner: form.printDesigner,
         ...(form.adminEmail ? { adminEmail: form.adminEmail } : {}),
       },
     });
@@ -181,7 +187,13 @@ const openAdmin = (s: SiteRow) =>
   });
 
 function startEdit(s: SiteRow) {
-  editing[s.id] = { name: s.name, primary: s.primary, aliases: s.aliases.join('\n'), adminLang: s.adminLang };
+  editing[s.id] = {
+    name: s.name,
+    primary: s.primary,
+    aliases: s.aliases.join('\n'),
+    adminLang: s.adminLang,
+    printDesigner: s.printDesigner,
+  };
 }
 
 const saveEdit = (s: SiteRow) =>
@@ -192,6 +204,7 @@ const saveEdit = (s: SiteRow) =>
       body: {
         name: e.name,
         adminLang: e.adminLang,
+        printDesigner: e.printDesigner,
         domain: cleanDomain(e.primary),
         aliases: e.aliases
           .split(/[\s,]+/)
@@ -200,6 +213,8 @@ const saveEdit = (s: SiteRow) =>
       },
     });
     editing[s.id] = undefined;
+    // The admin menu and the block library of the site the owner is in follow its print designer setting.
+    if (s.current) await fetchMe();
     await refresh();
   });
 
@@ -346,6 +361,10 @@ onBeforeUnmount(() => clearInterval(timer));
           <label class="flex items-center gap-2">
             <input v-model="form.demo" type="checkbox" class="h-4 w-4 rounded" /> {{ $t('Start with the demo pages') }}
           </label>
+          <label class="flex items-center gap-2">
+            <input v-model="form.printDesigner" type="checkbox" class="h-4 w-4 rounded" data-testid="site-print-designer" />
+            {{ $t('Allow the sublimation designer and Print orders') }}
+          </label>
         </div>
       </div>
       <div class="mt-5 rounded-2xl bg-slate-50 p-4 text-xs leading-relaxed text-slate-600">
@@ -406,6 +425,9 @@ onBeforeUnmount(() => clearInterval(timer));
             </p>
             <p class="mt-1 text-xs text-slate-400" data-testid="site-admin-lang">
               <i class="mdi mdi-translate" /> {{ $t('Admin panel language') }}: {{ $t(adminLangLabel(s.adminLang)) }}
+            </p>
+            <p v-if="s.printDesigner" class="mt-1 text-xs text-slate-400" data-testid="site-print-designer">
+              <i class="mdi mdi-tshirt-crew-outline" /> {{ $t('Sublimation designer allowed') }}
             </p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
@@ -520,6 +542,10 @@ onBeforeUnmount(() => clearInterval(timer));
               <option v-for="l in adminLangs" :key="l.code" :value="l.code">{{ $t(l.label) }}</option>
             </select>
           </div>
+          <label class="flex items-center gap-2 self-end pb-2 text-sm">
+            <input v-model="editing[s.id]!.printDesigner" type="checkbox" class="h-4 w-4 rounded" data-testid="edit-print-designer" />
+            {{ $t('Allow the sublimation designer and Print orders') }}
+          </label>
           <p class="self-end text-xs text-slate-500">
             {{ $t('With SSL on, changing the addresses asks for a new certificate covering them.') }}
           </p>
