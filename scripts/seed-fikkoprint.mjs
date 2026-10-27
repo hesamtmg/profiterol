@@ -1,0 +1,940 @@
+/**
+ * Builds the FikkoPrint site (fikkoprint.com) in Persian and English: a printing company that does sublimation
+ * printing only — mugs, polyester clothing, phone cases, cushions, metal photo panels and more. The page is made mostly
+ * of animated blocks, with generated placeholder pictures of the products and the process.
+ * It only talks to the admin API, so it works against a local site or a live one.
+ *
+ *   node scripts/seed-fikkoprint.mjs           a separate page at /fa/چاپ-سابلیمیشن and /en/sublimation-printing (safe)
+ *   node scripts/seed-fikkoprint.mjs --home    replaces the home page, and sets the site name, logo, menu and colors
+ *
+ * Settings: API_URL (default http://localhost:8080/api), ADMIN_EMAIL, ADMIN_PASSWORD, and SITE (the site's address)
+ * when the installation has several sites, e.g. SITE=fikkoprint.com.
+ * Running it again updates the same page; the pictures are uploaded again each time.
+ * On the server, see the "FikkoPrint content" section of DEPLOY.md.
+ */
+import { createRequire } from 'node:module';
+
+const API = (process.env.API_URL ?? 'http://localhost:8080/api').replace(/\/$/, '');
+// With several sites, the one to fill: its address, e.g. SITE=fikkoprint.com (sent as X-Forwarded-Host).
+const SITE = process.env.SITE ? { 'x-forwarded-host': process.env.SITE } : {};
+const ADMIN = { email: process.env.ADMIN_EMAIL ?? 'admin@example.com', password: process.env.ADMIN_PASSWORD ?? 'admin12345' };
+const HOME = process.argv.includes('--home');
+
+/** sharp comes with the API: next to this file in the repository, or in /app inside the API image. */
+function loadSharp() {
+  for (const base of [new URL('../apps/api/package.json', import.meta.url).pathname, '/app/apps/api/package.json']) {
+    try {
+      return createRequire(base)('sharp');
+    } catch {
+      // try the next place
+    }
+  }
+  throw new Error('sharp not found: run `npm install` first, or run this inside the API container');
+}
+const sharp = loadSharp();
+
+// ---------- API ----------
+const login = await fetch(`${API}/auth/login`, {
+  method: 'POST',
+  headers: { 'content-type': 'application/json', ...SITE },
+  body: JSON.stringify(ADMIN),
+});
+if (!login.ok) throw new Error(`login failed (${login.status}): check API_URL, ADMIN_EMAIL and ADMIN_PASSWORD`);
+const token = (await login.json()).token;
+
+async function api(method, path, body) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { authorization: `Bearer ${token}`, ...SITE, ...(body ? { 'content-type': 'application/json' } : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  if (!res.ok) throw new Error(`${method} ${path}: ${res.status} ${text.slice(0, 300)}`);
+  return text ? JSON.parse(text) : null;
+}
+
+async function upload(bytes, name, type) {
+  const fd = new FormData();
+  fd.append('file', new Blob([bytes], { type }), name);
+  const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}`, ...SITE }, body: fd });
+  if (!res.ok) throw new Error(`upload ${name}: ${res.status} ${await res.text()}`);
+  return (await res.json()).url;
+}
+
+// ---------- Illustrations: a printed design, the products wearing it, and the steps of the process ----------
+const W = 1600;
+const H = 1100;
+const PALETTES = {
+  sunset: ['#ff3d7f', '#ff9f1c', '#ffd400', '#5b2a86'],
+  ocean: ['#00a0e9', '#00d1b2', '#2b2d8f', '#b8f3ff'],
+  candy: ['#e6007e', '#7c3aed', '#00a0e9', '#ffd400'],
+  jungle: ['#16a34a', '#facc15', '#0f766e', '#f97316'],
+  berry: ['#9d174d', '#f472b6', '#4c1d95', '#fde68a'],
+  team: ['#1d4ed8', '#facc15', '#0f172a', '#ffffff'],
+};
+
+/** A full-colour design (gradient, waves and dots), the kind of artwork customers send; drawn into a w×h box. */
+function design(id, palette, seed, w, h) {
+  const [a, b, c, d] = PALETTES[palette];
+  let r = seed;
+  const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+  const waves = Array.from({ length: 5 }, (_, i) => {
+    const y = h * (0.25 + i * 0.16);
+    const amp = h * (0.06 + rnd() * 0.08);
+    return `<path d="M 0 ${y} C ${w * 0.25} ${y - amp}, ${w * 0.5} ${y + amp}, ${w} ${y - amp * 0.5} L ${w} ${h} L 0 ${h} Z"
+      fill="${[b, c, d, a, b][i]}" fill-opacity="${0.35 + i * 0.1}"/>`;
+  }).join('');
+  const dots = Array.from({ length: 14 }, () => {
+    const s = Math.min(w, h) * (0.02 + rnd() * 0.07);
+    return `<circle cx="${rnd() * w}" cy="${rnd() * h * 0.7}" r="${s}" fill="${[d, '#fff', c][Math.floor(rnd() * 3)]}" fill-opacity=".8"/>`;
+  }).join('');
+  return `<linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient>
+    <g id="${id}"><rect width="${w}" height="${h}" fill="url(#${id}g)"/>
+    <circle cx="${w * 0.7}" cy="${h * 0.3}" r="${Math.min(w, h) * 0.28}" fill="${c}" fill-opacity=".85"/>${waves}${dots}</g>`;
+}
+
+/** A soft studio background with a floor shadow. */
+function studio(bg, extra = '') {
+  return `<defs><radialGradient id="bg" cx=".5" cy=".4" r=".8"><stop offset="0" stop-color="${bg[0]}"/><stop offset="1" stop-color="${bg[1]}"/></radialGradient>
+    <radialGradient id="sh" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".35"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>${extra}</defs>
+    <rect width="${W}" height="${H}" fill="url(#bg)"/><ellipse cx="${W / 2}" cy="${H * 0.86}" rx="${W * 0.28}" ry="${H * 0.05}" fill="url(#sh)"/>`;
+}
+
+/**
+ * Outlines of the products, in a 1600×1100 picture, centred: `body` is the print area the design is clipped to, `back`
+ * is drawn behind it and `extra` in front.
+ */
+const SHAPES = {
+  mug: {
+    body: `<rect x="520" y="300" width="460" height="560" rx="40"/>`,
+    back: `<path d="M 980 420 C 1180 420, 1180 760, 980 760" fill="none" stroke="#f1f5f9" stroke-width="56"/>`,
+    extra: `<ellipse cx="750" cy="300" rx="230" ry="34" fill="#e2e8f0"/><ellipse cx="750" cy="300" rx="200" ry="24" fill="#94a3b8"/>`,
+  },
+  tshirt: {
+    body: `<path d="M 600 240 L 470 290 L 330 450 L 450 540 L 520 470 L 520 900 L 1080 900 L 1080 470 L 1150 540 L 1270 450 L 1130 290 L 1000 240 C 960 300, 640 300, 600 240 Z"/>`,
+    extra: `<path d="M 600 240 C 640 300, 960 300, 1000 240" fill="none" stroke="#0002" stroke-width="10"/>`,
+  },
+  phone: {
+    body: `<rect x="590" y="160" width="420" height="820" rx="70"/>`,
+    extra: `<rect x="630" y="200" width="150" height="180" rx="36" fill="#0f172a" fill-opacity=".85"/>
+      <circle cx="675" cy="250" r="28" fill="#334155"/><circle cx="740" cy="330" r="28" fill="#334155"/>`,
+  },
+  cushion: {
+    body: `<path d="M 420 300 Q 800 230 1180 300 Q 1250 590 1180 880 Q 800 950 420 880 Q 350 590 420 300 Z"/>`,
+    extra: '',
+  },
+  panel: {
+    body: `<rect x="330" y="230" width="940" height="640" rx="14"/>`,
+    extra: `<path d="M 330 230 L 760 230 L 330 700 Z" fill="#fff" fill-opacity=".18"/>`,
+  },
+  puzzle: {
+    body: `<rect x="380" y="250" width="840" height="620" rx="10"/>`,
+    extra: [0, 1, 2]
+      .map(
+        (i) =>
+          `<path d="M ${590 + i * 210} 250 L ${590 + i * 210} 870" stroke="#0004" stroke-width="5" stroke-dasharray="60 14 20 14" fill="none"/>`,
+      )
+      .concat(
+        [0, 1].map(
+          (i) =>
+            `<path d="M 380 ${457 + i * 207} L 1220 ${457 + i * 207}" stroke="#0004" stroke-width="5" stroke-dasharray="50 14 20 14" fill="none"/>`,
+        ),
+      )
+      .join(''),
+  },
+  mousepad: {
+    body: `<path d="M 300 560 L 1080 420 L 1320 680 L 520 860 Z"/>`,
+    extra: '',
+  },
+  bottle: {
+    body: `<rect x="640" y="300" width="320" height="640" rx="60"/>`,
+    extra: `<rect x="690" y="170" width="220" height="140" rx="30" fill="#cbd5e1"/><rect x="740" y="130" width="120" height="60" rx="18" fill="#94a3b8"/>`,
+  },
+  jersey: {
+    body: `<path d="M 620 220 L 480 280 L 400 520 L 500 550 L 540 450 L 540 920 L 1060 920 L 1060 450 L 1100 550 L 1200 520 L 1120 280 L 980 220 L 800 340 Z"/>`,
+    extra: `<text x="800" y="720" font-family="DejaVu Sans, sans-serif" font-weight="900" font-size="260" fill="#fff" text-anchor="middle" fill-opacity=".92">10</text>`,
+  },
+  coaster: {
+    body: `<circle cx="660" cy="560" r="260"/><circle cx="980" cy="600" r="220"/>`,
+    extra: '',
+  },
+};
+
+/** A product with the design printed on it, or blank (white) for the before/after. */
+function product(kind, { palette = 'candy', seed = 1, bg = ['#fdf2f8', '#c4b5fd'], blank = false } = {}) {
+  const s = SHAPES[kind];
+  const print = blank
+    ? `<g clip-path="url(#clip)"><rect width="${W}" height="${H}" fill="#f8fafc"/><rect x="${W / 2}" width="${W / 2}" height="${H}" fill="#e2e8f0"/></g>`
+    : `<g clip-path="url(#clip)"><use href="#art"/>
+       <rect width="${W}" height="${H}" fill="url(#gloss)"/></g>`;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${W}" height="${H}">
+    ${studio(
+      bg,
+      `${design('art', palette, seed, W, H)}<clipPath id="clip">${s.body}</clipPath>
+      <linearGradient id="gloss" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#000" stop-opacity=".18"/><stop offset=".35" stop-color="#fff" stop-opacity=".22"/><stop offset=".6" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".25"/></linearGradient>`,
+    )}
+    ${s.back ?? ''}${print}${s.extra}
+  </svg>`;
+  return sharp(Buffer.from(svg)).jpeg({ quality: 86 }).toBuffer();
+}
+
+/** The steps of sublimation: the design on screen, printed mirrored on paper, the heat press, the ink as gas, done. */
+function step(kind) {
+  const bg = { screen: ['#1e1b4b', '#0b0a12'], paper: ['#fff7ed', '#fdba74'], press: ['#450a0a', '#0b0a12'], gas: ['#0c4a6e', '#020617'] }[
+    kind
+  ];
+  let body = '';
+  if (kind === 'screen') {
+    body = `<rect x="300" y="170" width="1000" height="640" rx="28" fill="#0f172a" stroke="#334155" stroke-width="14"/>
+      <svg x="330" y="200" width="940" height="580"><use href="#art"/></svg>
+      <rect x="720" y="810" width="160" height="110" fill="#334155"/><rect x="580" y="910" width="440" height="30" rx="15" fill="#475569"/>`;
+  } else if (kind === 'paper') {
+    body = `<g transform="rotate(-5 800 550)"><rect x="420" y="170" width="760" height="800" fill="#fff" stroke="#0001" stroke-width="3"/>
+      <g transform="translate(1150 200) scale(-1 1)"><svg width="700" height="740" opacity=".75"><use href="#art"/></svg></g></g>
+      ${['#00a0e9', '#e6007e', '#ffd400', '#111827'].map((c, i) => `<circle cx="${1290 + (i % 2) * 90}" cy="${260 + Math.floor(i / 2) * 90}" r="36" fill="${c}"/>`).join('')}`;
+  } else if (kind === 'press') {
+    body = `<rect x="440" y="250" width="720" height="150" rx="24" fill="#1f2937" stroke="#ef4444" stroke-width="6"/>
+      <rect x="760" y="100" width="80" height="160" fill="#374151"/><rect x="620" y="80" width="360" height="50" rx="25" fill="#4b5563"/>
+      <rect x="470" y="400" width="660" height="40" fill="#ef4444" fill-opacity=".7"/>
+      ${[0, 1, 2, 3, 4].map((i) => `<path d="M ${520 + i * 140} 470 q 20 30 0 60 q -20 30 0 60" stroke="#f97316" stroke-width="10" fill="none" stroke-linecap="round" opacity=".85"/>`).join('')}
+      <rect x="440" y="650" width="720" height="140" rx="20" fill="#111827"/><svg x="470" y="610" width="660" height="60"><use href="#art"/></svg>
+      <text x="800" y="920" font-family="DejaVu Sans, sans-serif" font-weight="900" font-size="110" fill="#fca5a5" text-anchor="middle">200°C · 60s</text>`;
+  } else if (kind === 'gas') {
+    let r = 5;
+    const rnd = () => (r = (r * 9301 + 49297) % 233280) / 233280;
+    const fibres = Array.from(
+      { length: 9 },
+      (_, i) =>
+        `<path d="M 200 ${560 + i * 50} C 600 ${520 + i * 50}, 1000 ${600 + i * 50}, 1400 ${560 + i * 50}" stroke="#e2e8f0" stroke-opacity=".45" stroke-width="22" fill="none"/>`,
+    ).join('');
+    const ink = Array.from({ length: 90 }, () => {
+      const y = 140 + rnd() * 760;
+      const into = y > 560;
+      return `<circle cx="${200 + rnd() * 1200}" cy="${y}" r="${into ? 9 : 13}" fill="${['#00a0e9', '#e6007e', '#ffd400'][Math.floor(rnd() * 3)]}" fill-opacity="${into ? 0.95 : 0.6}"/>`;
+    }).join('');
+    body = `${fibres}${ink}<path d="M 800 160 L 800 460" stroke="#fff" stroke-width="10" stroke-dasharray="20 18"/><path d="M 760 430 L 800 490 L 840 430" fill="none" stroke="#fff" stroke-width="10"/>`;
+  }
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}">
+    <defs><radialGradient id="bg" cx=".5" cy=".4" r=".8"><stop offset="0" stop-color="${bg[0]}"/><stop offset="1" stop-color="${bg[1]}"/></radialGradient>
+    ${design('art', 'candy', 9, 940, 740)}</defs><rect width="${W}" height="${H}" fill="url(#bg)"/>${body}</svg>`;
+  return sharp(Buffer.from(svg)).jpeg({ quality: 86 }).toBuffer();
+}
+
+/** The logo mark: four ink drops (cyan, magenta, yellow, black); the header writes the site name next to it. */
+function logo() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160">
+    ${['#00a0e9', '#e6007e', '#ffd400', '#111827'].map((c, i) => `<circle cx="${46 + (i % 2) * 68}" cy="${46 + Math.floor(i / 2) * 68}" r="34" fill="${c}"/>`).join('')}</svg>`;
+  return sharp(Buffer.from(svg)).png().toBuffer();
+}
+
+const up = async (buf, name) => upload(await buf, name, 'image/jpeg');
+const img = {
+  mug: await up(product('mug', { palette: 'sunset', seed: 3, bg: ['#fff7ed', '#fda4af'] }), 'mug.jpg'),
+  mugBlank: await up(product('mug', { blank: true, bg: ['#f8fafc', '#94a3b8'] }), 'mug-blank.jpg'),
+  mugAfter: await up(product('mug', { palette: 'candy', seed: 7, bg: ['#fdf2f8', '#c4b5fd'] }), 'mug-printed.jpg'),
+  tshirt: await up(product('tshirt', { palette: 'ocean', seed: 5, bg: ['#ecfeff', '#67e8f9'] }), 'tshirt.jpg'),
+  phone: await up(product('phone', { palette: 'berry', seed: 11, bg: ['#fdf4ff', '#d8b4fe'] }), 'phone-case.jpg'),
+  cushion: await up(product('cushion', { palette: 'jungle', seed: 13, bg: ['#f7fee7', '#a3e635'] }), 'cushion.jpg'),
+  panel: await up(product('panel', { palette: 'sunset', seed: 17, bg: ['#1e293b', '#020617'] }), 'metal-panel.jpg'),
+  puzzle: await up(product('puzzle', { palette: 'candy', seed: 19, bg: ['#fefce8', '#fde047'] }), 'puzzle.jpg'),
+  mousepad: await up(product('mousepad', { palette: 'ocean', seed: 23, bg: ['#eef2ff', '#818cf8'] }), 'mousepad.jpg'),
+  bottle: await up(product('bottle', { palette: 'berry', seed: 29, bg: ['#fff1f2', '#fb7185'] }), 'bottle.jpg'),
+  jersey: await up(product('jersey', { palette: 'team', seed: 31, bg: ['#eff6ff', '#60a5fa'] }), 'jersey.jpg'),
+  coaster: await up(product('coaster', { palette: 'jungle', seed: 37, bg: ['#fff7ed', '#fdba74'] }), 'coasters.jpg'),
+  screen: await up(step('screen'), 'step-design.jpg'),
+  paper: await up(step('paper'), 'step-transfer-paper.jpg'),
+  press: await up(step('press'), 'step-heat-press.jpg'),
+  gas: await up(step('gas'), 'step-ink-gas.jpg'),
+};
+const logoUrl = HOME ? await upload(await logo(), 'fikkoprint-logo.png', 'image/png') : '';
+
+// ---------- Content ----------
+const t = (en, fa) => (l) => (l === 'en' ? en : fa);
+const EMAIL = 'info@fikkoprint.com';
+
+const blocks = (l) => [
+  {
+    id: 'hero',
+    type: 'aurora-hero',
+    props: {
+      anchor: 'top',
+      eyebrow: t('FikkoPrint · Sublimation printing, and nothing else', 'فیکوپرینت · فقط چاپ سابلیمیشن')(l),
+      title: t('Your design, printed into', 'طرح شما، ماندگار روی')(l),
+      words: t('mugs,T-shirts,phone cases,cushions,metal panels,sports kits', 'ماگ,تی‌شرت,قاب موبایل,کوسن,تابلو فلزی,لباس ورزشی')(l),
+      text: t(
+        'We don’t print on things — we print into them. Heat turns the ink into a gas that bonds with the surface, so the colours never crack, peel or wash out.',
+        'ما روی اجسام چاپ نمی‌کنیم، درونشان چاپ می‌کنیم. حرارت جوهر را به گاز تبدیل می‌کند و با سطح یکی می‌شود؛ رنگ‌ها نه ترک می‌خورند، نه پوسته می‌شوند و نه با شستشو می‌روند.',
+      )(l),
+      buttonLabel: t('Send your design', 'طرحتان را بفرستید')(l),
+      buttonLink: '#order',
+      secondButtonLabel: t('How it works', 'چطور کار می‌کند؟')(l),
+      secondButtonLink: '#process',
+      color: '#ffd400',
+      look: 'dark',
+    },
+  },
+  {
+    id: 'products-strip',
+    type: 'logo-strip',
+    props: {
+      title: t('What leaves our heat presses every day', 'آنچه هر روز از زیر پرس‌های ما بیرون می‌آید')(l),
+      logos: t(
+        [
+          'Mugs',
+          'T-shirts',
+          'Sports kits',
+          'Phone cases',
+          'Cushions',
+          'Metal photo panels',
+          'Puzzles',
+          'Mouse pads',
+          'Water bottles',
+          'Coasters',
+          'Keyrings',
+          'Flags & banners',
+        ],
+        [
+          'ماگ',
+          'تی‌شرت',
+          'لباس ورزشی',
+          'قاب موبایل',
+          'کوسن',
+          'تابلو فلزی',
+          'پازل',
+          'ماوس‌پد',
+          'قمقمه',
+          'زیرلیوانی',
+          'جاکلیدی',
+          'پرچم و بنر',
+        ],
+      )(l).map((name) => ({ image: '', name, link: '' })),
+      seconds: 35,
+      twoRows: true,
+      look: 'dark',
+    },
+  },
+  {
+    id: 'what',
+    type: 'scroll-text',
+    props: {
+      anchor: 'what',
+      eyebrow: t('Sublimation, in one breath', 'سابلیمیشن در یک نفس')(l),
+      text: t(
+        'Sublimation is when a solid turns straight into a gas. We print your design with special inks on transfer paper, press it onto the product at two hundred degrees, and the ink becomes a gas that sinks into the polyester and freezes there as it cools. The print is no longer on the surface. It is the surface.',
+        'سابلیمیشن یعنی تبدیل مستقیم جامد به گاز. طرح شما را با جوهر مخصوص روی کاغذ انتقال چاپ می‌کنیم، در دمای دویست درجه روی محصول پرس می‌کنیم و جوهر به گاز تبدیل می‌شود، در پلی‌استر فرو می‌رود و با سرد شدن همان‌جا می‌ماند. چاپ دیگر روی سطح نیست؛ خودِ سطح است.',
+      )(l),
+    },
+  },
+  {
+    id: 'press',
+    type: 'zoom-reveal',
+    props: {
+      anchor: 'press',
+      intro: t('200 °C · 60 seconds · 4 bar', '۲۰۰ درجه · ۶۰ ثانیه · ۴ بار فشار')(l),
+      eyebrow: t('Where the magic happens', 'جایی که جادو اتفاق می‌افتد')(l),
+      title: t('Heat, pressure, and a minute of patience', 'حرارت، فشار و یک دقیقه صبر')(l),
+      text: t(
+        'Every product has its own recipe of temperature, time and pressure. We have tuned ours on thousands of pieces, so the colours come out exactly as on your screen.',
+        'هر محصول دستور خودش را از دما، زمان و فشار دارد. ما دستورهایمان را روی هزاران قطعه تنظیم کرده‌ایم تا رنگ‌ها دقیقاً همان‌طور دربیایند که روی صفحه‌ی شما بود.',
+      )(l),
+      buttonLabel: t('Follow a mug through the shop', 'سفر یک ماگ را دنبال کنید')(l),
+      buttonLink: '#process',
+      image: img.press,
+    },
+  },
+  {
+    id: 'process',
+    type: 'sticky-story',
+    props: {
+      anchor: 'process',
+      title: t('From your file to your hands, in five steps', 'از فایل شما تا دستان شما، در پنج قدم')(l),
+      imageSide: 'start',
+      steps: [
+        {
+          image: img.screen,
+          eyebrow: t('Step 1 · Your design', 'گام ۱ · طرح شما')(l),
+          title: t('Send a photo, a logo, or just an idea', 'یک عکس، یک لوگو یا فقط یک ایده بفرستید')(l),
+          text: t(
+            'A phone photo is fine. Our designers check the resolution, fix the colours and place the design on the product — and you approve a mock-up before anything is printed.',
+            'عکس موبایل هم کافی است. طراحان ما وضوح تصویر را بررسی می‌کنند، رنگ‌ها را اصلاح می‌کنند و طرح را روی محصول می‌چینند؛ پیش از چاپ، پیش‌نمایش را تأیید می‌کنید.',
+          )(l),
+        },
+        {
+          image: img.paper,
+          eyebrow: t('Step 2 · Printing', 'گام ۲ · چاپ')(l),
+          title: t('Mirrored, on transfer paper', 'برعکس، روی کاغذ انتقال')(l),
+          text: t(
+            'The design is printed back to front with sublimation inks. On paper the colours look dull — they only wake up under heat.',
+            'طرح به‌صورت آینه‌ای با جوهر سابلیمیشن چاپ می‌شود. روی کاغذ رنگ‌ها کدر به نظر می‌رسند؛ فقط زیر حرارت بیدار می‌شوند.',
+          )(l),
+        },
+        {
+          image: img.press,
+          eyebrow: t('Step 3 · The press', 'گام ۳ · پرس حرارتی')(l),
+          title: t('Two hundred degrees', 'دویست درجه')(l),
+          text: t(
+            'The paper is wrapped around the mug or laid on the fabric, and the heat press closes. Flat presses for clothing and panels, wrap presses for mugs and bottles.',
+            'کاغذ دور ماگ پیچیده یا روی پارچه گذاشته می‌شود و پرس بسته می‌شود. پرس تخت برای لباس و تابلو، پرس استوانه‌ای برای ماگ و قمقمه.',
+          )(l),
+        },
+        {
+          image: img.gas,
+          eyebrow: t('Step 4 · The science', 'گام ۴ · علم ماجرا')(l),
+          title: t('Ink becomes gas, gas becomes colour', 'جوهر گاز می‌شود، گاز رنگ می‌شود')(l),
+          text: t(
+            'The heat opens the pores of the polyester. The ink skips the liquid stage, travels in as a gas, and is locked inside when the pores close again.',
+            'حرارت منافذ پلی‌استر را باز می‌کند. جوهر بدون مایع شدن، به شکل گاز وارد می‌شود و با بسته شدن دوباره‌ی منافذ، همان‌جا قفل می‌شود.',
+          )(l),
+        },
+        {
+          image: img.mug,
+          eyebrow: t('Step 5 · Done', 'گام ۵ · آماده')(l),
+          title: t('Checked, packed, on its way', 'کنترل، بسته‌بندی، ارسال')(l),
+          text: t(
+            'Every piece is checked by hand for colour and position, wrapped, and sent across Iran — or picked up from our shop.',
+            'هر قطعه با دست از نظر رنگ و جای طرح کنترل می‌شود، بسته‌بندی می‌شود و به سراسر ایران ارسال می‌شود؛ یا از کارگاه ما تحویل بگیرید.',
+          )(l),
+        },
+      ],
+    },
+  },
+  {
+    id: 'compare',
+    type: 'before-after',
+    props: {
+      animation: 'blur',
+      title: t('One minute in the press', 'یک دقیقه زیر پرس')(l),
+      before: img.mugBlank,
+      after: img.mugAfter,
+      beforeLabel: t('Blank coated mug', 'ماگ خام پوشش‌دار')(l),
+      afterLabel: t('Sublimated', 'سابلیمیشن‌شده')(l),
+    },
+  },
+  {
+    id: 'products',
+    type: 'horizontal-scroll',
+    props: {
+      anchor: 'products',
+      title: t('Things we print into', 'چیزهایی که درونشان چاپ می‌کنیم')(l),
+      text: t('Keep scrolling. Single pieces or a thousand — same price list, same care.', 'اسکرول کنید. یک عدد یا هزار عدد؛ همان دقت.')(l),
+      cards: [
+        [
+          img.mug,
+          t('Ceramic', 'سرامیک'),
+          t('Mugs', 'ماگ'),
+          t(
+            'White, magic (colour-changing) and two-tone. Dishwasher safe.',
+            'سفید، حرارتی (جادویی) و دورنگ. قابل شستشو در ماشین ظرف‌شویی.',
+          ),
+        ],
+        [
+          img.tshirt,
+          t('Polyester', 'پلی‌استر'),
+          t('T-shirts', 'تی‌شرت'),
+          t('Edge-to-edge prints that breathe — no heavy layer of ink.', 'چاپ سراسری که نفس می‌کشد؛ بدون لایه‌ی سنگین جوهر.'),
+        ],
+        [
+          img.jersey,
+          t('Sportswear', 'ورزشی'),
+          t('Team kits', 'لباس تیمی'),
+          t('Names and numbers for every player, in one run.', 'نام و شماره‌ی هر بازیکن، در یک نوبت چاپ.'),
+        ],
+        [
+          img.phone,
+          t('Polymer', 'پلیمر'),
+          t('Phone cases', 'قاب موبایل'),
+          t('Glossy coated inserts for the popular models.', 'صفحه‌ی براق پوشش‌دار برای مدل‌های پرطرفدار.'),
+        ],
+        [
+          img.panel,
+          t('Aluminium', 'آلومینیوم'),
+          t('Metal photo panels', 'تابلو فلزی'),
+          t('Gallery-grade photos with a deep, glassy shine.', 'عکس در کیفیت گالری با درخشش عمیق و شیشه‌ای.'),
+        ],
+        [
+          img.cushion,
+          t('Home', 'خانه'),
+          t('Cushions', 'کوسن'),
+          t('Soft polyester covers, printed on both sides.', 'روکش پلی‌استر نرم، چاپ دورو.'),
+        ],
+        [img.puzzle, t('Gifts', 'هدیه'), t('Puzzles', 'پازل'), t('Your photo in 120 to 500 pieces.', 'عکس شما در ۱۲۰ تا ۵۰۰ قطعه.')],
+        [
+          img.bottle,
+          t('Metal', 'فلز'),
+          t('Water bottles', 'قمقمه'),
+          t('Coated steel that keeps its colour on the go.', 'فولاد پوشش‌دار که رنگش را همه‌جا حفظ می‌کند.'),
+        ],
+        [
+          img.mousepad,
+          t('Office', 'اداری'),
+          t('Mouse pads', 'ماوس‌پد'),
+          t('Branded desk sets for teams and events.', 'ست‌های میز با برند شما برای تیم‌ها و رویدادها.'),
+        ],
+      ].map(([image, tag, title, text]) => ({ image, tag: tag(l), title: title(l), text: text(l), link: '#order' })),
+    },
+  },
+  {
+    id: 'why',
+    type: 'text-scramble',
+    props: {
+      eyebrow: t('Why only sublimation?', 'چرا فقط سابلیمیشن؟')(l),
+      lines: t(
+        'It won’t crack.\nIt won’t peel.\nIt won’t fade.\nIt won’t wash out.',
+        'ترک نمی‌خورد.\nپوسته نمی‌شود.\nرنگ نمی‌بازد.\nبا شستشو نمی‌رود.',
+      )(l),
+      text: t(
+        'Other methods lay ink on top of the surface, where it wears away. Ours lives inside it. We chose to do one thing, and to do it better than anyone.',
+        'روش‌های دیگر جوهر را روی سطح می‌نشانند، جایی که کم‌کم ساییده می‌شود. جوهر ما درون سطح زندگی می‌کند. ما تصمیم گرفتیم فقط یک کار انجام دهیم و آن را از همه بهتر انجام دهیم.',
+      )(l),
+      buttonLabel: t('See the prices', 'قیمت‌ها را ببینید')(l),
+      buttonLink: '#prices',
+      seconds: 3,
+      look: 'dark',
+    },
+  },
+  {
+    id: 'compat',
+    type: 'flip-cards',
+    props: {
+      anchor: 'materials',
+      animation: 'flip',
+      title: t('Can it be sublimated? Turn the cards over', 'قابل سابلیمیشن است؟ کارت‌ها را برگردانید')(l),
+      items: [
+        [
+          img.tshirt,
+          t('Polyester fabric', 'پارچه‌ی پلی‌استر'),
+          t(
+            'Yes — the more polyester, the brighter. 100% is ideal; below about 65% the colours turn pale and vintage.',
+            'بله؛ هرچه پلی‌استر بیشتر، رنگ زنده‌تر. ۱۰۰٪ ایده‌آل است و زیر حدود ۶۵٪ رنگ‌ها کم‌رنگ و قدیمی می‌شوند.',
+          ),
+        ],
+        [
+          img.mug,
+          t('Coated ceramic', 'سرامیک پوشش‌دار'),
+          t(
+            'Yes — mugs, plates and tiles with a special polymer coating. An ordinary mug from the shop won’t take the ink.',
+            'بله؛ ماگ، بشقاب و کاشی با پوشش پلیمری مخصوص. ماگ معمولی مغازه جوهر را نمی‌گیرد.',
+          ),
+        ],
+        [
+          img.panel,
+          t('Coated metal', 'فلز پوشش‌دار'),
+          t(
+            'Yes — aluminium panels, bottles and keyrings made for sublimation give the most vivid photos of all.',
+            'بله؛ تابلو آلومینیومی، قمقمه و جاکلیدی مخصوص سابلیمیشن زنده‌ترین عکس‌ها را می‌دهند.',
+          ),
+        ],
+        [
+          img.cushion,
+          t('Light colours only', 'فقط رنگ‌های روشن'),
+          t(
+            'Sublimation ink is transparent, so it needs a white or pastel base. On black fabric, the design disappears.',
+            'جوهر سابلیمیشن شفاف است و زمینه‌ی سفید یا روشن می‌خواهد. روی پارچه‌ی مشکی طرح دیده نمی‌شود.',
+          ),
+        ],
+        [
+          img.phone,
+          t('Hard plastics', 'پلاستیک سخت'),
+          t(
+            'Only with a coated insert. We use made-for-sublimation blanks, so the result is guaranteed.',
+            'فقط با صفحه‌ی پوشش‌دار. ما از قطعات خام مخصوص سابلیمیشن استفاده می‌کنیم تا نتیجه تضمینی باشد.',
+          ),
+        ],
+        [
+          img.coaster,
+          t('Cotton', 'نخ (پنبه)'),
+          t(
+            'No — cotton has nothing for the gas to bond with. Ask us about our poly-cotton blends instead.',
+            'نه؛ پنبه چیزی برای پیوند با گاز ندارد. درباره‌ی پارچه‌های مخلوط پلی‌استر از ما بپرسید.',
+          ),
+        ],
+      ].map(([image, title, back]) => ({ image, title: title(l), back: back(l), buttonLabel: '', buttonLink: '' })),
+    },
+  },
+  {
+    id: 'vivid',
+    type: 'progress-bars',
+    props: {
+      title: t('Polyester decides the colour', 'پلی‌استر رنگ را تعیین می‌کند')(l),
+      text: t(
+        'How bright a print comes out on each fabric, compared with 100% polyester.',
+        'درخشش چاپ روی هر پارچه، در مقایسه با پلی‌استر ۱۰۰٪.',
+      )(l),
+      items: [
+        { label: t('100% polyester', 'پلی‌استر ۱۰۰٪')(l), value: 100 },
+        { label: t('80% polyester · 20% cotton', 'پلی‌استر ۸۰٪ · پنبه ۲۰٪')(l), value: 85 },
+        { label: t('65% polyester · 35% cotton', 'پلی‌استر ۶۵٪ · پنبه ۳۵٪')(l), value: 65 },
+        { label: t('50% polyester · 50% cotton', 'پلی‌استر ۵۰٪ · پنبه ۵۰٪')(l), value: 45 },
+        { label: t('100% cotton', 'پنبه ۱۰۰٪')(l), value: 5 },
+      ],
+    },
+  },
+  {
+    id: 'who',
+    type: 'stacking-cards',
+    props: {
+      anchor: 'who',
+      title: t('Who we print for', 'برای چه کسانی چاپ می‌کنیم')(l),
+      cards: [
+        {
+          image: img.puzzle,
+          eyebrow: '01',
+          title: t('Gifts that mean something', 'هدیه‌هایی که معنا دارند')(l),
+          text: t(
+            'Birthdays, anniversaries, Yalda, Nowruz. One mug with one photo, ready in a day.',
+            'تولد، سالگرد، یلدا، نوروز. یک ماگ با یک عکس، آماده در یک روز.',
+          )(l),
+          color: '#9d174d',
+          buttonLabel: '',
+          buttonLink: '',
+        },
+        {
+          image: img.mousepad,
+          eyebrow: '02',
+          title: t('Brands and events', 'برندها و رویدادها')(l),
+          text: t(
+            'Promotional mugs, bottles and desk sets in your brand colours, matched batch after batch.',
+            'ماگ، قمقمه و ست میز تبلیغاتی در رنگ‌های برند شما، یکسان در هر سفارش.',
+          )(l),
+          color: '#1d4ed8',
+          buttonLabel: '',
+          buttonLink: '',
+        },
+        {
+          image: img.jersey,
+          eyebrow: '03',
+          title: t('Teams and clubs', 'تیم‌ها و باشگاه‌ها')(l),
+          text: t(
+            'Light, breathable kits that never lose their numbers, however often they are washed.',
+            'لباس سبک و قابل تنفس که شماره‌اش با هیچ شستشویی پاک نمی‌شود.',
+          )(l),
+          color: '#0f766e',
+          buttonLabel: '',
+          buttonLink: '',
+        },
+        {
+          image: img.panel,
+          eyebrow: '04',
+          title: t('Cafés, shops and designers', 'کافه‌ها، فروشگاه‌ها و طراحان')(l),
+          text: t(
+            'We print your collection under your name, with no minimum order.',
+            'کالکشن شما را با نام خودتان چاپ می‌کنیم، بدون حداقل سفارش.',
+          )(l),
+          color: '#111827',
+          buttonLabel: t('Start an order', 'شروع سفارش')(l),
+          buttonLink: '#order',
+        },
+      ],
+    },
+  },
+  {
+    id: 'numbers',
+    type: 'counters',
+    props: {
+      animation: 'rise',
+      title: t('FikkoPrint in numbers', 'فیکوپرینت به زبان عدد')(l),
+      items: [
+        { value: 9000, prefix: '', suffix: '+', label: t('Happy customers', 'مشتری راضی')(l) },
+        { value: 40, prefix: '', suffix: '+', label: t('Kinds of product', 'نوع محصول')(l) },
+        { value: 24, prefix: '', suffix: 'h', label: t('Typical turnaround', 'زمان معمول آماده‌سازی')(l) },
+        { value: 1, prefix: '', suffix: '', label: t('Minimum order', 'حداقل سفارش')(l) },
+      ],
+    },
+  },
+  {
+    id: 'prices',
+    type: 'pricing',
+    props: {
+      anchor: 'prices',
+      title: t('Prices that drop as you order more', 'هرچه بیشتر، ارزان‌تر')(l),
+      subtitle: t(
+        'Per mug, design and printing included. Other products on request.',
+        'قیمت هر ماگ، با طراحی و چاپ. سایر محصولات با استعلام.',
+      )(l),
+      currency: t('$', 'تومان')(l),
+      monthlyLabel: '',
+      yearlyLabel: '',
+      plans: [
+        {
+          name: t('One for you', 'یکی برای شما')(l),
+          price: t('9', '۴۵۰٬۰۰۰')(l),
+          yearlyPrice: '',
+          period: t('/mug', '/ ماگ')(l),
+          description: t('1–9 pieces', '۱ تا ۹ عدد')(l),
+          features: t(
+            'Free layout of your photo\nMock-up before printing\nReady in 24 hours\n-Gift box',
+            'چیدمان رایگان عکس شما\nپیش‌نمایش پیش از چاپ\nآماده در ۲۴ ساعت\n-جعبه‌ی کادویی',
+          )(l),
+          buttonLabel: t('Order one', 'سفارش تکی')(l),
+          buttonLink: '#order',
+          highlighted: false,
+          badge: '',
+        },
+        {
+          name: t('A small batch', 'سفارش کوچک')(l),
+          price: t('6', '۳۲۰٬۰۰۰')(l),
+          yearlyPrice: '',
+          period: t('/mug', '/ ماگ')(l),
+          description: t('10–99 pieces', '۱۰ تا ۹۹ عدد')(l),
+          features: t(
+            'Everything in “One for you”\nA different name on each piece\nGift box included\nShipping across Iran',
+            'همه‌ی امکانات سفارش تکی\nنام متفاوت روی هر قطعه\nجعبه‌ی کادویی\nارسال به سراسر ایران',
+          )(l),
+          buttonLabel: t('Order a batch', 'ثبت سفارش')(l),
+          buttonLink: '#order',
+          highlighted: true,
+          badge: t('Most popular', 'پرطرفدار')(l),
+        },
+        {
+          name: t('Wholesale', 'عمده')(l),
+          price: t('On request', 'استعلام')(l),
+          yearlyPrice: '',
+          period: '',
+          description: t('100 pieces or more', '۱۰۰ عدد به بالا')(l),
+          features: t(
+            'Brand colours matched to Pantone\nA sample before the full run\nPriority on the presses\nA dedicated contact',
+            'تطبیق رنگ برند با پنتون\nنمونه پیش از تولید انبوه\nاولویت در نوبت چاپ\nپشتیبان اختصاصی',
+          )(l),
+          buttonLabel: t('Get a quote', 'دریافت قیمت')(l),
+          buttonLink: '#order',
+          highlighted: false,
+          badge: '',
+        },
+      ],
+    },
+  },
+  {
+    id: 'words',
+    type: 'testimonials',
+    props: {
+      title: t('From people who unwrapped one', 'از زبان کسانی که بسته را باز کردند')(l),
+      seconds: 7,
+      items: [
+        {
+          quote: t(
+            'Our team kits went through a whole season of matches and washing machines. The numbers look like the first day.',
+            'لباس‌های تیممان یک فصل کامل مسابقه و ماشین لباسشویی را پشت سر گذاشت. شماره‌ها هنوز مثل روز اول‌اند.',
+          )(l),
+          name: t('Arash M.', 'آرش م.')(l),
+          role: t('Futsal club coach', 'مربی باشگاه فوتسال')(l),
+          photo: '',
+        },
+        {
+          quote: t(
+            'I sent a blurry phone photo of my grandmother. They cleaned it up and the metal panel now hangs in our living room.',
+            'یک عکس تار موبایلی از مادربزرگم فرستادم. اصلاحش کردند و حالا تابلو فلزی‌اش در پذیرایی خانه‌مان است.',
+          )(l),
+          name: t('Negar S.', 'نگار س.')(l),
+          role: t('Gift order', 'سفارش هدیه')(l),
+          photo: '',
+        },
+        {
+          quote: t(
+            'Three hundred mugs for our café’s anniversary, and every one the exact same shade of our green.',
+            'سیصد ماگ برای سالگرد کافه‌مان، و همه دقیقاً همان سبزِ برند ما.',
+          )(l),
+          name: t('Pouya R.', 'پویا ر.')(l),
+          role: t('Café owner', 'صاحب کافه')(l),
+          photo: '',
+        },
+      ],
+    },
+  },
+  {
+    id: 'faq',
+    type: 'faq',
+    props: {
+      anchor: 'faq',
+      animation: 'rise',
+      title: t('Questions we hear every day', 'پرسش‌هایی که هر روز می‌شنویم')(l),
+      subtitle: t('Something else? Write to us below.', 'سؤال دیگری دارید؟ پایین صفحه برایمان بنویسید.')(l),
+      items: [
+        [
+          t('Can you print on a black T-shirt?', 'روی تی‌شرت مشکی چاپ می‌کنید؟'),
+          t(
+            'Not with sublimation: the ink is transparent, so it needs a white or light base. We suggest a white or pastel polyester shirt — or an all-over print where the design itself is dark.',
+            'با سابلیمیشن نه؛ جوهر شفاف است و زمینه‌ی سفید یا روشن می‌خواهد. تی‌شرت پلی‌استر سفید یا رنگ روشن پیشنهاد می‌کنیم، یا چاپ سراسری که خود طرح تیره باشد.',
+          ),
+        ],
+        [
+          t('Will the print wash out?', 'چاپ با شستشو می‌رود؟'),
+          t(
+            'No. The ink is inside the fibres or the coating, not on top. Mugs are dishwasher safe and clothes can go in the machine like any other.',
+            'نه. جوهر درون الیاف یا پوشش است، نه روی آن. ماگ‌ها در ماشین ظرف‌شویی و لباس‌ها مثل هر لباس دیگری در ماشین لباسشویی شسته می‌شوند.',
+          ),
+        ],
+        [
+          t('What file should I send?', 'چه فایلی بفرستم؟'),
+          t(
+            'Any photo or design — JPG, PNG, PDF or a phone picture. The larger the better; we check it and tell you before printing if it will look blurry.',
+            'هر عکس یا طرحی: JPG، PNG، PDF یا عکس موبایل. هرچه بزرگ‌تر بهتر؛ پیش از چاپ بررسی می‌کنیم و اگر تار شود خبرتان می‌کنیم.',
+          ),
+        ],
+        [
+          t('How long does an order take?', 'سفارش چقدر طول می‌کشد؟'),
+          t(
+            'Single pieces are usually ready within 24 hours of approving the mock-up. Batches of a hundred or more take two to five working days.',
+            'سفارش‌های تکی معمولاً ۲۴ ساعت پس از تأیید پیش‌نمایش آماده‌اند. سفارش‌های صدتایی به بالا دو تا پنج روز کاری.',
+          ),
+        ],
+        [
+          t('Can I bring my own mug or shirt?', 'می‌توانم ماگ یا لباس خودم را بیاورم؟'),
+          t(
+            'Only if it is made for sublimation (coated ceramic, or mostly polyester fabric). Otherwise the ink will not hold — we would rather tell you than waste your piece.',
+            'فقط اگر مخصوص سابلیمیشن باشد (سرامیک پوشش‌دار یا پارچه‌ی عمدتاً پلی‌استر). وگرنه جوهر نمی‌گیرد؛ ترجیح می‌دهیم بگوییم تا اینکه قطعه‌تان خراب شود.',
+          ),
+        ],
+        [
+          t('Do you ship outside Tehran?', 'به شهرستان ارسال دارید؟'),
+          t(
+            'Yes, everywhere in Iran by post or courier, packed so that nothing arrives chipped.',
+            'بله، به سراسر ایران با پست یا پیک، با بسته‌بندی‌ای که هیچ‌چیز شکسته نرسد.',
+          ),
+        ],
+      ].map(([q, a]) => ({ q: q(l), a: a(l) })),
+    },
+  },
+  {
+    id: 'order',
+    type: 'contact-form',
+    props: {
+      anchor: 'order',
+      title: t('Send us your design', 'طرحتان را برایمان بفرستید')(l),
+      text: t(
+        'Tell us what you’d like printed and how many. We’ll reply within one working day with a mock-up and a price.',
+        'بگویید چه چیزی و چند عدد می‌خواهید. ظرف یک روز کاری با پیش‌نمایش و قیمت پاسخ می‌دهیم.',
+      )(l),
+      fields: [
+        { label: t('Name', 'نام')(l), type: 'text', required: true, options: '', placeholder: '' },
+        { label: t('Phone', 'تلفن همراه')(l), type: 'tel', required: true, options: '', placeholder: '' },
+        { label: t('Email', 'ایمیل')(l), type: 'email', required: false, options: '', placeholder: '' },
+        {
+          label: t('Product', 'محصول')(l),
+          type: 'select',
+          required: true,
+          options: t(
+            'Mug, T-shirt, Team kit, Phone case, Metal photo panel, Cushion, Puzzle, Something else',
+            'ماگ, تی‌شرت, لباس تیمی, قاب موبایل, تابلو فلزی, کوسن, پازل, چیز دیگر',
+          )(l),
+          placeholder: '',
+        },
+        { label: t('How many?', 'تعداد')(l), type: 'text', required: false, options: '', placeholder: t('e.g. 12', 'مثلاً ۱۲')(l) },
+        {
+          label: t('Your idea', 'ایده‌ی شما')(l),
+          type: 'textarea',
+          required: true,
+          options: '',
+          placeholder: t('A link to your design, or describe it…', 'لینک طرح یا توضیح آن…')(l),
+        },
+      ],
+      submitLabel: t('Send', 'ارسال')(l),
+      successMessage: t('Thank you! We’ll be in touch within one working day.', 'ممنون! ظرف یک روز کاری با شما تماس می‌گیریم.')(l),
+    },
+  },
+  {
+    id: 'motto',
+    type: 'scroll-marquee',
+    props: {
+      rows: [
+        { text: t('Mugs · T-shirts · Kits · Panels · Cushions', 'ماگ · تی‌شرت · لباس تیمی · تابلو · کوسن')(l), style: 'solid' },
+        { text: 'FikkoPrint', style: 'outline' },
+        { text: t('Printed into, not onto', 'درونِ جسم، نه رویش')(l), style: 'accent' },
+      ],
+      speed: 'medium',
+      look: 'dark',
+    },
+  },
+  {
+    id: 'contact',
+    type: 'contact-footer',
+    props: {
+      anchor: 'contact',
+      title: t('Got a photo you love?', 'عکسی دارید که دوستش دارید؟')(l),
+      text: t(
+        'Give it a second life on a mug, a shirt or a panel. Write to us, or visit the workshop and watch the presses at work.',
+        'به آن زندگی دوباره بدهید؛ روی ماگ، لباس یا تابلو. برایمان بنویسید، یا به کارگاه بیایید و کار پرس‌ها را از نزدیک ببینید.',
+      )(l),
+      email: EMAIL,
+      phone: '',
+      address: t('Tehran, Iran · Shipping everywhere in Iran', 'تهران · ارسال به سراسر ایران')(l),
+      copyright: t('© FikkoPrint · fikkoprint.com', '© فیکوپرینت · fikkoprint.com')(l),
+    },
+  },
+];
+
+// ---------- Save ----------
+const theme = {
+  primary: '#e6007e',
+  secondary: '#00a0e9',
+  dark: '#0d0b14',
+  background: '#0d0b14',
+  headerStyle: 'glass',
+  cursor: 'default',
+  pageTransition: 'curtain',
+};
+const titles = {
+  en: 'FikkoPrint — Sublimation printing',
+  fa: 'فیکوپرینت — چاپ سابلیمیشن',
+};
+const seo = {
+  en: {
+    seoTitle: 'Sublimation printing on mugs, T-shirts and more | FikkoPrint',
+    seoDescription:
+      'FikkoPrint prints only by sublimation: mugs, polyester T-shirts, team kits, phone cases, metal photo panels and cushions. Single pieces or wholesale, shipped across Iran.',
+  },
+  fa: {
+    seoTitle: 'چاپ سابلیمیشن روی ماگ، تی‌شرت و بیشتر | فیکوپرینت',
+    seoDescription:
+      'فیکوپرینت فقط چاپ سابلیمیشن انجام می‌دهد: ماگ، تی‌شرت پلی‌استر، لباس تیمی، قاب موبایل، تابلو فلزی و کوسن. تکی یا عمده، با ارسال به سراسر ایران.',
+  },
+};
+const LOCALES = ['en', 'fa'];
+const pages = await api('GET', '/admin/pages');
+let page;
+let slugs;
+
+if (HOME) {
+  page = pages.find((p) => p.isHome);
+  slugs = Object.fromEntries(LOCALES.map((l) => [l, page.translations.find((x) => x.locale === l)?.slug ?? '']));
+  const settings = await api('GET', '/admin/settings');
+  await api('PUT', '/admin/settings', {
+    siteName: { fa: 'فیکوپرینت', en: 'FikkoPrint' },
+    logo: logoUrl,
+    favicon: settings.favicon,
+    theme: { ...settings.theme, ...theme },
+    menu: [
+      { href: '#process', label: { fa: 'فرایند چاپ', en: 'How it works' } },
+      { href: '#products', label: { fa: 'محصولات', en: 'Products' } },
+      { href: '#materials', label: { fa: 'جنس‌ها', en: 'Materials' } },
+      { href: '#prices', label: { fa: 'قیمت‌ها', en: 'Prices' } },
+      { href: '#faq', label: { fa: 'پرسش‌ها', en: 'FAQ' } },
+      { href: '#order', label: { fa: 'سفارش', en: 'Order' } },
+    ],
+    fonts: settings.fonts,
+    savedThemes: settings.savedThemes,
+    loader: settings.loader,
+    maintenance: settings.maintenance,
+    maintenanceText: settings.maintenanceText,
+    business: {
+      ...settings.business,
+      email: EMAIL,
+      city: 'Tehran',
+      region: 'Tehran',
+      country: 'IR',
+    },
+    notifyEmail: settings.notifyEmail,
+  });
+} else {
+  const NAME = 'FikkoPrint sublimation printing';
+  page = pages.find((p) => p.name === NAME) ?? (await api('POST', '/admin/pages', { name: NAME }));
+  slugs = { en: 'sublimation-printing', fa: 'چاپ-سابلیمیشن' };
+}
+
+await api('PATCH', `/admin/pages/${page.id}`, {
+  name: page.name,
+  // On its own page the colors belong to the page; with --home they are the site's.
+  theme: HOME ? null : theme,
+  translations: LOCALES.map((l) => ({ locale: l, slug: slugs[l], title: titles[l], ...seo[l], blocks: blocks(l) })),
+});
+await api('POST', `/admin/pages/${page.id}/publish`);
+console.log(`Published: ${LOCALES.map((l) => `/${l}/${slugs[l]}`).join('  ')}`);

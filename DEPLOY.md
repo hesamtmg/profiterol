@@ -155,6 +155,16 @@ API_URL=https://your-domain/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:
 
 The pictures are generated placeholders, and the numbers and testimonials are examples: replace them in the editor.
 
+### FikkoPrint content
+
+`scripts/seed-fikkoprint.mjs` builds the FikkoPrint site (fikkoprint.com), a printing company that does sublimation printing only, in Persian and English: an aurora hero, the products strip, what sublimation is, the heat press, the five steps from file to parcel, a blank/printed mug before and after, the products, which materials can be sublimated, colour by polyester share, who it is for, numbers, prices by quantity, testimonials, questions, an order form and contact. Run it like the Mazaheri script, with `SITE` when FikkoPrint is one of several sites:
+
+```sh
+$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=http://api:3001/api -e SITE=fikkoprint.com api node /seed/seed-fikkoprint.mjs --home
+```
+
+Without `--home` it adds a separate page, `/fa/چاپ-سابلیمیشن` and `/en/sublimation-printing`. With it, it fills the home page and sets the site name, logo mark, menu, colors and contact email. The product pictures are generated placeholders, and the prices, numbers and testimonials are examples: replace them in the editor. Screenshots are in `screenshots-fikkoprint/`.
+
 ### Kasra content
 
 `scripts/seed-kasra.mjs` builds Kasra Haghdoust's portfolio (kasradesignstudio.com) in Persian and English from the pictures of his old site, [hesamtmg/kasra](https://github.com/hesamtmg/kasra). It uploads all 150 pictures into media folders named `Kasra · …` and creates:
