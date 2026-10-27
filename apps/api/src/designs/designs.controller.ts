@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -83,6 +84,7 @@ export class PublicDesignsController {
     @Body() dto: SubmitDesignDto,
     @UploadedFiles() files: { preview?: UploadedPicture[]; print?: UploadedPicture[] } = {},
     @Req() req: Request,
+    @Headers('x-visitor-key') visitor?: string,
   ) {
     // Bots get a normal-looking reply so they do not learn to adapt.
     if (dto.website) return { ok: true };
@@ -95,10 +97,39 @@ export class PublicDesignsController {
     }
     if (!answers || typeof answers !== 'object') throw new BadRequestException('The design could not be read. Please try again.');
     limiter.check(req.ip ?? 'unknown');
-    return this.designs.submit(pageId, blockId.slice(0, 40), dto.locale, answers, {
-      preview: files.preview?.[0],
-      print: files.print?.[0],
-    });
+    return this.designs.submit(
+      pageId,
+      blockId.slice(0, 40),
+      dto.locale,
+      answers,
+      {
+        preview: files.preview?.[0],
+        print: files.print?.[0],
+      },
+      visitor,
+    );
+  }
+
+  /** The designs this browser sent (the key it keeps comes in the X-Visitor-Key header), and the limit. */
+  @Get(':pageId/:blockId/mine')
+  mine(
+    @Param('pageId', ParseUUIDPipe) pageId: string,
+    @Param('blockId') blockId: string,
+    @Query('locale') locale: string | undefined,
+    @Headers('x-visitor-key') visitor: string | undefined,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    res.set('Cache-Control', 'private, no-store');
+    const lang = locales.some((l) => l.code === locale) ? locale! : locales[0].code;
+    return this.designs.mine(pageId, blockId.slice(0, 40), lang, visitor ?? '');
+  }
+
+  /** The preview of one of this browser's own designs. */
+  @Get('mine/:id/preview')
+  async myPreview(@Param('id', ParseUUIDPipe) id: string, @Headers('x-visitor-key') visitor: string | undefined, @Res() res: Response) {
+    const file = await this.designs.myPreview(id, visitor ?? '');
+    res.set({ 'Content-Type': file.type, 'Content-Length': String(file.data.length), 'Cache-Control': 'private, no-store' });
+    res.end(file.data);
   }
 }
 

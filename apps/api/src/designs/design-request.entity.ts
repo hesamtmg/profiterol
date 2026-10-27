@@ -26,6 +26,8 @@ export interface DesignDetails {
  */
 @Entity('design_requests')
 @Index('IDX_design_requests_site_status', ['siteId', 'status', 'createdAt'])
+@Index('IDX_design_requests_visitor', ['siteId', 'visitorKey'])
+@Index('IDX_design_requests_phone', ['siteId', 'phoneKey'])
 export class DesignRequest {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -60,6 +62,17 @@ export class DesignRequest {
 
   @Column({ type: 'varchar', length: 200, default: '' })
   email: string;
+
+  /** The phone number's last ten digits (Persian digits turned Latin), so one person is counted once however they type it. */
+  @Column({ type: 'varchar', length: 20, default: '' })
+  phoneKey: string;
+
+  /**
+   * SHA-256 of the random key the visitor's browser keeps for this site. Lets the visitor list their own designs
+   * ("My designs") without an account; the key itself is never stored.
+   */
+  @Column({ type: 'varchar', length: 64, default: '' })
+  visitorKey: string;
 
   @Column({ type: 'text', default: '' })
   notes: string;

@@ -46,6 +46,11 @@ const props = defineProps<{
     colors: string;
     materials: string;
     maxQuantity: number;
+    /** Designs one person may send (0: no limit). Missing on blocks saved before the setting existed. */
+    maxDesigns?: number;
+    /** Photos in one design (0: no limit). */
+    maxPhotos?: number;
+    showMyDesigns?: boolean;
     submitLabel: string;
     successMessage: string;
   };
@@ -129,6 +134,18 @@ const EN = {
   failed: 'The design could not be sent. Please try again.',
   selectHint: 'Tap a layer on the product to change it.',
   photo: 'Photo',
+  mine: 'My designs',
+  photoLimit: 'A design can have up to {n} photo(s).',
+  remaining: 'You can send {n} more design(s).',
+  limitReached: 'You have sent {n} designs, the most we take from one person. We will call you about them.',
+  noDesigns: 'Designs you send appear here, so you can see where each order stands.',
+  seeMine: 'See my designs',
+  newDesign: 'New design',
+  s_new: 'Received',
+  s_called: 'We called you',
+  s_production: 'Being printed',
+  s_done: 'Ready',
+  s_cancelled: 'Cancelled',
 } as const;
 
 const FA: Record<keyof typeof EN, string> = {
@@ -202,9 +219,31 @@ const FA: Record<keyof typeof EN, string> = {
   failed: 'طرح ارسال نشد. دوباره تلاش کنید.',
   selectHint: 'برای تغییر، روی یک لایه روی محصول بزنید.',
   photo: 'عکس',
+  mine: 'طرح‌های من',
+  photoLimit: 'هر طرح حداکثر {n} عکس دارد.',
+  remaining: 'می‌توانید {n} طرح دیگر بفرستید.',
+  limitReached: 'شما {n} طرح فرستاده‌اید که بیشترین تعداد برای هر نفر است. درباره‌ی آن‌ها با شما تماس می‌گیریم.',
+  noDesigns: 'طرح‌هایی که می‌فرستید اینجا می‌آیند تا ببینید سفارش هرکدام به کجا رسیده است.',
+  seeMine: 'دیدن طرح‌های من',
+  newDesign: 'طرح تازه',
+  s_new: 'دریافت شد',
+  s_called: 'با شما تماس گرفتیم',
+  s_production: 'در حال چاپ',
+  s_done: 'آماده است',
+  s_cancelled: 'لغو شد',
 };
 
 const t = computed(() => (fa.value ? FA : EN));
+const fill = (text: string, n: number) => text.replace('{n}', fa.value ? n.toLocaleString('fa') : String(n));
+
+/** A limit set on the block: 0 means none; blocks saved before the setting existed get its default. */
+const limitOf = (value: unknown, fallback: number) => {
+  const n = value === undefined || value === null || value === '' ? fallback : Number(value);
+  return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+};
+const maxDesigns = computed(() => limitOf(props.p.maxDesigns, 5));
+const maxPhotos = computed(() => limitOf(props.p.maxPhotos, 10));
+const showMine = computed(() => props.p.showMyDesigns !== false);
 
 const repeatNames: Record<Repeat, [string, string]> = {
   none: ['Off', 'خاموش'],
@@ -282,6 +321,9 @@ const notice = ref('');
 let uid = 0;
 const newId = () => `l${Date.now().toString(36)}${(uid++).toString(36)}`;
 
+const photoCount = computed(() => design.layers.filter((l) => l.kind === 'image').length);
+const photosFull = computed(() => maxPhotos.value > 0 && photoCount.value >= maxPhotos.value);
+
 const hasContent = computed(() => design.layers.length > 0 || Boolean(design.background.color) || design.background.pattern !== 'none');
 
 function quality(l: ImageLayer) {
@@ -294,6 +336,10 @@ function quality(l: ImageLayer) {
 function addLayer(l: Layer) {
   if (design.layers.length >= 30) {
     notice.value = t.value.tooMany;
+    return;
+  }
+  if (l.kind === 'image' && photosFull.value) {
+    notice.value = fill(t.value.photoLimit, maxPhotos.value);
     return;
   }
   design.layers.push(l);
@@ -318,6 +364,10 @@ const layerDefaults = () => ({
 async function addFiles(files: FileList | File[] | null | undefined) {
   notice.value = '';
   for (const file of Array.from(files ?? [])) {
+    if (photosFull.value) {
+      notice.value = fill(t.value.photoLimit, maxPhotos.value);
+      break;
+    }
     if (!/^image\/(png|jpe?g|webp|gif|avif)$/.test(file.type)) {
       notice.value = t.value.notImage;
       continue;
@@ -788,6 +838,7 @@ onMounted(() => {
   document.fonts?.ready.then(requestDraw);
   startedAt.value = Date.now();
   resize();
+  loadMine();
 });
 
 onBeforeUnmount(() => {
@@ -795,13 +846,14 @@ onBeforeUnmount(() => {
   window.removeEventListener('paste', onPaste);
   cancelAnimationFrame(frame);
   for (const img of images.values()) URL.revokeObjectURL(img.src);
+  for (const url of Object.values(myPreviews)) URL.revokeObjectURL(url);
 });
 
 // ── Sending ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-type Step = 'product' | 'design' | 'send';
+type Step = 'product' | 'design' | 'send' | 'mine';
 const step = ref<Step>('product');
-const steps: Step[] = ['product', 'design', 'send'];
+const steps = computed<Step[]>(() => (showMine.value ? ['product', 'design', 'send', 'mine'] : ['product', 'design', 'send']));
 const contact = reactive({ name: '', phone: '', email: '', notes: '' });
 const website = ref('');
 const startedAt = ref(0);
@@ -809,6 +861,79 @@ const sending = ref('');
 const sent = ref('');
 const errors = ref<string[]>([]);
 const previewUrl = ref('');
+
+// ── The visitor's own designs ───────────────────────────────────────────────────────────────────────────────
+
+interface MyDesign {
+  id: string;
+  product: string;
+  size: string;
+  quantity: number;
+  color: string;
+  status: 'new' | 'called' | 'production' | 'done' | 'cancelled';
+  createdAt: string;
+}
+
+const VISITOR_KEY = 'pt_designer_key';
+let memoryKey = '';
+/**
+ * A random key this browser keeps for the site, sent with each design: the API stores only its hash, and gives the
+ * designs back to whoever shows the key. No account, nothing personal in it.
+ */
+function visitorKey(): string {
+  try {
+    const kept = localStorage.getItem(VISITOR_KEY);
+    if (kept && /^[A-Za-z0-9_-]{32,64}$/.test(kept)) return kept;
+  } catch {
+    // Storage blocked (private window): the key lasts as long as the page.
+  }
+  if (!memoryKey) memoryKey = [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, '0')).join('');
+  try {
+    localStorage.setItem(VISITOR_KEY, memoryKey);
+  } catch {
+    // As above.
+  }
+  return memoryKey;
+}
+
+const myDesigns = ref<MyDesign[]>([]);
+const myPreviews = reactive<Record<string, string>>({});
+const used = ref(0);
+const limitReached = computed(() => maxDesigns.value > 0 && used.value >= maxDesigns.value);
+const statusClass: Record<MyDesign['status'], string> = {
+  new: 'bg-slate-100 text-slate-700',
+  called: 'bg-sky-100 text-sky-700',
+  production: 'bg-amber-100 text-amber-700',
+  done: 'bg-emerald-100 text-emerald-700',
+  cancelled: 'bg-red-50 text-red-600',
+};
+
+async function loadMine() {
+  if (!props.data || editing) return;
+  const headers = { 'x-visitor-key': visitorKey() };
+  try {
+    const res = await api<{ used: number; designs: MyDesign[] }>(`/public/designs/${props.data.pageId}/${props.data.blockId}/mine`, {
+      query: { locale: props.locale },
+      headers,
+    });
+    used.value = res.used;
+    myDesigns.value = res.designs;
+    // Previews come with the key in a header, so they are fetched rather than linked.
+    for (const d of res.designs) {
+      if (myPreviews[d.id]) continue;
+      api<Blob>(`/public/designs/mine/${d.id}/preview`, { headers, responseType: 'blob' })
+        .then((blob) => (myPreviews[d.id] = URL.createObjectURL(blob)))
+        .catch(() => undefined);
+    }
+  } catch {
+    // Not critical: the tab just stays empty.
+  }
+}
+
+function showMyDesigns() {
+  again();
+  step.value = 'mine';
+}
 
 function toBlob(c: HTMLCanvasElement, type: string, q?: number) {
   return new Promise<Blob>((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob'))), type, q));
@@ -879,7 +1004,7 @@ async function submit() {
   if (!contact.name.trim()) errors.value.push(t.value.needName);
   if (contact.phone.replace(/\D/g, '').length < 5 && !/[۰-۹]{5}/.test(contact.phone)) errors.value.push(t.value.needPhone);
   if (!hasContent.value) errors.value.push(t.value.empty);
-  if (errors.value.length || !props.data || editing) return;
+  if (errors.value.length || !props.data || editing || limitReached.value) return;
   const realIndex = (props.p.products ?? []).indexOf(product.value);
   try {
     sending.value = t.value.preparing;
@@ -910,11 +1035,14 @@ async function submit() {
       method: 'POST',
       body: form,
       timeout: 180000,
+      headers: { 'x-visitor-key': visitorKey() },
     });
     previewUrl.value = URL.createObjectURL(preview);
     sent.value = res.message || props.p.successMessage;
+    loadMine();
   } catch (err) {
-    const data = (err as { data?: { message?: string | string[]; errors?: string[] } }).data;
+    const data = (err as { data?: { message?: string | string[]; errors?: string[]; limit?: number } }).data;
+    if (data?.limit) used.value = data.limit;
     const message = Array.isArray(data?.message) ? data.message.join(' ') : data?.message;
     errors.value = data?.errors?.length ? data.errors : [message ?? t.value.failed];
   } finally {
@@ -963,6 +1091,14 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
           <p class="text-lg font-medium">{{ sent }}</p>
           <button type="button" class="btn-pill border border-slate-200 bg-white hover:border-slate-400" @click="again">
             <i class="mdi mdi-palette-outline" /> {{ t.again }}
+          </button>
+          <button
+            v-if="showMine && data"
+            type="button"
+            class="text-sm text-primary underline-offset-2 hover:underline"
+            @click="showMyDesigns"
+          >
+            <i class="mdi mdi-folder-image" /> {{ t.seeMine }}
           </button>
         </div>
       </Transition>
@@ -1064,14 +1200,16 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
               type="button"
               role="tab"
               :aria-selected="step === s"
-              class="flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 transition"
+              class="flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 py-2 transition"
               :class="step === s ? 'bg-white font-bold shadow-sm' : 'text-slate-500'"
               @click="step = s"
             >
               <span
                 class="flex h-5 w-5 items-center justify-center rounded-full text-[11px]"
                 :class="step === s ? 'bg-primary text-white' : 'bg-slate-200'"
-                >{{ fa ? (i + 1).toLocaleString('fa') : i + 1 }}</span
+                >{{
+                  s === 'mine' ? (fa ? myDesigns.length.toLocaleString('fa') : myDesigns.length) : fa ? (i + 1).toLocaleString('fa') : i + 1
+                }}</span
               >
               {{ t[s] }}
             </button>
@@ -1182,6 +1320,7 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
             <div class="grid grid-cols-2 gap-2">
               <button type="button" class="btn-pill bg-primary text-white hover:brightness-110" @click="fileInput?.click()">
                 <i class="mdi mdi-image-plus-outline" /> {{ t.addPhoto }}
+                <span v-if="maxPhotos" class="text-xs opacity-80" dir="ltr">{{ photoCount }}/{{ maxPhotos }}</span>
               </button>
               <button type="button" class="btn-pill border border-slate-200 bg-white hover:border-slate-400" @click="addText()">
                 <i class="mdi mdi-format-text" /> {{ t.addText }}
@@ -1446,7 +1585,7 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
           </div>
 
           <!-- 3 · Send -->
-          <form v-else class="mt-5 space-y-4" novalidate @submit.prevent="submit">
+          <form v-else-if="step === 'send'" class="mt-5 space-y-4" novalidate @submit.prevent="submit">
             <div class="rounded-3xl bg-slate-50 p-4 text-sm">
               <p class="mb-2 font-bold">{{ t.summary }}</p>
               <dl class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
@@ -1514,6 +1653,10 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
             <ul v-if="errors.length" class="space-y-1 rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
               <li v-for="e in errors" :key="e">{{ e }}</li>
             </ul>
+            <p v-if="limitReached" class="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800" role="status">
+              <i class="mdi mdi-information-outline" /> {{ fill(t.limitReached, maxDesigns) }}
+            </p>
+            <p v-else-if="maxDesigns && used" class="text-xs text-muted">{{ fill(t.remaining, maxDesigns - used) }}</p>
 
             <div class="grid grid-cols-[auto_1fr] gap-2">
               <button
@@ -1527,7 +1670,7 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
               <button
                 type="submit"
                 class="btn-pill bg-primary text-white hover:shadow-lg hover:brightness-110 disabled:opacity-60"
-                :disabled="Boolean(sending) || editing || !data"
+                :disabled="Boolean(sending) || editing || !data || limitReached"
               >
                 <template v-if="sending">{{ sending }} <i class="mdi mdi-loading mdi-spin" /></template>
                 <template v-else
@@ -1537,6 +1680,45 @@ const layerLabel = (l: Layer) => (l.kind === 'image' ? l.name || t.value.photo :
             </div>
             <p v-if="editing" class="text-xs text-muted" dir="ltr">{{ $t('Designs can be sent from the published page.') }}</p>
           </form>
+
+          <!-- 4 · My designs -->
+          <div v-else class="mt-5 space-y-3">
+            <p v-if="maxDesigns" class="text-xs text-muted">
+              {{ limitReached ? fill(t.limitReached, maxDesigns) : fill(t.remaining, maxDesigns - used) }}
+            </p>
+            <p
+              v-if="!myDesigns.length"
+              class="rounded-3xl border-2 border-dashed border-slate-200 px-6 py-10 text-center text-sm text-muted"
+            >
+              <i class="mdi mdi-folder-image-outline mb-2 block text-3xl" />
+              {{ t.noDesigns }}
+            </p>
+            <ul v-else class="grid grid-cols-2 gap-3">
+              <li v-for="d in myDesigns" :key="d.id" class="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+                <div class="aspect-square bg-slate-50">
+                  <img v-if="myPreviews[d.id]" :src="myPreviews[d.id]" :alt="d.product" class="h-full w-full object-contain" />
+                </div>
+                <div class="space-y-1 p-3 text-sm">
+                  <p class="truncate font-bold">
+                    {{ d.product }}<template v-if="d.size"> · {{ d.size }}</template> ×
+                    {{ fa ? d.quantity.toLocaleString('fa') : d.quantity }}
+                  </p>
+                  <p class="text-xs text-muted">{{ new Date(d.createdAt).toLocaleDateString(fa ? 'fa-IR' : 'en-GB') }}</p>
+                  <span class="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium" :class="statusClass[d.status]">{{
+                    t[`s_${d.status}`]
+                  }}</span>
+                </div>
+              </li>
+            </ul>
+            <button
+              v-if="!limitReached"
+              type="button"
+              class="btn-pill w-full border border-slate-200 bg-white hover:border-slate-400"
+              @click="step = 'design'"
+            >
+              <i class="mdi mdi-plus" /> {{ t.newDesign }}
+            </button>
+          </div>
         </div>
       </div>
     </div>

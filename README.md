@@ -115,6 +115,12 @@ the order details and the list of layers. Call or WhatsApp the customer from the
 order through New → Called back → In production → Done (or Cancelled). If **Site settings** has a notification
 address, each design is also emailed with its preview attached.
 
+**Limits and "My designs"**: the block sets how many designs one person may send (default 5, counted per phone
+number however it is typed and per browser; cancelled orders free their place) and how many photos one design may
+have (default 10). Visitors get a **My designs** tab with the preview of each design they sent and where its order
+stands (received, called, being printed, ready). It works without an account: the browser keeps a random key for the
+site and the API stores only its hash, so each browser sees only its own designs.
+
 The pictures are stored in the database, not under `/uploads`, so only the site's admins can open them. The API checks
 each design against the published block (product, color, fabric, size, quantity), checks that both files really are
 pictures, and rate-limits senders.

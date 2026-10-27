@@ -27,7 +27,7 @@ let pageId;
 let ip = 10;
 
 /** Sends a design from a new address each time, so the rate limit does not get in the way. */
-function send(answers, { preview = PNG, print = PNG, printType = 'image/png', extra = {} } = {}) {
+function send(answers, { preview = PNG, print = PNG, printType = 'image/png', extra = {}, visitor } = {}) {
   const form = new FormData();
   form.set('locale', 'en');
   form.set('data', JSON.stringify(answers));
@@ -38,7 +38,7 @@ function send(answers, { preview = PNG, print = PNG, printType = 'image/png', ex
   return fetch(`${API}/public/designs/${pageId}/designer`, {
     method: 'POST',
     body: form,
-    headers: { 'x-forwarded-for': `203.0.113.${ip++}` },
+    headers: { 'x-forwarded-for': `203.0.113.${ip++}`, ...(visitor ? { 'x-visitor-key': visitor } : {}) },
   });
 }
 
@@ -79,6 +79,8 @@ before(async () => {
               colors: '#ffffff, #fef3c7',
               materials: 'Polyester, Satin',
               maxQuantity: 10,
+              maxDesigns: 3,
+              maxPhotos: 2,
             },
           },
         ],
@@ -136,6 +138,64 @@ describe('sublimation designs', () => {
     assert.equal(noPhone.status, 400);
     assert.ok((await noPhone.json()).errors.length);
     assert.equal((await send({ ...good, product: 0, size: '' })).status, 200, 'a product with one size');
+  });
+
+  test('one person can send only as many designs as the block allows', async () => {
+    const phone = '+98 935 111 2233';
+    const a = await send({ ...good, phone: '09351112233' });
+    assert.equal(a.status, 200, 'the same number typed another way counts too');
+    assert.equal((await send({ ...good, phone })).status, 200);
+    assert.equal((await send({ ...good, phone: '۰۹۳۵۱۱۱۲۲۳۳' })).status, 200);
+    const over = await send({ ...good, phone });
+    assert.equal(over.status, 400);
+    assert.equal((await over.json()).limit, 3);
+
+    // A cancelled order frees its place.
+    await call('PATCH', `/admin/designs/${(await a.json()).id}`, { status: 'cancelled' });
+    assert.equal((await send({ ...good, phone })).status, 200);
+    assert.equal((await send({ ...good, phone })).status, 400);
+  });
+
+  test('one browser is counted too, whatever number it gives', async () => {
+    const visitor = 'v'.repeat(20) + Date.now().toString(36).padStart(20, '0');
+    for (let i = 0; i < 3; i++) assert.equal((await send({ ...good, phone: `0911000000${i}` }, { visitor })).status, 200);
+    assert.equal((await send({ ...good, phone: '09110000009' }, { visitor })).status, 400);
+  });
+
+  test('a design can have only as many photos as the block allows', async () => {
+    const res = await send({ ...good, phone: '09129990000', layers: ['Photo: a.jpg', 'Photo: b.jpg', 'Photo: c.jpg'] });
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).errors[0], /up to 2 photo/);
+  });
+
+  test('visitors see their own designs and nobody else’s', async () => {
+    const visitor = 'm'.repeat(20) + Date.now().toString(36).padStart(20, '0');
+    const sent = await send({ ...good, phone: '09127770000' }, { visitor });
+    const { id } = await sent.json();
+    const mine = (key) =>
+      fetch(`${API}/public/designs/${pageId}/designer/mine?locale=en`, { headers: key ? { 'x-visitor-key': key } : {} }).then((r) =>
+        r.json(),
+      );
+    const list = await mine(visitor);
+    assert.equal(list.limit, 3);
+    assert.equal(list.used, 1);
+    assert.deepEqual(
+      list.designs.map((d) => d.id),
+      [id],
+    );
+    assert.equal(list.designs[0].status, 'new');
+    assert.equal('phone' in list.designs[0] || 'name' in list.designs[0], false, 'no personal details');
+    assert.deepEqual((await mine('x'.repeat(40))).designs, [], 'another browser sees nothing');
+    assert.deepEqual((await mine()).designs, []);
+
+    const preview = await fetch(`${API}/public/designs/mine/${id}/preview`, { headers: { 'x-visitor-key': visitor } });
+    assert.equal(preview.status, 200);
+    assert.deepEqual(Buffer.from(await preview.arrayBuffer()), PNG);
+    const other = await fetch(`${API}/public/designs/mine/${id}/preview`, { headers: { 'x-visitor-key': 'x'.repeat(40) } });
+    assert.equal(other.status, 404);
+
+    await call('PATCH', `/admin/designs/${id}`, { status: 'production' });
+    assert.equal((await mine(visitor)).designs[0].status, 'production', 'the visitor sees where the order stands');
   });
 
   test('pictures must be real pictures', async () => {

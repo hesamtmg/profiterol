@@ -1430,4 +1430,10 @@ export const adminFa: Record<string, string> = {
   "Select a design to see it.": "یک طرح را برای دیدن انتخاب کنید.",
   "Delete this design? This cannot be undone.": "این طرح حذف شود؟ این کار برگشت‌پذیر نیست.",
   "Too many designs. Please try again in a few minutes.": "طرح‌های زیادی فرستاده شد. چند دقیقه‌ی دیگر دوباره تلاش کنید.",
+  "Designs one person can send": "تعداد طرحی که هر نفر می‌تواند بفرستد",
+  "Counted per phone number and per browser; cancelled orders do not count. 0 means no limit.": "برای هر شماره تلفن و هر مرورگر شمرده می‌شود؛ سفارش‌های لغوشده حساب نمی‌شوند. ۰ یعنی بدون محدودیت.",
+  "Photos in one design": "تعداد عکس در هر طرح",
+  "0 means no limit (up to 30 layers).": "۰ یعنی بدون محدودیت (تا ۳۰ لایه).",
+  "Show visitors the designs they sent": "نمایش طرح‌های فرستاده‌شده به بازدیدکننده",
+  "A “My designs” tab with each design’s preview and where its order stands. Kept in their browser.": "زبانه‌ی «طرح‌های من» با پیش‌نمایش هر طرح و وضعیت سفارش آن. در مرورگر خودشان نگه داشته می‌شود.",
 };
