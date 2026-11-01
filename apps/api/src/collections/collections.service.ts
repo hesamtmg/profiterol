@@ -11,7 +11,7 @@ import {
 } from '@profiterol/blocks';
 import { QueryFailedError, Repository } from 'typeorm';
 import { SEGMENT_PATTERN, slugify, UNIQUE_VIOLATION } from '../common/slug';
-import { currentSiteId } from '../sites/site-context';
+import { currentSite, currentSiteId } from '../sites/site-context';
 import type { SitemapEntry } from '../pages/pages.service';
 import type { Localized } from '../settings/settings.entity';
 import { Collection, CollectionItem, ItemTranslation } from './collection.entity';
@@ -207,7 +207,7 @@ export class CollectionsService {
       key: c.key,
       name: c.name?.[locale] || c.key,
       slug: c.slugs?.[locale] ?? '',
-      href: `/${locale}/${c.slugs?.[locale] ?? ''}`,
+      href: `${currentSite().prefix}/${locale}/${c.slugs?.[locale] ?? ''}`,
       fields: c.fields,
       // A language without a URL segment for this collection has no index page.
       alternates: locales.filter((l) => c.slugs?.[l.code]).map((l) => ({ locale: l.code, slug: c.slugs[l.code] })),
@@ -252,7 +252,7 @@ export class CollectionsService {
       cover: t.item.cover,
       tags: t.tags,
       publishedAt: t.item.publishedAt,
-      href: `/${locale}/${c.slugs?.[locale]}/${t.slug}`,
+      href: `${currentSite().prefix}/${locale}/${c.slugs?.[locale]}/${t.slug}`,
     }));
     return { collection: this.publicCollection(c, locale), items, tags: [...new Set(items.flatMap((i) => i.tags))] };
   }

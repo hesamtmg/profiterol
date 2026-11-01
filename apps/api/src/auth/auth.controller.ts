@@ -4,10 +4,11 @@ import * as bcrypt from 'bcryptjs';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 import type { Request, Response } from 'express';
 import { RateLimiter } from '../common/rate-limit';
-import { currentSite, currentSiteId } from '../sites/site-context';
+import { config } from '../config';
+import { currentSite, currentSiteId, maybeSite } from '../sites/site-context';
 import type { User } from '../users/user.entity';
 import { LOCK_MINUTES, UsersService } from '../users/users.service';
-import { AuthGuard, AuthUser } from './auth.guard';
+import { AuthGuard, AuthUser, PREVIEW_ENDED } from './auth.guard';
 import { clearSession, setSession } from './session';
 
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
@@ -61,6 +62,7 @@ export class AuthController {
       if (user && !ok) await this.users.loginFailed(user);
       throw new UnauthorizedException('Wrong email or password');
     }
+    if (user.role !== 'owner' && maybeSite()?.preview?.expired) throw new ForbiddenException(PREVIEW_ENDED);
     await this.users.loginSucceeded(user);
 
     const payload: AuthUser = { sub: user.id, email: user.email, role: user.role, ver: user.tokenVersion };
@@ -113,6 +115,15 @@ export class AuthController {
     const user = await this.users.findById(req.user.sub);
     if (!user) throw new UnauthorizedException();
     const site = currentSite();
-    return { ...publicUser(user), site: { id: site.id, name: site.name, primary: site.primary, printDesigner: site.printDesigner } };
+    return {
+      ...publicUser(user),
+      site: {
+        id: site.id,
+        name: site.name,
+        primary: site.primary,
+        printDesigner: site.printDesigner,
+        preview: site.preview && { ...site.preview, home: config.previewUrl },
+      },
+    };
   }
 }

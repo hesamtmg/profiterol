@@ -10,5 +10,9 @@ export function requestHost(event: H3Event): string {
 
 /** `$fetch` options for an API call made on behalf of this request's site. */
 export function siteFetchOptions(event: H3Event) {
-  return { baseURL: useRuntimeConfig().apiInternal, headers: { 'x-forwarded-host': requestHost(event) } };
+  const prefix = sitePrefix(event);
+  return {
+    baseURL: useRuntimeConfig().apiInternal,
+    headers: { 'x-forwarded-host': requestHost(event), ...(prefix ? { 'x-site-prefix': prefix } : {}) },
+  };
 }

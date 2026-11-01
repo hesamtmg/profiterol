@@ -6,6 +6,7 @@ import { isLocale, LOCALE_COOKIE, locales, siteDefaultLocale } from '@profiterol
 // 2. on a first visit, the site's language when its admin chose one (Admin → Settings);
 // 3. otherwise their browser's language when the site has it, else the default.
 const { data: settings } = await useSiteSettings();
+await followMovedPreview(settings.value, '/');
 const remembered = useCookie(LOCALE_COOKIE).value;
 const header = useRequestHeaders(['accept-language'])['accept-language'] ?? '';
 const preferred = header

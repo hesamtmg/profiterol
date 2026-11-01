@@ -10,6 +10,15 @@ map $http_accept $avif {
 # Look containers up through Docker's DNS on every request (cached 10s) rather than once at start-up,
 # so containers recreated by an update are found at their new addresses.
 resolver 127.0.0.11 valid=10s ipv6=off;
+
+# Preview sites (Admin → Sites → Preview sites) live at /preview/<name>/ on PREVIEW_URL's address. The path is
+# taken off the address below and passed on as X-Site-Prefix, so the app serves that preview with ordinary paths.
+# From the original request line, so it survives the rewrite; set on every request, empty without a preview
+# (an empty proxy_set_header sends nothing), so visitors cannot send their own.
+map $request_uri $site_prefix {
+  "~^(?<preview>/preview/[a-z0-9][a-z0-9-]{1,38}[a-z0-9])/" $preview;
+  default "";
+}
 map $host $api_upstream { default http://api:3001; }
 map $host $web_upstream { default http://web:3000; }
 
@@ -53,6 +62,13 @@ server {
   # Other names (e.g. www.) redirect to the main domain.
   if ($host != "${DOMAIN}") {
     return 301 https://${DOMAIN}$request_uri;
+  }
+
+  # A preview site's address without its path; see the map above.
+  rewrite "^/preview/[a-z0-9][a-z0-9-]{1,38}[a-z0-9](/.*)$" $1 last;
+  location ~ "^/preview/[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$" {
+    absolute_redirect off;
+    return 301 $uri/$is_args$args;
   }
 
   client_max_body_size 25m;

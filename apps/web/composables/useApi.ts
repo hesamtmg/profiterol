@@ -14,6 +14,8 @@ function csrfToken(): string {
 export function useApi() {
   const config = useRuntimeConfig();
   const host = import.meta.server ? useRequestURL({ xForwardedHost: true }).host : '';
+  // A preview site's path: the API needs it to know which site this is (the browser's calls carry it in the URL).
+  const prefix = import.meta.server ? config.public.sitePrefix : '';
 
   return <T>(path: string, opts: Parameters<typeof $fetch>[1] = {}) =>
     $fetch<T>(path, {
@@ -25,6 +27,7 @@ export function useApi() {
         ...(opts.headers as Record<string, string> | undefined),
         ...(csrfToken() ? { 'x-csrf-token': csrfToken() } : {}),
         ...(host ? { 'x-forwarded-host': host } : {}),
+        ...(prefix ? { 'x-site-prefix': prefix } : {}),
       },
     });
 }

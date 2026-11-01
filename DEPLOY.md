@@ -253,6 +253,33 @@ Scripts that call the API directly (`seed-mazaheri.mjs`, `import-minicms.mjs`) f
 
 **Deleting a site** (type its address to confirm) removes everything in it, its files included. The certificate is left in Oblivion. Backups (step 7) hold every site.
 
+### Preview sites
+
+A preview is a ready site to show someone before they buy one. It lives at a path on one of your own sites, e.g.
+`https://profiterol.ir/preview/ali-shop`, so it needs no DNS record or certificate of its own.
+
+1. Add the address that will hold the previews (e.g. `profiterol.ir`) as a site in **Admin → Sites**, with SSL.
+2. Set `PREVIEW_URL=https://profiterol.ir` in `.env` and update (`docker compose up -d`).
+3. **Admin → Sites → New preview site**: a name, its address (`/preview/<name>`), what it starts from (the demo
+   content, one of the whole-site templates, or empty), how many days it stays online, and the person's email. Its
+   pages are published straight away, and the person is invited as its admin (emailed when `SMTP_URL` is set,
+   otherwise copy the link to them).
+
+What the person gets: the whole editor for that one site, with a "Preview site · N days left" strip on the site and
+in its admin. Owner-only settings stay locked, and the preview may upload up to `PREVIEW_UPLOAD_MB` (100 MB).
+A preview is never indexed (`noindex`, and `Disallow: /preview/` in the host site's robots.txt). Its sign-in cookies
+are kept to its path, so they never mix with yours on the host site.
+
+When its days are up the site shows "This preview has ended" (410) and its accounts cannot sign in; owners still
+can. **+7 / +14 days** brings it back. It is deleted, files and all, `PREVIEW_GRACE_DAYS` (30) after it ended.
+
+**They bought it** turns it into a normal site: type their address (point its A record at the server first) and it
+gets its own certificate, keeping its pages, settings and accounts. The old preview link sends visitors to the new
+address, and its name stays taken.
+
+nginx (the `profiterol-nginx` container) takes `/preview/<name>` off the address and passes it to the app as
+`X-Site-Prefix`; it always overwrites that header, so visitors cannot send their own. Nothing changes in Oblivion.
+
 ## 9. Hosting in Iran
 
 Servers in Iranian data centers often cannot reach Docker Hub, GitHub Container Registry or npm reliably. Some options:

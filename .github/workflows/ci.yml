@@ -37,6 +37,8 @@ jobs:
       UPLOAD_DIR: /tmp/uploads
       # "Copy from a website" reads the e2e tests' stand-in site on 127.0.0.1.
       SITE_IMPORT_ALLOW_PRIVATE: 'true'
+      # Preview sites live at /preview/<name> on this address (the e2e proxy plays nginx on :8080).
+      PREVIEW_URL: http://localhost:8080
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

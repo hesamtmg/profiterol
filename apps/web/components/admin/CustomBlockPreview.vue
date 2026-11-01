@@ -36,7 +36,7 @@ function siteStyles() {
 
 async function post() {
   if (!ready.value || !frame.value?.contentWindow) return;
-  vue ??= $fetch<string>('/api/public/custom-blocks/vue.js', { responseType: 'text' });
+  vue ??= $fetch<string>(withSiteBase('/api/public/custom-blocks/vue.js'), { responseType: 'text' });
   const runtime = vueSent ? undefined : await vue;
   vueSent = true;
   frame.value?.contentWindow?.postMessage(
@@ -73,7 +73,7 @@ onBeforeUnmount(() => window.removeEventListener('message', onMessage));
   <div class="flex justify-center overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
     <iframe
       ref="frame"
-      src="/admin/block-sandbox"
+      :src="withSiteBase('/admin/block-sandbox')"
       sandbox="allow-scripts"
       title="Block preview"
       class="block border-0 transition-[width]"

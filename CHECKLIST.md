@@ -258,6 +258,7 @@ Atelier (the warm workshop look of whitecotton.pt; the "Atelier Cream" theme mat
 - [x] Multi-site: `sites` table, all content scoped by `siteId`, sites picked by address, an owner account managing them in Admin → Sites (add by address, one-time sign-in to each site's admin, delete)
 - [x] Per-site SSL through Oblivion: the owner decides when, and follows each step (DNS, challenge, certificate, proxy, HTTPS); automatic retries and renewal tracking (`docker/domains/agent.sh`)
 - [x] Per-site SEO: title pattern, default description and share picture, verification codes, robots.txt, hide the site; noindex per page and item; sitemap index with hreflang and images; breadcrumb and article structured data; SEO check
+- [x] Preview sites for prospective customers at `<PREVIEW_URL>/preview/<name>`: made from a template by the owner, the prospect invited as its admin, a days-left banner, never indexed, offline when it ends (deleted after a grace period), converted to a real site on its own address when bought
 - [ ] Sign-up and plans if this becomes a hosted product
 
 ## Phase 11: Quality and security

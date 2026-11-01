@@ -66,6 +66,8 @@ export default defineNuxtConfig({
     public: {
       // Browser requests go through nginx (or the dev proxy below).
       apiBase: '/api',
+      // A preview site's path (/preview/<name>), set per request by server/middleware/00.site-prefix.ts.
+      sitePrefix: '',
     },
   },
 

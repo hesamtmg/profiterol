@@ -48,6 +48,7 @@ useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, di
 
 <template>
   <div class="admin-ui min-h-screen bg-slate-100 text-slate-800">
+    <SitePreviewBanner v-if="user?.site?.preview" :preview="user.site.preview" admin />
     <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div class="mx-auto flex max-w-7xl items-center gap-6 px-5 pt-3">
         <NuxtLink to="/admin" class="flex shrink-0 items-center gap-2 text-lg font-black">
@@ -64,7 +65,7 @@ useHead(() => ({ title: t('Profiterol admin'), htmlAttrs: { lang: lang.value, di
             <i class="mdi mdi-web" /> {{ user.site.name || user.site.primary }}
           </NuxtLink>
           <AdminLangSwitch />
-          <a href="/" target="_blank" class="hidden whitespace-nowrap text-slate-500 hover:text-slate-900 sm:inline">
+          <a :href="withSiteBase('/')" target="_blank" class="hidden whitespace-nowrap text-slate-500 hover:text-slate-900 sm:inline">
             <i class="mdi mdi-open-in-new" /> {{ $t('View site') }}
           </a>
           <NuxtLink

@@ -97,13 +97,23 @@ async function resolve(): Promise<Resolved | null> {
 }
 
 const { data: settings } = await useSiteSettings();
-const { data: resolved, error } = await useAsyncData(() => `route:${locale}:${slug.value}`, resolve);
+await followMovedPreview(settings.value, route.fullPath);
+// An ended preview shows only a notice (410: gone, and not coming back at this address).
+const previewEnded = computed(() => Boolean(settings.value?.preview?.expired));
+if (import.meta.server && previewEnded.value) {
+  const event = useRequestEvent();
+  if (event) setResponseStatus(event, 410, 'Preview ended');
+}
+const { data: resolved, error } = await useAsyncData(
+  () => `route:${locale}:${slug.value}`,
+  () => (previewEnded.value ? Promise.resolve(null) : resolve()),
+);
 if (error.value) {
   // The API could not be reached (e.g. it is restarting during an update): answer 503 so search
   // engines retry later instead of treating the page as gone.
   throw createError({ statusCode: 503, statusMessage: 'Temporarily unavailable', fatal: true });
 }
-if (!resolved.value) {
+if (!resolved.value && !previewEnded.value) {
   // An old address (e.g. from before a move) may have a redirect in Admin → Redirects.
   const moved = await api<{ to: string; status: number }>('/public/redirect', { query: { path: route.path } }).catch(() => null);
   if (!moved) throw createError({ statusCode: 404, statusMessage: 'Page not found', fatal: true });
@@ -328,7 +338,25 @@ useSeoMeta({
 
 <template>
   <div class="site @container min-h-screen pb-3" :dir="localeDef!.dir" :lang="locale">
-    <template v-if="settings?.maintenance">
+    <SitePreviewBanner v-if="settings?.preview" :preview="settings.preview" :locale="locale" />
+    <template v-if="previewEnded">
+      <div class="flex min-h-[80vh] items-center justify-center p-6">
+        <div class="panel max-w-xl p-12 text-center">
+          <h1 class="text-3xl font-black">{{ siteName }}</h1>
+          <p class="mt-4 font-extralight text-muted">
+            {{
+              locale === 'fa'
+                ? 'زمان این پیش‌نمایش تمام شده است. برای نگه‌داشتن این سایت با ما تماس بگیرید.'
+                : 'This preview has ended. Get in touch with us to keep this site.'
+            }}
+          </p>
+          <a v-if="settings?.preview?.home" :href="settings.preview.home" class="btn-pill mt-6 inline-flex bg-primary text-white">
+            {{ locale === 'fa' ? 'تماس با ما' : 'Contact us' }}
+          </a>
+        </div>
+      </div>
+    </template>
+    <template v-else-if="settings?.maintenance">
       <div class="flex min-h-screen items-center justify-center p-6">
         <div class="panel max-w-xl p-12 text-center">
           <h1 class="text-3xl font-black">{{ siteName }}</h1>

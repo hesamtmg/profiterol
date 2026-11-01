@@ -55,6 +55,10 @@ services:
       # Clears the web app's page cache after changes; the same secret is given to the web app below.
       WEB_INTERNAL_URL: http://web:3000
       CACHE_PURGE_TOKEN: ${CACHE_PURGE_TOKEN:-${JWT_SECRET}}
+      # Preview sites at <PREVIEW_URL>/preview/<name> (Admin → Sites → Preview sites); empty turns them off.
+      PREVIEW_URL: ${PREVIEW_URL:-}
+      PREVIEW_GRACE_DAYS: ${PREVIEW_GRACE_DAYS:-30}
+      PREVIEW_UPLOAD_MB: ${PREVIEW_UPLOAD_MB:-100}
     volumes:
       - uploads:/data/uploads
     depends_on:

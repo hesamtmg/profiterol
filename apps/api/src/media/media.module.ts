@@ -29,7 +29,7 @@ import { IsObject, IsOptional, IsString, Matches, MaxLength } from 'class-valida
 import { Repository } from 'typeorm';
 import { AuthGuard } from '../auth/auth.guard';
 import { config } from '../config';
-import { currentSiteId } from '../sites/site-context';
+import { currentSite, currentSiteId } from '../sites/site-context';
 import {
   hasAvifVariants,
   hasVariants,
@@ -222,6 +222,14 @@ export class MediaService implements OnApplicationBootstrap {
   }
 
   async add(file: Express.Multer.File) {
+    // Previews are trials, not hosting: each may keep PREVIEW_UPLOAD_MB of uploads.
+    if (currentSite().preview) {
+      const raw = await this.repo.sum('size', { siteId: currentSiteId() });
+      if ((Number(raw) || 0) + file.size > config.previewUploadMb * 1024 * 1024) {
+        await unlink(file.path).catch(() => undefined);
+        throw new BadRequestException(`A preview site can keep up to ${config.previewUploadMb} MB of uploads`);
+      }
+    }
     const ext = extname(file.filename);
     if (!looksLike(ext, await readHead(file.path))) {
       await unlink(file.path).catch(() => undefined);

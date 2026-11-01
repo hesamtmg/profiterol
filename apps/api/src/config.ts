@@ -40,4 +40,23 @@ export const config = {
    * could otherwise make the API fetch addresses on its own network. Only for tests and trusted setups.
    */
   siteImportAllowPrivate: process.env.SITE_IMPORT_ALLOW_PRIVATE === 'true',
+  /**
+   * Where preview sites live, e.g. https://profiterol.ir: each one is at <PREVIEW_URL>/preview/<name>. The address
+   * must be one of the sites' own (its nginx strips the prefix, see docker/nginx). Empty: no preview sites.
+   */
+  previewUrl: (process.env.PREVIEW_URL ?? '').trim().replace(/\/+$/, ''),
+  /** How long an ended preview is kept (offline) before it is deleted, so the owner can still extend or convert it. */
+  previewGraceDays: Number(process.env.PREVIEW_GRACE_DAYS ?? 30),
+  /** The most a preview site may upload, in megabytes (so previews cannot be used as free file hosting). */
+  previewUploadMb: Number(process.env.PREVIEW_UPLOAD_MB ?? 100),
 };
+
+/** The host name of PREVIEW_URL (e.g. profiterol.ir), or '' when previews are off. */
+export function previewHost(): string {
+  if (!config.previewUrl) return '';
+  try {
+    return new URL(config.previewUrl).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}

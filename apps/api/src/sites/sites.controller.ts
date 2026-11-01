@@ -17,7 +17,7 @@ import {
   type ExecutionContext,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { locales, seoTitle } from '@profiterol/blocks';
+import { getSiteTemplate, locales, seoTitle } from '@profiterol/blocks';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -25,8 +25,11 @@ import {
   IsBoolean,
   IsEmail,
   IsIn,
+  IsInt,
   IsISO8601,
   IsOptional,
+  Max,
+  Min,
   IsString,
   MaxLength,
   ValidateIf,
@@ -46,7 +49,7 @@ import { SettingsService, SITE_LOCALES } from '../settings/settings.controller';
 import { UsersService } from '../users/users.service';
 import { currentSiteId, runInSite, siteOrigin, type SiteContext } from './site-context';
 import { ADMIN_LANGS, type AdminLang, type Site, type SslStep, type SslStepState } from './site.entity';
-import { SitesService, toContext } from './sites.service';
+import { previewExpired, SitesService, toContext } from './sites.service';
 
 /** A one-time sign-in link from the owner's panel to another site's admin is valid this long. */
 export const SSO_SECONDS = 60;
@@ -129,6 +132,88 @@ class UpdateSiteDto {
   printDesigner?: boolean;
 }
 
+class CreatePreviewDto {
+  /** Shown in the owner's list and as the site's name. */
+  @IsString()
+  @MaxLength(120)
+  name: string;
+
+  /** Its address: <PREVIEW_URL>/preview/<slug>. */
+  @IsString()
+  @MaxLength(40)
+  slug: string;
+
+  /** 'demo' (the demo pages and collections), 'blank', or a whole-site template's key. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  template?: string;
+
+  /** How long it stays online. */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  days?: number;
+
+  /** Who it is for and notes; only the owner sees them. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  prospect?: string;
+
+  /** Invited as the preview's admin. */
+  @IsOptional()
+  @ValidateIf((o: CreatePreviewDto) => !!o.adminEmail)
+  @IsEmail()
+  adminEmail?: string;
+
+  @IsOptional()
+  @IsIn(ADMIN_LANGS)
+  adminLang?: AdminLang;
+
+  @IsOptional()
+  @IsIn(SITE_LOCALES)
+  defaultLocale?: string;
+}
+
+class UpdatePreviewDto {
+  /** A new end date; one in the past ends the preview now. */
+  @IsOptional()
+  @IsISO8601()
+  expiresAt?: string;
+
+  /** Days added to its end (or to today, once it has ended). */
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  extendDays?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  prospect?: string;
+}
+
+class ConvertPreviewDto {
+  @IsString()
+  @MaxLength(253)
+  domain: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(19)
+  @IsString({ each: true })
+  aliases?: string[];
+
+  @IsOptional()
+  @IsBoolean()
+  ssl?: boolean;
+}
+
 class DeleteSiteDto {
   /** The site's main address, typed again to confirm. */
   @IsString()
@@ -162,6 +247,11 @@ const view = (s: Site) => {
     sslExpires: s.sslExpires,
     sslAttempts: s.sslAttempts,
     sslRetryAt: s.sslRetryAt,
+    preview: s.preview,
+    previewSlug: s.previewSlug,
+    expiresAt: s.expiresAt,
+    expired: previewExpired(s),
+    prospect: s.prospect,
     createdAt: s.createdAt,
   };
 };
@@ -188,6 +278,9 @@ export class AdminSitesController {
     return {
       sites: all.map((s) => ({ ...view(s), current: s.id === currentSiteId() })),
       agent: this.sites.agent,
+      // Where preview sites are served ('' when PREVIEW_URL is not set), and how long ended ones are kept.
+      previewUrl: config.previewUrl,
+      previewGraceDays: config.previewGraceDays,
       owners: (await this.users.owners()).map((u) => ({ id: u.id, email: u.email, name: u.name, lastLoginAt: u.lastLoginAt })),
     };
   }
@@ -215,18 +308,73 @@ export class AdminSitesController {
       if (dto.demo !== false) await this.seed.seedSite(site.name);
       else await this.settings.update({ siteName: { fa: site.name, en: site.name } });
       if (dto.defaultLocale) await this.settings.update({ defaultLocale: dto.defaultLocale });
-      if (dto.adminEmail) {
-        const { user, secret } = await this.users.invite(dto.adminEmail, 'admin', '');
-        const link = `${siteOrigin(ctx)}/admin/reset?token=${secret}`;
-        const emailed = await sendMail({
-          to: user.email,
-          subject: `You are invited to edit ${site.name}`,
-          text: `Hello,\n\nYou have been given an account to edit ${site.name}. Choose your password here (the link works for 7 days):\n\n${link}\n`,
-        }).catch(() => false);
-        invite = { email: user.email, link, emailed };
-      }
+      if (dto.adminEmail) invite = await this.inviteAdmin(ctx, site, dto.adminEmail);
     });
     return { site: view(site), invite };
+  }
+
+  /**
+   * A preview for someone thinking of buying a site: <PREVIEW_URL>/preview/<slug>, filled from a template with its
+   * pages published, and its admin invited. It goes offline after `days` (see PreviewsService).
+   */
+  @Post('previews')
+  async createPreview(@Body() dto: CreatePreviewDto, @Req() req: { user: AuthUser }) {
+    const template = dto.template ?? 'demo';
+    if (!['demo', 'blank'].includes(template) && !getSiteTemplate(template)) throw new BadRequestException('Template not found');
+    const site = await this.sites.createPreview(dto.name, dto.slug, dto.days ?? 14, dto.prospect ?? '', dto.adminLang ?? '');
+    const ctx = toContext(site);
+    let invite: { email: string; link: string; emailed: boolean } | null = null;
+    try {
+      await runInSite(ctx, async () => {
+        if (template === 'demo') await this.seed.seedSite(site.name);
+        else await this.settings.update({ siteName: { fa: site.name, en: site.name } });
+        if (getSiteTemplate(template)) await this.pages.applySiteTemplate(template, { publish: true, home: true, author: req.user.email });
+        if (dto.defaultLocale) await this.settings.update({ defaultLocale: dto.defaultLocale });
+        if (dto.adminEmail) invite = await this.inviteAdmin(ctx, site, dto.adminEmail);
+      });
+    } catch (err) {
+      // Half a preview helps nobody: take it away again, so the name can be used once the problem is fixed.
+      await this.sites.remove(site.id).catch(() => undefined);
+      throw err;
+    }
+    return { site: view(site), invite };
+  }
+
+  /** Gives a preview more time, or changes the owner's notes on it. */
+  @Patch(':id/preview')
+  async updatePreview(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdatePreviewDto) {
+    let site = await this.sites.get(id);
+    if (!site.preview) throw new BadRequestException('This is not a preview site');
+    if (dto.expiresAt) site = await this.sites.setPreviewEnd(id, new Date(dto.expiresAt));
+    if (dto.extendDays) site = await this.sites.extendPreview(id, dto.extendDays);
+    if (dto.prospect !== undefined) site = await this.sites.setProspect(id, dto.prospect);
+    return view(site);
+  }
+
+  /**
+   * The customer bought it: the preview gets its own address (and certificate), keeping its pages, settings and
+   * accounts. Its old preview link sends visitors on to the new address.
+   */
+  @Post(':id/convert')
+  @HttpCode(200)
+  async convert(@Param('id', ParseUUIDPipe) id: string, @Body() dto: ConvertPreviewDto) {
+    // Previews are kept from search engines by their public settings only (nothing stored), so the converted site
+    // is indexable as soon as it answers at its new address.
+    return view(await this.sites.convertPreview(id, dto.domain, dto.aliases ?? [], dto.ssl ?? false));
+  }
+
+  /** Signs up the site's admin and emails them the link to choose a password (7 days). */
+  private async inviteAdmin(ctx: SiteContext, site: Site, email: string) {
+    const { user, secret } = await this.users.invite(email, 'admin', '');
+    const link = `${siteOrigin(ctx)}/admin/reset?token=${secret}`;
+    const emailed = await sendMail({
+      to: user.email,
+      subject: site.preview ? `Your preview of ${site.name} is ready` : `You are invited to edit ${site.name}`,
+      text: site.preview
+        ? `Hello,\n\nWe made a preview of your website: ${siteOrigin(ctx)}\n\nYou can change everything in it. Choose your password here (the link works for 7 days):\n\n${link}\n\nThe preview is online until ${site.expiresAt?.toISOString().slice(0, 10)}.\n`
+        : `Hello,\n\nYou have been given an account to edit ${site.name}. Choose your password here (the link works for 7 days):\n\n${link}\n`,
+    }).catch(() => false);
+    return { email: user.email, link, emailed };
   }
 
   @Patch(':id')
@@ -263,7 +411,9 @@ export class AdminSitesController {
   async remove(@Param('id', ParseUUIDPipe) id: string, @Body() dto: DeleteSiteDto) {
     const site = await this.sites.get(id);
     const c = toContext(site);
-    if (dto.confirm?.trim().toLowerCase() !== c.primary) throw new BadRequestException(`Type ${c.primary} to confirm`);
+    // A preview is confirmed by its name, a site by its address.
+    const name = site.preview ? (site.previewSlug ?? '') : c.primary;
+    if (dto.confirm?.trim().toLowerCase() !== name) throw new BadRequestException(`Type ${name} to confirm`);
     if (id === currentSiteId()) throw new BadRequestException('You cannot delete the site you are signed in to. Open another site first.');
     if ((await this.sites.sites.count()) <= 1) throw new BadRequestException('The last site cannot be deleted');
     await this.media.removeSiteFiles(id);
@@ -454,7 +604,8 @@ export class InternalSitesController {
   @Get('sites')
   async list() {
     const now = Date.now();
-    const all = await this.sites.list();
+    // Previews have no addresses of their own (they are paths on PREVIEW_URL's site), so nothing to serve or certify.
+    const all = (await this.sites.list()).filter((s) => !s.preview && s.domains.length);
     return all.map((s) => {
       const c: SiteContext = toContext(s);
       const stale = s.ssl === 'running' && now - s.updatedAt.getTime() > 15 * 60_000;

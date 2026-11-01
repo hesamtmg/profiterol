@@ -32,7 +32,7 @@ const initial = computed(() => Array.from(props.nav.siteName.trim())[0] ?? '•'
       class="pointer-events-auto flex items-center gap-1 rounded-full bg-[color-mix(in_srgb,var(--c-dark)_92%,transparent)] p-1.5 text-white shadow-2xl ring-1 ring-white/10 backdrop-blur"
     >
       <a
-        :href="`/${nav.locale}`"
+        :href="withSiteBase(`/${nav.locale}`)"
         class="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white text-lg font-black text-dark"
         :aria-label="nav.siteName"
       >

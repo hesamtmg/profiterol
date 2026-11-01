@@ -18,10 +18,12 @@ import {
   findBlock,
   fontNames,
   formBlockTypes,
+  getSiteTemplate,
   isLocale,
   locales,
   mapRichText,
   newBlockId,
+  siteTemplateTheme,
   templateBlocks,
   validateBlocks,
 } from '@profiterol/blocks';
@@ -191,6 +193,30 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       this.wakeFor(saved.publishAt, saved.unpublishAt);
       return saved;
     });
+  }
+
+  /**
+   * A whole-site template: sets the site theme and adds the template's pages (existing pages are left alone), plus
+   * menu links to them. By default they are drafts; a new preview site publishes them and makes the first its home.
+   */
+  async applySiteTemplate(key: string, opts: { publish?: boolean; home?: boolean; author?: string } = {}) {
+    const template = getSiteTemplate(key);
+    if (!template) throw new NotFoundException('Template not found');
+    const created: { id: string; name: string; slug: string }[] = [];
+    for (const [i, p] of template.pages.entries()) {
+      const page = await this.create({ name: p.name.en, template: p.template, slug: p.slug, titles: p.name, isHome: opts.home && i === 0 });
+      if (opts.publish) await this.publish(page.id, opts.author);
+      created.push({ id: page.id, name: page.name, slug: page.translations.find((t) => t.locale === 'en')?.slug ?? p.slug });
+    }
+    const current = await this.settings.get();
+    const menu = [...current.menu];
+    // The first page is the home page; the others go in the menu.
+    template.pages.slice(1).forEach((p, i) => {
+      const href = created[i + 1].slug;
+      if (!menu.some((m) => m.href === href)) menu.push({ label: { ...p.name }, href });
+    });
+    await this.settings.update({ theme: siteTemplateTheme(key) ?? current.theme, menu });
+    return created;
   }
 
   /** Copies each translation's draft blocks to its published blocks, and keeps this version in the history. */

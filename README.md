@@ -234,6 +234,12 @@ One installation can run many websites (`example.com`, `another.com`…), each w
 SEO and users. The owner adds a site by typing its address in **Admin → Sites**, decides when to issue its SSL
 certificate and follows each step there. See DEPLOY.md, "Several sites from one install".
 
+**Preview sites** win customers: in **Admin → Sites → New preview site** the owner makes a ready site for someone
+thinking of buying one, at `<PREVIEW_URL>/preview/<name>` (e.g. `https://profiterol.ir/preview/ali-shop`), from the
+demo content or a whole-site template. The person is invited as its admin and can change everything; the site
+shows how many days are left, is hidden from search engines and goes offline when its time is up. **They bought it**
+gives it their own address, keeping everything. See DEPLOY.md, "Preview sites".
+
 ## Users and sign-in
 
 The first account comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; it is the **owner**, who manages every site (Admin →

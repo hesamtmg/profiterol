@@ -28,6 +28,8 @@ export function cacheKey(event: H3Event): string | null {
   const url = event.path;
   if (url.includes('?') || !LOCALE_PATH.test(url)) return null;
   if ((getRequestHeader(event, 'cookie') ?? '').includes('pt_session=')) return null;
+  // Preview sites share their address with another site and get few visitors: never cached.
+  if (sitePrefix(event)) return null;
   return requestHost(event) + url;
 }
 

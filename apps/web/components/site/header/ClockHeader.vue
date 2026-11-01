@@ -27,7 +27,7 @@ const label = 'font-mono text-[0.7rem] uppercase tracking-[0.14em] rtl:font-[inh
     class="grid grid-cols-[1fr_auto] items-center gap-6 px-5 py-4 @3xl:px-14 @3xl:py-5 @5xl:grid-cols-[1fr_auto_1fr]"
     :class="nav.light ? 'text-white' : 'bg-[color-mix(in_srgb,var(--c-dark)_88%,transparent)] text-[#ece9e3] backdrop-blur'"
   >
-    <a :href="`/${nav.locale}`" class="flex items-center gap-3 text-lg leading-none">
+    <a :href="withSiteBase(`/${nav.locale}`)" class="flex items-center gap-3 text-lg leading-none">
       <img v-if="nav.logo" :src="nav.logo" :alt="nav.siteName" class="h-8 w-auto" style="filter: brightness(0) invert(1)" />
       <span v-else class="flex items-baseline">
         <span class="font-extrabold uppercase tracking-tight">{{ name.first }}</span>

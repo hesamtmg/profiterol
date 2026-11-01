@@ -71,14 +71,15 @@ export function cleanSeo(input: unknown): SeoSettings {
 /**
  * The address to put in canonical, hreflang and sitemap links: the site's main address (from the API, http or https
  * as the site has a certificate), keeping the visitor's port when they are on that address (local development on
- * :8080). Without a known address, the one the visitor used.
+ * :8080). Without a known address, the one the visitor used. A preview site's address keeps its path.
  */
 export function publicOrigin(siteOrigin: string | undefined, request: URL): string {
   if (!siteOrigin) return request.origin;
   try {
     const u = new URL(siteOrigin);
     if (u.hostname === request.hostname && request.port) u.port = request.port;
-    return u.origin;
+    // A preview site's address is a path on another site's (https://profiterol.ir/preview/ali-shop).
+    return u.origin + u.pathname.replace(/\/+$/, '');
   } catch {
     return request.origin;
   }
