@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
- * The strip across the top of a preview site: says it is a preview and how long it has left, with a link to the
- * people who made it. On the public pages in the site's language; in the admin in the admin's.
+ * Says the site is a preview and how long it has left, with a link to the people who made it. In the admin, a strip
+ * across the top, in the admin's language. On the public pages, a small bar floating at the bottom in the site's
+ * language, so it never sits on top of (or under) the site's own header, whichever header look the site uses.
  */
 const props = defineProps<{ preview: PreviewInfo; locale?: string; admin?: boolean }>();
 
@@ -18,14 +19,20 @@ const text = computed(() => {
     : days.value > 1
       ? `${days.value} days left`
       : 'last day today';
-  return fa.value ? `این یک سایت پیش‌نمایش است · ${left}` : `This is a preview site · ${left}`;
+  // Not "·" in Persian: next to Persian digits it reads as a zero (۱۴ → ۱۴۰).
+  return fa.value ? `این یک سایت پیش‌نمایش است، ${left}` : `This is a preview site · ${left}`;
 });
 const cta = computed(() => (fa.value ? 'این سایت را برای خودتان نگه دارید' : 'Keep this site'));
 </script>
 
 <template>
   <div
-    class="preview-banner relative z-[60] flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-slate-900 px-4 py-2 text-center text-sm text-white"
+    class="preview-banner flex flex-wrap items-center justify-center gap-x-3 gap-y-1 bg-slate-900 px-4 py-2 text-center text-sm text-white"
+    :class="
+      admin
+        ? 'relative z-[60]'
+        : 'fixed inset-x-0 bottom-3 z-[9990] mx-auto w-fit max-w-[calc(100%-1.5rem)] rounded-full shadow-lg shadow-black/30 ring-1 ring-white/10'
+    "
     :dir="fa ? 'rtl' : 'ltr'"
     data-preview-banner
   >
