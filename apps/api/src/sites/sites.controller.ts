@@ -133,6 +133,11 @@ class UpdateSiteDto {
   @IsBoolean()
   printDesigner?: boolean;
 
+  /** Let this site's admins manage its SEO, sitemap and robots.txt. */
+  @IsOptional()
+  @IsBoolean()
+  seoAllowed?: boolean;
+
   /** Let this site's admins make previews of their own, under its address. */
   @IsOptional()
   @IsBoolean()
@@ -198,6 +203,7 @@ const view = (s: Site) => {
     url: siteOrigin(c),
     adminLang: s.adminLang,
     printDesigner: s.printDesigner,
+    seoAllowed: s.seoAllowed,
     sslMode: s.sslMode,
     ssl: s.ssl,
     sslMessage: s.sslMessage,
@@ -339,6 +345,7 @@ export class AdminSitesController {
     if (dto.name !== undefined) site = await this.sites.rename(id, dto.name);
     if (dto.adminLang !== undefined) site = await this.sites.setAdminLang(id, dto.adminLang);
     if (dto.printDesigner !== undefined) site = await this.sites.setPrintDesigner(id, dto.printDesigner);
+    if (dto.seoAllowed !== undefined) site = await this.sites.setSeoAllowed(id, dto.seoAllowed);
     if (dto.previewsAllowed !== undefined || dto.previewMax !== undefined || dto.previewMaxDays !== undefined)
       site = await this.sites.setPreviewRules(id, { allowed: dto.previewsAllowed, max: dto.previewMax, maxDays: dto.previewMaxDays });
     if (dto.domain !== undefined || dto.aliases !== undefined) {
@@ -459,13 +466,12 @@ export class AdminSitesController {
           where: where.join(', '),
         });
     }
-    if (settings.seo?.hideSite)
-      issues.unshift({ level: 'error', message: 'The whole site is hidden from search engines (Settings → SEO)' });
+    if (settings.seo?.hideSite) issues.unshift({ level: 'error', message: 'The whole site is hidden from search engines (SEO)' });
     if (site.ssl !== 'active') issues.unshift({ level: 'error', message: 'No HTTPS certificate: search engines rank HTTPS sites higher' });
     if (!settings.business?.type)
       issues.push({ level: 'warning', message: 'No business type set (Settings → Business), so no structured data on the home page' });
     if (!Object.values(settings.seo?.verification ?? {}).some(Boolean)) {
-      issues.push({ level: 'warning', message: 'Not verified with any search console (Settings → SEO)' });
+      issues.push({ level: 'warning', message: 'Not verified with any search console (SEO)' });
     }
     const errors = issues.filter((i) => i.level === 'error').length;
     const warnings = issues.length - errors;

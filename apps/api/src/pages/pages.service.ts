@@ -23,6 +23,7 @@ import {
   locales,
   mapRichText,
   newBlockId,
+  sitemapExcluded,
   siteTemplateTheme,
   templateBlocks,
   validateBlocks,
@@ -44,6 +45,35 @@ export interface SitemapEntry {
   updatedAt: Date;
   paths: { locale: string; path: string }[];
   images: string[];
+}
+
+/** The sitemap group of the addresses a site adds by hand (Admin → SEO). Collection keys cannot start with _. */
+export const EXTRA_SITEMAP_GROUP = '_extra';
+
+/** Its address's path, as the site serves it: /en/about, or a hand-added path as it is written. */
+export const sitemapPath = (p: { locale: string; path: string }) => (p.locale ? `/${p.locale}${p.path ? `/${p.path}` : ''}` : p.path);
+
+/**
+ * Applies a site's own sitemap rules (Admin → SEO): leaves out the addresses it excluded (and everything under them),
+ * and adds the ones it listed by hand, in a group of their own, unless they are excluded or already in the sitemap.
+ */
+export function withSitemapRules(
+  groups: { group: string; entries: SitemapEntry[] }[],
+  exclude: string[],
+  extra: string[],
+  updatedAt: Date,
+): { group: string; entries: SitemapEntry[] }[] {
+  const kept = groups.map((g) => ({
+    group: g.group,
+    entries: g.entries
+      .map((e) => ({ ...e, paths: e.paths.filter((p) => !sitemapExcluded(sitemapPath(p), exclude)) }))
+      .filter((e) => e.paths.length),
+  }));
+  const listed = new Set(kept.flatMap((g) => g.entries.flatMap((e) => e.paths.map((p) => sitemapPath(p)))));
+  const added = extra
+    .filter((path) => !listed.has(path) && !sitemapExcluded(path, exclude))
+    .map((path) => ({ updatedAt, paths: [{ locale: '', path }], images: [] }));
+  return added.length ? [...kept, { group: EXTRA_SITEMAP_GROUP, entries: added }] : kept;
 }
 
 /** Uploaded pictures used in a page's blocks, for image sitemaps. */
@@ -458,10 +488,9 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       paths: list.map((t) => ({ locale: t.locale, path: t.page.isHome ? '' : t.slug })),
       images: [...new Set(list.flatMap((t) => [t.ogImage, ...imagesIn(t.publishedBlocks)]).filter(Boolean))].slice(0, 50),
     }));
-    return [
-      { group: 'pages', entries: pages },
-      ...(await this.collections.sitemapGroups((await this.settings.get()).seo?.collectionPages !== false)),
-    ];
+    const settings = await this.settings.get();
+    const groups = [{ group: 'pages', entries: pages }, ...(await this.collections.sitemapGroups(settings.seo?.collectionPages !== false))];
+    return withSitemapRules(groups, settings.seo?.sitemapExclude ?? [], settings.seo?.sitemapExtra ?? [], settings.updatedAt);
   }
 
   /**

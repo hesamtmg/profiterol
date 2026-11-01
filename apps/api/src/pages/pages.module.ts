@@ -7,6 +7,7 @@ import { MediaModule } from '../media/media.module';
 import { Page, PageRevision, PageTranslation } from './page.entity';
 import { AdminPagesController, PublicPagesController, SiteTemplatesController } from './pages.controller';
 import { PagesService } from './pages.service';
+import { AdminSeoController } from './seo.controller';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { PagesService } from './pages.service';
     MediaModule,
     CustomBlocksModule,
   ],
-  controllers: [PublicPagesController, AdminPagesController, SiteTemplatesController],
+  controllers: [PublicPagesController, AdminPagesController, SiteTemplatesController, AdminSeoController],
   providers: [PagesService],
   exports: [PagesService],
 })

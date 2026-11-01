@@ -20,6 +20,8 @@ interface SiteRow {
   adminLang: SiteAdminLang;
   /** The sublimation designer block and Print orders are allowed on this site. */
   printDesigner: boolean;
+  /** The site's admins may manage its SEO, sitemap and robots.txt (owners always can). */
+  seoAllowed: boolean;
   sslMode: 'off' | 'requested';
   ssl: SslState;
   sslMessage: string;
@@ -103,6 +105,7 @@ const editing = reactive<
         aliases: string;
         adminLang: SiteAdminLang;
         printDesigner: boolean;
+        seoAllowed: boolean;
         previewsAllowed: boolean;
         previewMax: number;
         previewMaxDays: number;
@@ -225,6 +228,7 @@ function startEdit(s: SiteRow) {
     aliases: s.aliases.join('\n'),
     adminLang: s.adminLang,
     printDesigner: s.printDesigner,
+    seoAllowed: s.seoAllowed,
     previewsAllowed: s.previewsAllowed,
     previewMax: s.previewMax,
     previewMaxDays: s.previewMaxDays,
@@ -240,6 +244,7 @@ const saveEdit = (s: SiteRow) =>
         name: e.name,
         adminLang: e.adminLang,
         printDesigner: e.printDesigner,
+        seoAllowed: e.seoAllowed,
         previewsAllowed: e.previewsAllowed,
         previewMax: e.previewMax,
         previewMaxDays: e.previewMaxDays,
@@ -467,6 +472,12 @@ onBeforeUnmount(() => clearInterval(timer));
             <p v-if="s.printDesigner" class="mt-1 text-xs text-slate-400" data-testid="site-print-designer">
               <i class="mdi mdi-tshirt-crew-outline" /> {{ $t('Sublimation designer allowed') }}
             </p>
+            <p v-if="!s.preview" class="mt-1 text-xs text-slate-400" data-testid="site-seo-allowed">
+              <i class="mdi mdi-magnify" />
+              {{
+                $t(s.seoAllowed ? 'SEO, sitemap and robots.txt: managed by the site’s admins' : 'SEO, sitemap and robots.txt: owners only')
+              }}
+            </p>
             <p v-if="s.previewsAllowed" class="mt-1 text-xs text-slate-400" data-testid="site-previews-allowed">
               <i class="mdi mdi-eye-outline" />
               {{
@@ -594,6 +605,19 @@ onBeforeUnmount(() => clearInterval(timer));
             <input v-model="editing[s.id]!.printDesigner" type="checkbox" class="h-4 w-4 rounded" data-testid="edit-print-designer" />
             {{ $t('Allow the sublimation designer and Print orders') }}
           </label>
+          <div class="rounded-2xl bg-slate-50 p-4 md:col-span-2" data-testid="edit-seo">
+            <label class="flex items-center gap-2 text-sm font-semibold">
+              <input v-model="editing[s.id]!.seoAllowed" type="checkbox" class="h-4 w-4 rounded" data-testid="edit-seo-allowed" />
+              {{ $t('Let this site’s admins manage its SEO, sitemap and robots.txt') }}
+            </label>
+            <p class="mt-1 text-xs text-slate-500">
+              {{
+                $t(
+                  'Off: Admin → SEO is hidden from them and only owners can change it. The site keeps its settings, sitemap and robots.txt as they are.',
+                )
+              }}
+            </p>
+          </div>
           <div class="rounded-2xl bg-slate-50 p-4 md:col-span-2" data-testid="edit-previews">
             <label class="flex items-center gap-2 text-sm font-semibold">
               <input v-model="editing[s.id]!.previewsAllowed" type="checkbox" class="h-4 w-4 rounded" data-testid="edit-previews-allowed" />

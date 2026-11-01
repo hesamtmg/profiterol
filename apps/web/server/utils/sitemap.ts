@@ -2,7 +2,7 @@ import { publicOrigin, siteDefaultLocale, SITEMAP_LIMIT, type SitemapUrl } from 
 import type { H3Event } from 'h3';
 
 export interface SitemapGroup {
-  /** 'pages', or a collection's key. */
+  /** 'pages', a collection's key, or '_extra' (addresses the site added by hand). */
   group: string;
   entries: { updatedAt: string; paths: { locale: string; path: string }[]; images: string[] }[];
 }
@@ -23,8 +23,20 @@ export async function siteSitemap(event: H3Event) {
   };
 }
 
-/** Encoded like the pages' canonical links, so both name the same URL (Persian slugs included). */
-const pageUrl = (origin: string, locale: string, path: string) => `${origin}/${locale}${path ? `/${encodeURI(path)}` : ''}`;
+/**
+ * Encoded like the pages' canonical links, so both name the same URL (Persian slugs included). An address the site
+ * added by hand (Admin → SEO) has no language: its path is used as it is.
+ */
+const pageUrl = (origin: string, locale: string, path: string) =>
+  locale ? `${origin}/${locale}${path ? `/${encodeURI(path)}` : ''}` : `${origin}${encodeURI(safeDecode(path))}`;
+
+function safeDecode(s: string) {
+  try {
+    return decodeURI(s);
+  } catch {
+    return s;
+  }
+}
 
 /** One <url> per language of each page or item, each listing all its languages (and x-default) as alternates. */
 export function sitemapUrls(origin: string, group: SitemapGroup, defaultLocale = siteDefaultLocale()): SitemapUrl[] {

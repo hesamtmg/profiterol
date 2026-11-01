@@ -4,8 +4,10 @@ import {
   articleJsonLd,
   breadcrumbJsonLd,
   cleanSeo,
+  cleanSitemapPaths,
   robotsTxt,
   seoTitle,
+  sitemapExcluded,
   sitemapIndexXml,
   sitemapXml,
   verificationMeta,
@@ -51,6 +53,37 @@ test('verification meta tags and robots.txt', () => {
   assert.match(open, /Disallow: \/drafts/);
   assert.match(open, /Sitemap: https:\/\/a\.com\/sitemap\.xml\n$/);
   assert.match(robotsTxt({ hideSite: true }, 'https://a.com'), /^User-agent: \*\nDisallow: \/\n/);
+});
+
+test('a custom robots.txt is served as written, keeps only known lines, and gets a Sitemap line', () => {
+  const seo = cleanSeo({
+    robotsMode: 'custom',
+    robotsCustom: 'User-agent: Googlebot\nDisallow: /x\n\n\n<script>alert(1)</script>\nUser-agent: *\nAllow: /',
+  });
+  assert.equal(seo.robotsMode, 'custom');
+  assert.equal(seo.robotsCustom, 'User-agent: Googlebot\nDisallow: /x\n\nUser-agent: *\nAllow: /');
+  assert.equal(cleanSeo({ robotsMode: 'weird' }).robotsMode, 'auto');
+  const txt = robotsTxt(seo, 'https://a.com');
+  assert.equal(txt, 'User-agent: Googlebot\nDisallow: /x\n\nUser-agent: *\nAllow: /\n\nSitemap: https://a.com/sitemap.xml\n');
+  assert.doesNotMatch(robotsTxt({ ...seo, robotsCustom: 'Sitemap: https://a.com/other.xml' }, 'https://a.com'), /sitemap\.xml/);
+  assert.match(robotsTxt(seo, 'https://a.com', { previews: true }), /^User-agent: \*\nDisallow: \/preview\/\n\nUser-agent: Googlebot/);
+  assert.match(robotsTxt({ ...seo, hideSite: true }, 'https://a.com'), /^User-agent: \*\nDisallow: \/\n\nSitemap/, 'hidden wins');
+  assert.match(robotsTxt({ robotsMode: 'custom', robotsCustom: '' }, 'https://a.com'), /Disallow: \/admin/, 'empty: automatic');
+  assert.match(robotsTxt({}, 'https://a.com', { previews: true }), /^User-agent: \*\nDisallow: \/preview\/\nDisallow: \/admin/);
+});
+
+test('sitemap address lists: own paths only, and exclusions cover what is under them', () => {
+  assert.deepEqual(cleanSitemapPaths(['/en/thanks/', 'https://evil.com/fa/x?y=1', '//evil.com', 'nope', '/a b', '/en/thanks', '<x>']), [
+    '/en/thanks',
+    '/fa/x?y=1',
+  ]);
+  assert.deepEqual(cleanSitemapPaths('/a\n/b\n'), ['/a', '/b']);
+  assert.equal(cleanSitemapPaths(Array.from({ length: 300 }, (_, i) => `/p${i}`)).length, 200);
+  assert.equal(sitemapExcluded('/en/blog', ['/en/blog']), true);
+  assert.equal(sitemapExcluded('/en/blog/post', ['/en/blog']), true);
+  assert.equal(sitemapExcluded('/en/blogger', ['/en/blog']), false);
+  assert.equal(sitemapExcluded(encodeURI('/fa/وبلاگ/پست'), ['/fa/وبلاگ']), true, 'encoded or not');
+  assert.equal(sitemapExcluded('/en', []), false);
 });
 
 test('breadcrumbs and articles', () => {

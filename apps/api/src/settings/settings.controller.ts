@@ -232,6 +232,10 @@ export class SettingsController {
     if (req.user.role !== 'owner' && (dto.headHtml !== undefined || dto.bodyHtml !== undefined)) {
       throw new ForbiddenException('Only the owner can change the custom HTML tags');
     }
+    // The owner can keep a site's SEO, sitemap and robots.txt to themselves (Admin → Sites).
+    if (req.user.role !== 'owner' && dto.seo !== undefined && !currentSite().seoAllowed) {
+      throw new ForbiddenException('The owner manages this site’s search engine settings, sitemap and robots.txt');
+    }
     return this.settings.update(dto as Partial<SiteSettings>);
   }
 }

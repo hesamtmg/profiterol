@@ -260,6 +260,7 @@ Atelier (the warm workshop look of whitecotton.pt; the "Atelier Cream" theme mat
 - [x] Per-site SEO: title pattern, default description and share picture, verification codes, robots.txt, hide the site; noindex per page and item; sitemap index with hreflang and images; breadcrumb and article structured data; SEO check
 - [x] Preview sites for prospective customers at `<PREVIEW_URL>/preview/<name>`: made from a template by the owner, the prospect invited as its admin, a days-left banner, never indexed, offline when it ends (deleted after a grace period), converted to a real site on its own address when bought
 - [x] Previews by a site's own admins, under that site's address, where the owner allows it (with a limit on how many and how long); they see only theirs, send a preview's admin panel to anyone, and ask the owner to convert a bought one
+- [x] Admin → SEO: the site's search settings, its sitemap (shown address by address, generated again on demand, with addresses left out or added by hand) and robots.txt (automatic with extra lines, or written by hand from the automatic one, with a live preview); downloads of both. The owner chooses per site (Admin → Sites) whether its admins may manage it
 - [ ] Sign-up and plans if this becomes a hosted product
 
 ## Phase 11: Quality and security
