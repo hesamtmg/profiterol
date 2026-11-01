@@ -5,7 +5,15 @@ export interface AdminUser {
   /** Owners manage every site (Admin → Sites) and are admins on each. */
   role: 'owner' | 'admin' | 'editor';
   /** The site this admin is for (from /auth/me). */
-  site?: { id: string; name: string; primary: string; printDesigner?: boolean; preview?: PreviewInfo | null };
+  site?: {
+    id: string;
+    name: string;
+    primary: string;
+    printDesigner?: boolean;
+    preview?: PreviewInfo | null;
+    /** The owner lets this site's admins make preview sites, within these limits. */
+    hostsPreviews?: { max: number; maxDays: number } | null;
+  };
 }
 
 export function useAuth() {

@@ -1,6 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { NotFoundException } from '@nestjs/common';
-import { config } from '../config';
 
 /** The site a request is for, picked from its address (see SitesService.resolve). */
 export interface SiteContext {
@@ -22,12 +21,19 @@ export interface SiteContext {
    */
   port?: string;
   /**
-   * For a preview site: the path it is served under on PREVIEW_URL, e.g. /preview/ali-shop ('' for every other
-   * site). Its links, cookies and emails stay inside it.
+   * For a preview site: the path it is served under, e.g. /preview/ali-shop ('' for every other site). Its links,
+   * cookies and emails stay inside it.
    */
   prefix: string;
-  /** For a preview site: when it ends (ISO date), and whether it already has. */
-  preview: { expiresAt: string | null; expired: boolean } | null;
+  /** The address that path is on: PREVIEW_URL, or the address of the site that made the preview. */
+  prefixBase: string;
+  /**
+   * For a preview site: when it ends (ISO date), whether it already has, the address of whoever made it (for
+   * "keep this site"), and the site that made it (null for the owners' own previews).
+   */
+  preview: { expiresAt: string | null; expired: boolean; home: string; hostId: string | null } | null;
+  /** For a site whose admins may make previews (the owner allows it): how many at once, and for how long. */
+  hostsPreviews: { max: number; maxDays: number } | null;
   /** Set when a request comes in under the old path of a preview that became a real site: its new address. */
   movedTo?: string;
 }
@@ -56,8 +62,8 @@ export function runInSite<T>(site: SiteContext, work: () => T): T {
 
 /** https://example.com, for links in emails and absolute URLs (with the request's port, in development). */
 export function siteOrigin(site: SiteContext = currentSite()) {
-  // A preview's address is a path on PREVIEW_URL, e.g. https://profiterol.ir/preview/ali-shop.
-  if (site.prefix) return `${config.previewUrl}${site.prefix}`;
   const port = site.port ?? maybeSite()?.port;
+  // A preview's address is a path on another site's, e.g. https://profiterol.ir/preview/ali-shop.
+  if (site.prefix) return `${site.prefixBase}${port && !/:\d+$/.test(site.prefixBase) ? `:${port}` : ''}${site.prefix}`;
   return `${site.https ? 'https' : 'http'}://${site.primary}${port ? `:${port}` : ''}`;
 }

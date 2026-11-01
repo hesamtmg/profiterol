@@ -66,9 +66,36 @@ export class Site {
   @Column({ type: 'timestamptz', nullable: true })
   expiresAt: Date | null;
 
-  /** Who the preview is for, and the owner's notes. */
+  /** Who the preview is for, and the notes of whoever made it. */
   @Column({ type: 'text', default: '' })
   prospect: string;
+
+  /**
+   * The site a preview was made by, and whose address it lives under (<its address>/preview/<slug>). Empty for the
+   * owners' own previews, which live on PREVIEW_URL. Deleting that site deletes its previews.
+   */
+  @ManyToOne(() => Site, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'previewHostId' })
+  previewHost: Site | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  previewHostId: string | null;
+
+  /** The address the preview's maker asked the owners to move it to, once the customer bought it. */
+  @Column({ type: 'varchar', length: 253, nullable: true })
+  convertRequest: string | null;
+
+  /** Whether the owner lets this site's admins make previews of their own (under this site's address). */
+  @Column({ default: false })
+  previewsAllowed: boolean;
+
+  /** How many previews this site may have online at once (ended ones do not count). */
+  @Column({ type: 'int', default: 5 })
+  previewMax: number;
+
+  /** The longest one of this site's previews may stay online, counted from when it was made, extensions included. */
+  @Column({ type: 'int', default: 30 })
+  previewMaxDays: number;
 
   @Column({ type: 'varchar', length: 16, default: 'off' })
   sslMode: SslMode;

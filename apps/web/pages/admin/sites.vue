@@ -33,6 +33,13 @@ interface SiteRow {
   expiresAt: string | null;
   expired: boolean;
   prospect: string;
+  previewHostId: string | null;
+  previewHostName: string | null;
+  convertRequest: string | null;
+  /** The owner lets this site's admins make previews, with these limits. */
+  previewsAllowed: boolean;
+  previewMax: number;
+  previewMaxDays: number;
 }
 
 interface SslEvent {
@@ -88,7 +95,20 @@ const events = reactive<Record<string, SslEvent[]>>({});
 const openTimeline = reactive<Record<string, boolean>>({});
 const seo = reactive<Record<string, SeoCheck | 'loading'>>({});
 const editing = reactive<
-  Record<string, { name: string; primary: string; aliases: string; adminLang: SiteAdminLang; printDesigner: boolean } | undefined>
+  Record<
+    string,
+    | {
+        name: string;
+        primary: string;
+        aliases: string;
+        adminLang: SiteAdminLang;
+        printDesigner: boolean;
+        previewsAllowed: boolean;
+        previewMax: number;
+        previewMaxDays: number;
+      }
+    | undefined
+  >
 >({});
 const ownerInvite = reactive({ email: '', open: false, link: '' });
 
@@ -117,6 +137,8 @@ function here(url: string) {
 // Preview sites have their own section; the list below is the real sites.
 const liveSites = computed(() => data.value?.sites.filter((s) => !s.preview) ?? []);
 const previewSites = computed(() => data.value?.sites.filter((s) => s.preview) ?? []);
+/** How many of a site's own previews are online now. */
+const hostedLive = (id: string) => previewSites.value.filter((p) => p.previewHostId === id && !p.expired).length;
 const agentOnline = computed(() => !!data.value?.agent && Date.now() - new Date(data.value.agent.lastSeen).getTime() < 2 * 60_000);
 const working = computed(() => data.value?.sites.some((s) => s.ssl === 'queued' || s.ssl === 'running') ?? false);
 
@@ -203,6 +225,9 @@ function startEdit(s: SiteRow) {
     aliases: s.aliases.join('\n'),
     adminLang: s.adminLang,
     printDesigner: s.printDesigner,
+    previewsAllowed: s.previewsAllowed,
+    previewMax: s.previewMax,
+    previewMaxDays: s.previewMaxDays,
   };
 }
 
@@ -215,6 +240,9 @@ const saveEdit = (s: SiteRow) =>
         name: e.name,
         adminLang: e.adminLang,
         printDesigner: e.printDesigner,
+        previewsAllowed: e.previewsAllowed,
+        previewMax: e.previewMax,
+        previewMaxDays: e.previewMaxDays,
         domain: cleanDomain(e.primary),
         aliases: e.aliases
           .split(/[\s,]+/)
@@ -439,6 +467,16 @@ onBeforeUnmount(() => clearInterval(timer));
             <p v-if="s.printDesigner" class="mt-1 text-xs text-slate-400" data-testid="site-print-designer">
               <i class="mdi mdi-tshirt-crew-outline" /> {{ $t('Sublimation designer allowed') }}
             </p>
+            <p v-if="s.previewsAllowed" class="mt-1 text-xs text-slate-400" data-testid="site-previews-allowed">
+              <i class="mdi mdi-eye-outline" />
+              {{
+                $t('Preview sites: {live} of {max} online, up to {days} days each', {
+                  live: hostedLive(s.id),
+                  max: s.previewMax,
+                  days: s.previewMaxDays,
+                })
+              }}
+            </p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <button type="button" class="btn-light" :disabled="busy" @click="openAdmin(s)">
@@ -556,6 +594,25 @@ onBeforeUnmount(() => clearInterval(timer));
             <input v-model="editing[s.id]!.printDesigner" type="checkbox" class="h-4 w-4 rounded" data-testid="edit-print-designer" />
             {{ $t('Allow the sublimation designer and Print orders') }}
           </label>
+          <div class="rounded-2xl bg-slate-50 p-4 md:col-span-2" data-testid="edit-previews">
+            <label class="flex items-center gap-2 text-sm font-semibold">
+              <input v-model="editing[s.id]!.previewsAllowed" type="checkbox" class="h-4 w-4 rounded" data-testid="edit-previews-allowed" />
+              {{ $t('Let this site’s admins make preview sites') }}
+            </label>
+            <p class="mt-1 text-xs text-slate-500">
+              {{ $t('Under its own address ({url}/preview/…). They see only theirs; you see all of them below.', { url: s.url }) }}
+            </p>
+            <div v-if="editing[s.id]!.previewsAllowed" class="mt-3 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label class="field-label" :for="`pmax-${s.id}`">{{ $t('Previews online at once') }}</label>
+                <input :id="`pmax-${s.id}`" v-model.number="editing[s.id]!.previewMax" type="number" min="1" max="1000" class="input" />
+              </div>
+              <div>
+                <label class="field-label" :for="`pdays-${s.id}`">{{ $t('Longest a preview stays online (days)') }}</label>
+                <input :id="`pdays-${s.id}`" v-model.number="editing[s.id]!.previewMaxDays" type="number" min="1" max="365" class="input" />
+              </div>
+            </div>
+          </div>
           <p class="self-end text-xs text-slate-500">
             {{ $t('With SSL on, changing the addresses asks for a new certificate covering them.') }}
           </p>
@@ -605,8 +662,9 @@ onBeforeUnmount(() => clearInterval(timer));
 
     <AdminPreviewSites
       v-if="data"
+      mode="owner"
       :previews="previewSites"
-      :preview-url="data.previewUrl"
+      :base="data.previewUrl"
       :grace-days="data.previewGraceDays"
       :server-ip="data.agent?.serverIp"
       @changed="refresh"

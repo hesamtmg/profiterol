@@ -12,11 +12,20 @@ const nav = [
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
   { to: '/admin/redirects', label: 'Redirects', icon: 'mdi-directions-fork' },
   { to: '/admin/users', label: 'Users', icon: 'mdi-account-multiple-outline', admin: true },
+  { to: '/admin/previews', label: 'Preview sites', icon: 'mdi-eye-outline', admin: true, previews: true },
   { to: '/admin/sites', label: 'Sites', icon: 'mdi-web', owner: true },
 ];
 const { isAdmin, isOwner, printDesigner } = useAuth();
+// Preview sites: on the sites the owner allows it on (Admin → Sites).
+const hostsPreviews = computed(() => !!user.value?.site?.hostsPreviews);
 const visibleNav = computed(() =>
-  nav.filter((item) => (!item.admin || isAdmin.value) && (!item.owner || isOwner.value) && (!item.printDesigner || printDesigner.value)),
+  nav.filter(
+    (item) =>
+      (!item.admin || isAdmin.value) &&
+      (!item.owner || isOwner.value) &&
+      (!item.printDesigner || printDesigner.value) &&
+      (!item.previews || hostsPreviews.value),
+  ),
 );
 
 // Unread form messages and new print designs, shown as badges on Inbox and Print orders. Their pages keep them up to date.
