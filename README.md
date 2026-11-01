@@ -238,7 +238,9 @@ certificate and follows each step there. See DEPLOY.md, "Several sites from one 
 thinking of buying one, at `<PREVIEW_URL>/preview/<name>` (e.g. `https://profiterol.ir/preview/ali-shop`), from the
 demo content or a whole-site template. The person is invited as its admin and can change everything; the site
 shows how many days are left, is hidden from search engines and goes offline when its time is up. **They bought it**
-gives it their own address, keeping everything. See DEPLOY.md, "Preview sites".
+gives it their own address, keeping everything. The owner can also let a site's own admins make previews under that
+site's address (e.g. a web studio showing its customers), with a limit on how many and for how long; they see only
+their own, and ask the owner to move a bought one. See DEPLOY.md, "Preview sites".
 
 ## Users and sign-in
 

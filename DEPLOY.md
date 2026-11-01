@@ -277,6 +277,20 @@ can. **+7 / +14 days** brings it back. It is deleted, files and all, `PREVIEW_GR
 gets its own certificate, keeping its pages, settings and accounts. The old preview link sends visitors to the new
 address, and its name stays taken.
 
+**Previews made by your sites' own admins.** In **Admin → Sites**, a site's settings (the cog) have **Let this
+site's admins make preview sites**, with how many may be online at once and the longest each may stay online
+(extensions included). Its admins then get **Preview sites** in their admin menu:
+
+- Their previews live under their own site's address, e.g. `https://alistudio.com/preview/cafe-sol`, so no DNS or
+  certificate is needed, and "Keep this site" on the preview leads to them, not to you.
+- They see only their own previews; you see every preview in Admin → Sites, each marked with the site that made it.
+- **Send admin access** gives anyone an admin account on that one preview and a link to choose its password. The
+  same button is on your own previews.
+- **They bought it** sends you a request with the customer's domain; you do the conversion (it is a new site on your
+  server). The request shows on the preview in Admin → Sites and fills in the address.
+- Turning the permission off stops new previews; existing ones stay until they end. Deleting the site deletes its
+  previews.
+
 nginx (the `profiterol-nginx` container) takes `/preview/<name>` off the address and passes it to the app as
 `X-Site-Prefix`; it always overwrites that header, so visitors cannot send their own. Nothing changes in Oblivion.
 

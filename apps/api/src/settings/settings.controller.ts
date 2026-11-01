@@ -53,7 +53,7 @@ import { DataSource, Repository } from 'typeorm';
 import { liveCustomDefs } from '../custom-blocks/live-defs';
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
-import { config, previewHost } from '../config';
+import { previewHost } from '../config';
 import { currentSite, currentSiteId, siteOrigin } from '../sites/site-context';
 import { Localized, SavedSection, SiteSettings } from './settings.entity';
 
@@ -208,9 +208,9 @@ export class SettingsController {
       domains: site.domains,
       adminLang: site.adminLang,
       printDesigner: site.printDesigner,
-      preview: site.preview && { ...site.preview, home: config.previewUrl },
-      // The site whose address hosts the previews (its robots.txt keeps search engines out of /preview/).
-      ...(!site.prefix && site.primary && site.primary === previewHost() ? { previewHome: config.previewUrl } : {}),
+      preview: site.preview,
+      // A site whose address hosts previews (its robots.txt keeps search engines out of /preview/).
+      ...(!site.prefix && site.primary && (site.hostsPreviews || site.primary === previewHost()) ? { previewHome: siteOrigin(site) } : {}),
       // The old preview address of a site that has been bought: the renderer sends visitors to the new one.
       ...(site.movedTo ? { movedTo: site.movedTo } : {}),
     };

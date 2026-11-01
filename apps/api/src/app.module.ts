@@ -14,6 +14,7 @@ import { PagesModule } from './pages/pages.module';
 import { RedirectsModule } from './redirects/redirects.module';
 import { SeedService } from './seed.service';
 import { SettingsModule } from './settings/settings.module';
+import { SitePreviewsController } from './sites/previews.controller';
 import { PreviewsService } from './sites/previews.service';
 import { AdminSitesController, InternalSitesController } from './sites/sites.controller';
 import { SitesModule } from './sites/sites.module';
@@ -41,7 +42,7 @@ import { UsersModule } from './users/users.module';
     AiModule,
     CustomBlocksModule,
   ],
-  controllers: [HealthController, AdminSitesController, InternalSitesController],
+  controllers: [HealthController, AdminSitesController, InternalSitesController, SitePreviewsController],
   providers: [SeedService, PreviewsService],
 })
 export class AppModule {}

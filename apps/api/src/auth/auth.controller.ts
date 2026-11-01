@@ -4,7 +4,6 @@ import * as bcrypt from 'bcryptjs';
 import { IsEmail, IsString, MinLength } from 'class-validator';
 import type { Request, Response } from 'express';
 import { RateLimiter } from '../common/rate-limit';
-import { config } from '../config';
 import { currentSite, currentSiteId, maybeSite } from '../sites/site-context';
 import type { User } from '../users/user.entity';
 import { LOCK_MINUTES, UsersService } from '../users/users.service';
@@ -122,7 +121,9 @@ export class AuthController {
         name: site.name,
         primary: site.primary,
         printDesigner: site.printDesigner,
-        preview: site.preview && { ...site.preview, home: config.previewUrl },
+        preview: site.preview,
+        // Whether this site's admins may make previews (Admin → Preview sites), and within which limits.
+        hostsPreviews: site.hostsPreviews,
       },
     };
   }

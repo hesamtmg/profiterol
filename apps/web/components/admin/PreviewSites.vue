@@ -1,8 +1,12 @@
 <script setup lang="ts">
 /**
- * Admin → Sites → Preview sites: trials the owner makes for people thinking of buying a site. Each lives at
- * <PREVIEW_URL>/preview/<name>, starts from a template with its pages published, invites the person as its admin,
- * and goes offline when its days are up. Bought ones are converted to a real site on the customer's own address.
+ * Preview sites: ready sites to show someone before they buy one. Each starts from a template with its pages
+ * published, can be sent to anyone as an admin panel, and goes offline when its days are up.
+ *
+ * - mode "owner" (Admin → Sites): every preview of every site; the owners' own live at <PREVIEW_URL>/preview/<name>.
+ *   Owners set no limits on themselves, sign in to any preview, and turn bought ones into real sites.
+ * - mode "site" (Admin → Preview sites): a site the owner allows it on. Its admins make previews under the site's
+ *   own address, within the owner's limits, see only theirs, and ask the owners to move a bought one.
  */
 import { locales } from '@profiterol/blocks';
 
@@ -15,23 +19,35 @@ export interface PreviewRow {
   expired: boolean;
   prospect: string;
   createdAt: string;
+  /** The address its maker asked the owners to move it to. */
+  convertRequest?: string | null;
+  /** Owner view: the site whose admins made it (null: an owner's own). */
+  previewHostId?: string | null;
+  previewHostName?: string | null;
 }
 
 const props = defineProps<{
+  mode: 'owner' | 'site';
   previews: PreviewRow[];
-  /** PREVIEW_URL, e.g. https://profiterol.ir; '' when previews are off. */
-  previewUrl: string;
+  /** Where new previews are made: PREVIEW_URL for the owners ('' when it is not set), the site's address for a site. */
+  base: string;
   graceDays: number;
   serverIp?: string;
+  /** Site mode: the owner's limits and how many previews are online now. */
+  limits?: { max: number; maxDays: number; live: number } | null;
 }>();
 const emit = defineEmits<{ changed: [] }>();
 
+const DAY = 86_400_000;
+const owner = computed(() => props.mode === 'owner');
 const api = useApi();
 const { numberLocale, lang } = useAdminI18n();
 const busy = ref(false);
 const error = ref('');
 const showAdd = ref(false);
 const templates = ref<{ key: string; name: Record<string, string>; description: Record<string, string> }[]>([]);
+const maxDays = computed(() => props.limits?.maxDays ?? 365);
+const full = computed(() => !!props.limits && props.limits.live >= props.limits.max);
 const form = reactive({
   name: '',
   slug: '',
@@ -43,11 +59,30 @@ const form = reactive({
   adminLang: lang.value as '' | 'en' | 'fa',
   defaultLocale: '',
 });
-const created = ref<{ site: PreviewRow; invite: { email: string; link: string; emailed: boolean } | null } | null>(null);
+watch(
+  maxDays,
+  (max) => {
+    if (form.days > max) form.days = max;
+  },
+  { immediate: true },
+);
+type Invite = { email: string; link: string; emailed: boolean };
+const created = ref<{ site: PreviewRow; invite: Invite | null } | null>(null);
 const converting = reactive<Record<string, { domain: string; www: boolean; ssl: boolean } | undefined>>({});
+const asking = reactive<Record<string, string | undefined>>({});
 const notes = reactive<Record<string, string | undefined>>({});
+const inviting = reactive<Record<string, string | undefined>>({});
+const invited = reactive<Record<string, Invite | undefined>>({});
 
-/** ali-shop from "Ali's Shop" (Persian names give nothing, so the owner types one). */
+/** Where each request goes: the owners' Admin → Sites routes, or the site's own. */
+const paths = {
+  create: () => (owner.value ? '/admin/sites/previews' : '/admin/previews'),
+  update: (p: PreviewRow) => (owner.value ? `/admin/sites/${p.id}/preview` : `/admin/previews/${p.id}`),
+  invite: (p: PreviewRow) => (owner.value ? `/admin/sites/${p.id}/invite` : `/admin/previews/${p.id}/invite`),
+  remove: (p: PreviewRow) => (owner.value ? `/admin/sites/${p.id}` : `/admin/previews/${p.id}`),
+};
+
+/** ali-shop from "Ali's Shop" (Persian names give nothing, so one is typed). */
 const toSlug = (s: string) =>
   s
     .toLowerCase()
@@ -63,7 +98,7 @@ watch(
   },
 );
 const slug = computed(() => toSlug(form.slug));
-const previewHost = computed(() => props.previewUrl.replace(/^https?:\/\//, ''));
+const baseHost = computed(() => props.base.replace(/^https?:\/\//, ''));
 
 /** On a development machine the admin runs on a port, and so does every site. */
 function here(url: string) {
@@ -88,7 +123,7 @@ async function run(fn: () => Promise<void>) {
 
 const create = () =>
   run(async () => {
-    created.value = await api<NonNullable<typeof created.value>>('/admin/sites/previews', {
+    created.value = await api<NonNullable<typeof created.value>>(paths.create(), {
       method: 'POST',
       body: {
         name: form.name.trim() || slug.value,
@@ -106,29 +141,44 @@ const create = () =>
     emit('changed');
   });
 
+/** Within a site's limit, a preview stays online at most maxDays from when it was made. */
+function canExtend(p: PreviewRow, days: number) {
+  if (!props.limits) return true;
+  const from = Math.max(Date.now(), p.expiresAt ? new Date(p.expiresAt).getTime() : Date.now());
+  return from + days * DAY <= new Date(p.createdAt).getTime() + props.limits.maxDays * DAY + 60_000;
+}
+
 const extend = (p: PreviewRow, days: number) =>
   run(async () => {
-    await api(`/admin/sites/${p.id}/preview`, { method: 'PATCH', body: { extendDays: days } });
+    await api(paths.update(p), { method: 'PATCH', body: { extendDays: days } });
     emit('changed');
   });
 
 const saveNotes = (p: PreviewRow) =>
   run(async () => {
-    await api(`/admin/sites/${p.id}/preview`, { method: 'PATCH', body: { prospect: notes[p.id] ?? '' } });
+    await api(paths.update(p), { method: 'PATCH', body: { prospect: notes[p.id] ?? '' } });
     notes[p.id] = undefined;
     emit('changed');
   });
 
+/** Owners: sign in to the preview's admin with a one-time link. */
 const openAdmin = (p: PreviewRow) =>
   run(async () => {
     const { url } = await api<{ url: string }>(`/admin/sites/${p.id}/open`, { method: 'POST' });
     window.open(here(url), '_blank', 'noopener');
   });
 
+/** Gives someone the preview's admin panel: an account there and a link to choose its password. */
+const sendAccess = (p: PreviewRow) =>
+  run(async () => {
+    invited[p.id] = await api<Invite>(paths.invite(p), { method: 'POST', body: { email: inviting[p.id] ?? '' } });
+    inviting[p.id] = undefined;
+  });
+
 const copied = ref('');
-async function copy(p: PreviewRow) {
-  await navigator.clipboard?.writeText(here(p.url)).catch(() => undefined);
-  copied.value = p.id;
+async function copy(text: string, key: string) {
+  await navigator.clipboard?.writeText(here(text)).catch(() => undefined);
+  copied.value = key;
   setTimeout(() => (copied.value = ''), 1500);
 }
 
@@ -141,6 +191,7 @@ const cleanDomain = (d: string) =>
     .replace(/:\d+$/, '')
     .replace(/\.$/, '');
 
+/** Owners: the preview becomes a real site on its own address. */
 const convert = (p: PreviewRow) =>
   run(async () => {
     const c = converting[p.id]!;
@@ -153,21 +204,35 @@ const convert = (p: PreviewRow) =>
     emit('changed');
   });
 
+/** A site's admins: ask the owners to move it to the customer's address ('' withdraws the request). */
+const askToConvert = (p: PreviewRow, domain: string) =>
+  run(async () => {
+    await api(`/admin/previews/${p.id}/convert-request`, { method: 'POST', body: { domain: cleanDomain(domain) } });
+    asking[p.id] = undefined;
+    emit('changed');
+  });
+
+function toggleBought(p: PreviewRow) {
+  if (owner.value) converting[p.id] = converting[p.id] ? undefined : { domain: p.convertRequest ?? '', www: true, ssl: true };
+  else asking[p.id] = asking[p.id] === undefined ? (p.convertRequest ?? '') : undefined;
+}
+
 const remove = (p: PreviewRow) =>
   run(async () => {
     const typed = prompt(
       translate('This deletes the preview {name} and everything in it. Type {name} to confirm.', { name: p.previewSlug ?? '' }),
     );
     if (typed === null) return;
-    await api(`/admin/sites/${p.id}`, { method: 'DELETE', body: { confirm: typed } });
+    await api(paths.remove(p), { method: 'DELETE', body: { confirm: typed } });
     emit('changed');
   });
 
 const date = (d: string | null) => (d ? new Date(d).toLocaleDateString(numberLocale.value) : '—');
-const daysLeft = (d: string | null) => (d ? Math.max(0, Math.ceil((new Date(d).getTime() - Date.now()) / 86_400_000)) : 0);
+const daysLeft = (d: string | null) => (d ? Math.max(0, Math.ceil((new Date(d).getTime() - Date.now()) / DAY)) : 0);
 /** When an ended preview is deleted for good. */
 const deletedOn = (p: PreviewRow) =>
-  p.expiresAt ? date(new Date(new Date(p.expiresAt).getTime() + props.graceDays * 86_400_000).toISOString()) : '—';
+  p.expiresAt ? date(new Date(new Date(p.expiresAt).getTime() + props.graceDays * DAY).toISOString()) : '—';
+const num = (n: number) => n.toLocaleString(numberLocale.value);
 
 onMounted(async () => {
   templates.value = await api<typeof templates.value>('/admin/site-templates').catch(() => []);
@@ -175,10 +240,12 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="mt-10" data-testid="preview-sites">
+  <section :class="owner ? 'mt-10' : ''" data-testid="preview-sites">
     <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h2 class="text-2xl font-black">{{ $t('Preview sites') }}</h2>
+        <component :is="owner ? 'h2' : 'h1'" :class="owner ? 'text-2xl font-black' : 'text-3xl font-black'">{{
+          $t('Preview sites')
+        }}</component>
         <p class="mt-1 max-w-2xl text-sm font-light text-slate-500">
           {{
             $t(
@@ -186,15 +253,28 @@ onMounted(async () => {
             )
           }}
         </p>
+        <p v-if="limits" class="mt-2 text-xs text-slate-500" data-testid="preview-limits">
+          <i class="mdi mdi-gauge" />
+          {{
+            $t('{live} of {max} online · each for up to {days} days', {
+              live: num(limits.live),
+              max: num(limits.max),
+              days: num(limits.maxDays),
+            })
+          }}
+        </p>
       </div>
-      <button v-if="previewUrl" type="button" class="btn-dark" data-testid="new-preview" @click="showAdd = !showAdd">
+      <button v-if="base" type="button" class="btn-dark" data-testid="new-preview" :disabled="full" @click="showAdd = !showAdd">
         <i class="mdi mdi-eye-plus-outline" /> {{ $t('New preview site') }}
       </button>
     </div>
 
-    <p v-if="!previewUrl" class="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
+    <p v-if="full" class="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-800 ring-1 ring-amber-200">
+      {{ $t('You have as many previews online as your plan allows. Delete one, or wait for one to end.') }}
+    </p>
+    <p v-if="owner && !base" class="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600 ring-1 ring-slate-200">
       <i class="mdi mdi-information-outline" />
-      {{ $t('Preview sites are off. Set PREVIEW_URL (for example https://profiterol.ir) in the server’s .env; see DEPLOY.md.') }}
+      {{ $t('Your own previews are off. Set PREVIEW_URL (for example https://profiterol.ir) in the server’s .env; see DEPLOY.md.') }}
     </p>
 
     <form v-if="showAdd" class="mt-6 rounded-[2rem] bg-white p-7 shadow-sm" data-testid="add-preview" @submit.prevent="create">
@@ -207,7 +287,7 @@ onMounted(async () => {
         <div>
           <label class="field-label" for="preview-slug">{{ $t('Address') }}</label>
           <div class="flex items-center gap-1" dir="ltr">
-            <span class="shrink-0 text-xs text-slate-500">{{ previewHost }}/preview/</span>
+            <span class="shrink-0 text-xs text-slate-500">{{ baseHost }}/preview/</span>
             <input
               id="preview-slug"
               v-model="form.slug"
@@ -241,7 +321,7 @@ onMounted(async () => {
         </div>
         <div>
           <label class="field-label" for="preview-days">{{ $t('Online for (days)') }}</label>
-          <input id="preview-days" v-model.number="form.days" type="number" min="1" max="365" class="input" required />
+          <input id="preview-days" v-model.number="form.days" type="number" min="1" :max="maxDays" class="input" required />
         </div>
         <div>
           <label class="field-label" for="preview-admin">{{ $t('Their email (invited as the preview’s admin)') }}</label>
@@ -320,7 +400,14 @@ onMounted(async () => {
                 $t('ended')
               }}</span>
               <span v-else class="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-800">
-                {{ $t('{n} days left', { n: daysLeft(p.expiresAt).toLocaleString(numberLocale) }) }}
+                {{ $t('{n} days left', { n: num(daysLeft(p.expiresAt)) }) }}
+              </span>
+              <span
+                v-if="owner && p.previewHostName"
+                class="rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-800"
+                data-testid="preview-host"
+              >
+                {{ $t('by {site}', { site: p.previewHostName }) }}
               </span>
             </h3>
             <a
@@ -338,14 +425,27 @@ onMounted(async () => {
             </p>
           </div>
           <div class="flex flex-wrap gap-1">
-            <button type="button" class="btn-light !px-3" :title="$t('Copy link')" @click="copy(p)">
+            <button type="button" class="btn-light !px-3" :title="$t('Copy link')" @click="copy(p.url, p.id)">
               <i class="mdi" :class="copied === p.id ? 'mdi-check' : 'mdi-content-copy'" />
             </button>
-            <button type="button" class="btn-light" :disabled="busy" @click="openAdmin(p)">
+            <button v-if="owner" type="button" class="btn-light" :disabled="busy" @click="openAdmin(p)">
               <i class="mdi mdi-open-in-new" /> {{ $t('Open admin') }}
             </button>
           </div>
         </div>
+
+        <p
+          v-if="p.convertRequest"
+          class="mt-3 rounded-2xl bg-amber-50 px-3 py-2 text-sm text-amber-900 ring-1 ring-amber-200"
+          data-testid="convert-request"
+        >
+          <i class="mdi mdi-check-decagram-outline" />
+          {{
+            owner
+              ? $t('Bought: asked to move it to {domain}', { domain: p.convertRequest })
+              : $t('You asked us to move it to {domain}. We will let you know when it is live there.', { domain: p.convertRequest })
+          }}
+        </p>
 
         <p
           v-if="p.prospect && notes[p.id] === undefined"
@@ -362,17 +462,29 @@ onMounted(async () => {
         </div>
 
         <div class="mt-4 flex flex-wrap gap-2 text-sm">
-          <button type="button" class="btn-light" :disabled="busy" data-testid="extend-7" @click="extend(p, 7)">+7 {{ $t('days') }}</button>
-          <button type="button" class="btn-light" :disabled="busy" @click="extend(p, 14)">+14 {{ $t('days') }}</button>
-          <button type="button" class="btn-light" @click="notes[p.id] = p.prospect">
-            <i class="mdi mdi-note-edit-outline" /> {{ $t('Notes') }}
+          <button
+            v-for="d in [7, 14]"
+            :key="d"
+            type="button"
+            class="btn-light"
+            :disabled="busy || !canExtend(p, d)"
+            :data-testid="`extend-${d}`"
+            @click="extend(p, d)"
+          >
+            +{{ num(d) }} {{ $t('days') }}
           </button>
           <button
             type="button"
-            class="btn-light text-emerald-700"
-            data-testid="convert-preview"
-            @click="converting[p.id] = converting[p.id] ? undefined : { domain: '', www: true, ssl: true }"
+            class="btn-light"
+            data-testid="send-access"
+            @click="inviting[p.id] = inviting[p.id] === undefined ? '' : undefined"
           >
+            <i class="mdi mdi-account-key-outline" /> {{ $t('Send admin access') }}
+          </button>
+          <button type="button" class="btn-light" @click="notes[p.id] = p.prospect">
+            <i class="mdi mdi-note-edit-outline" /> {{ $t('Notes') }}
+          </button>
+          <button type="button" class="btn-light text-emerald-700" data-testid="convert-preview" @click="toggleBought(p)">
             <i class="mdi mdi-check-decagram-outline" /> {{ $t('They bought it') }}
           </button>
           <button type="button" class="btn-light ms-auto text-red-600" :disabled="busy" @click="remove(p)">
@@ -380,7 +492,61 @@ onMounted(async () => {
           </button>
         </div>
 
-        <form v-if="converting[p.id]" class="mt-4 rounded-2xl bg-slate-50 p-4" @submit.prevent="convert(p)">
+        <!-- Anyone can be given the preview's admin panel. -->
+        <form v-if="inviting[p.id] !== undefined" class="mt-4 rounded-2xl bg-slate-50 p-4" @submit.prevent="sendAccess(p)">
+          <p class="text-sm font-semibold">{{ $t('Send someone this preview’s admin panel') }}</p>
+          <p class="mt-1 text-xs text-slate-500">
+            {{ $t('They get an admin account on the preview only, and a link to choose its password (valid 7 days).') }}
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <input
+              v-model="inviting[p.id]"
+              type="email"
+              class="input max-w-xs"
+              dir="ltr"
+              required
+              placeholder="ali@example.com"
+              data-testid="access-email"
+            />
+            <button type="submit" class="btn-dark" :disabled="busy">{{ $t('Send') }}</button>
+          </div>
+        </form>
+        <div v-if="invited[p.id]" class="mt-4 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-900 ring-1 ring-emerald-200" role="status">
+          {{
+            invited[p.id]!.emailed
+              ? $t('{email} was emailed this link to choose a password:', { email: invited[p.id]!.email })
+              : $t('Send {email} this link to choose a password:', { email: invited[p.id]!.email })
+          }}
+          <div class="mt-2 flex gap-2">
+            <input :value="here(invited[p.id]!.link)" readonly class="input text-xs" dir="ltr" data-testid="access-link" />
+            <button type="button" class="btn-light !px-3" :title="$t('Copy link')" @click="copy(invited[p.id]!.link, `invite-${p.id}`)">
+              <i class="mdi" :class="copied === `invite-${p.id}` ? 'mdi-check' : 'mdi-content-copy'" />
+            </button>
+            <button type="button" class="btn-light" @click="invited[p.id] = undefined">{{ $t('Close') }}</button>
+          </div>
+        </div>
+
+        <!-- A site's admins: ask the owners to move it. -->
+        <form
+          v-if="!owner && asking[p.id] !== undefined"
+          class="mt-4 rounded-2xl bg-slate-50 p-4"
+          @submit.prevent="askToConvert(p, asking[p.id] ?? '')"
+        >
+          <p class="text-sm font-semibold">{{ $t('Move it to the customer’s own address') }}</p>
+          <p class="mt-1 text-xs text-slate-500">
+            {{ $t('Tell us their domain; we set it up with its certificate. Pages, settings and accounts are kept.') }}
+          </p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <input v-model="asking[p.id]" class="input max-w-xs" dir="ltr" placeholder="alishop.com" data-testid="convert-domain" />
+            <button type="submit" class="btn-dark" :disabled="busy || !cleanDomain(asking[p.id] ?? '')">{{ $t('Send request') }}</button>
+            <button v-if="p.convertRequest" type="button" class="btn-light" :disabled="busy" @click="askToConvert(p, '')">
+              {{ $t('Withdraw request') }}
+            </button>
+          </div>
+        </form>
+
+        <!-- Owners: the preview becomes a real site. -->
+        <form v-if="owner && converting[p.id]" class="mt-4 rounded-2xl bg-slate-50 p-4" @submit.prevent="convert(p)">
           <p class="text-sm font-semibold">{{ $t('Make it a real site on their own address') }}</p>
           <p class="mt-1 text-xs text-slate-500">
             {{ $t('Pages, settings and accounts are kept. The preview link will send visitors to the new address.') }}
@@ -409,6 +575,6 @@ onMounted(async () => {
         </form>
       </article>
     </div>
-    <p v-else-if="previewUrl" class="mt-4 text-sm text-slate-500">{{ $t('No preview sites yet.') }}</p>
+    <p v-else-if="base" class="mt-4 text-sm text-slate-500">{{ $t('No preview sites yet.') }}</p>
   </section>
 </template>

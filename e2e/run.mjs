@@ -24,6 +24,7 @@ const SUITES = [
   'business',
   'sites',
   'previews',
+  'site-previews',
   'custom-blocks',
   'custom-css',
   'custom-html',

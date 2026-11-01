@@ -10,7 +10,7 @@ export const LOCK_AFTER = 5;
 export const LOCK_MINUTES = 15;
 export const MIN_PASSWORD = 8;
 const RESET_HOURS = 2;
-const INVITE_DAYS = 7;
+export const INVITE_DAYS = 7;
 
 const sha256 = (s: string) => createHash('sha256').update(s).digest('hex');
 
