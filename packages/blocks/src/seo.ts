@@ -1,7 +1,7 @@
 import { compact } from './business.js';
 import { locales } from './locales.js';
 
-/** A site's search engine settings (Admin → Settings → SEO). Each site has its own. */
+/** A site's search engine settings (Admin → SEO). Each site has its own. */
 export interface SeoSettings {
   /** How page titles are written, per locale. `%s` is the page's title, `{site}` the site's name. */
   titleTemplate: Record<string, string>;
@@ -19,6 +19,17 @@ export interface SeoSettings {
   robotsExtra: string;
   /** List collection pages (/en/projects) in the sitemap, not only their items. */
   collectionPages: boolean;
+  /**
+   * 'auto': robots.txt is made from the settings above (the default lines plus `robotsExtra`). 'custom': the site's
+   * own robots.txt, `robotsCustom`, word for word (a Sitemap line is added when it has none).
+   */
+  robotsMode: 'auto' | 'custom';
+  /** The whole robots.txt when `robotsMode` is 'custom'. */
+  robotsCustom: string;
+  /** Addresses left out of the sitemap, e.g. /en/thanks (each also leaves out everything under it). */
+  sitemapExclude: string[];
+  /** Other addresses on the site to add to the sitemap, e.g. /fa/landing (pages served by something else). */
+  sitemapExtra: string[];
 }
 
 export const DEFAULT_TITLE_TEMPLATE = '%s · {site}';
@@ -32,6 +43,10 @@ export const emptySeo = (): SeoSettings => ({
   hideSite: false,
   robotsExtra: '',
   collectionPages: true,
+  robotsMode: 'auto',
+  robotsCustom: '',
+  sitemapExclude: [],
+  sitemapExtra: [],
 });
 
 const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
@@ -46,6 +61,70 @@ function perLocale(input: unknown, max: number): Record<string, string> {
 /** Robots lines a site may add: comments and the usual directives only, so it cannot inject anything else. */
 const ROBOTS_LINE = /^(#.*|(user-agent|disallow|allow|crawl-delay|sitemap|host|clean-param)\s*:\s*[^\s<>]*)$/i;
 
+/** Keeps the lines of a robots.txt that are comments or known directives; blank lines (between groups) stay, once. */
+export function cleanRobotsLines(input: unknown, maxLength: number, maxLines: number, keepBlank = false): string {
+  return str(input, maxLength)
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => (keepBlank && !l) || (l && ROBOTS_LINE.test(l)))
+    .filter((l, i, all) => l || (i > 0 && all[i - 1]))
+    .slice(0, maxLines)
+    .join('\n')
+    .trim();
+}
+
+/** The most addresses a site may leave out of, or add to, its sitemap. */
+export const SITEMAP_PATHS_MAX = 200;
+
+/**
+ * Paths on the site for the sitemap lists: each starts with /, has no spaces, quotes or angle brackets, and is
+ * written once. A full address on any host is cut down to its path, so only the site's own addresses are listed.
+ */
+export function cleanSitemapPaths(input: unknown): string[] {
+  const list = Array.isArray(input) ? input : typeof input === 'string' ? input.split(/\r?\n/) : [];
+  const out = new Set<string>();
+  for (const raw of list) {
+    let p = str(raw, 500);
+    if (!p) continue;
+    if (/^https?:\/\//i.test(p)) {
+      try {
+        const u = new URL(p);
+        p = u.pathname + u.search;
+      } catch {
+        continue;
+      }
+    }
+    if (!p.startsWith('/') || p.startsWith('//') || /[\s<>"'\\]/.test(p)) continue;
+    out.add(p.length > 1 ? p.replace(/\/+$/, '') : p);
+    if (out.size >= SITEMAP_PATHS_MAX) break;
+  }
+  return [...out];
+}
+
+/**
+ * Whether a sitemap address's path (/en/blog/hello, encoded or not) is left out by one of the site's exclusions: the
+ * same path, or anything under it.
+ */
+export function sitemapExcluded(path: string, exclude: string[] | null | undefined): boolean {
+  if (!exclude?.length) return false;
+  let p = path;
+  try {
+    p = decodeURI(path);
+  } catch {
+    // Keep it as it is.
+  }
+  p = p.replace(/\/+$/, '') || '/';
+  return exclude.some((e) => {
+    let x = e;
+    try {
+      x = decodeURI(e);
+    } catch {
+      // Keep it as it is.
+    }
+    return p === x || p.startsWith(x === '/' ? '/' : `${x}/`);
+  });
+}
+
 /** Keeps only known fields, safe verification codes and well-formed robots.txt lines. */
 export function cleanSeo(input: unknown): SeoSettings {
   const o = (input && typeof input === 'object' ? input : {}) as Record<string, unknown>;
@@ -58,13 +137,12 @@ export function cleanSeo(input: unknown): SeoSettings {
     twitter: str(o.twitter, 40).replace(/^@/, '').replace(/[^\w]/g, ''),
     verification: { google: code(v.google), bing: code(v.bing), yandex: code(v.yandex), baidu: code(v.baidu) },
     hideSite: o.hideSite === true,
-    robotsExtra: str(o.robotsExtra, 2000)
-      .split(/\r?\n/)
-      .map((l) => l.trim())
-      .filter((l) => l && ROBOTS_LINE.test(l))
-      .slice(0, 50)
-      .join('\n'),
+    robotsExtra: cleanRobotsLines(o.robotsExtra, 2000, 50),
     collectionPages: o.collectionPages !== false,
+    robotsMode: o.robotsMode === 'custom' ? 'custom' : 'auto',
+    robotsCustom: cleanRobotsLines(o.robotsCustom, 10_000, 300, true),
+    sitemapExclude: cleanSitemapPaths(o.sitemapExclude),
+    sitemapExtra: cleanSitemapPaths(o.sitemapExtra),
   };
 }
 
@@ -105,13 +183,27 @@ export function verificationMeta(seo: Partial<SeoSettings> | null | undefined): 
   return (Object.keys(names) as (keyof typeof names)[]).filter((k) => v[k]).map((k) => ({ name: names[k], content: v[k] }));
 }
 
-/** robots.txt for one site. */
-export function robotsTxt(seo: Partial<SeoSettings> | null | undefined, origin: string): string {
+/**
+ * robots.txt for one site: made from its settings, or its own custom file. A hidden site always keeps every search
+ * engine out, whatever its file says. `previews`: the site's address also hosts preview sites, which are never indexed.
+ */
+export function robotsTxt(seo: Partial<SeoSettings> | null | undefined, origin: string, options: { previews?: boolean } = {}): string {
+  const sitemap = `Sitemap: ${origin}/sitemap.xml`;
+  const custom = !seo?.hideSite && seo?.robotsMode === 'custom' ? (seo.robotsCustom ?? '').trim() : '';
+  if (custom) {
+    // The previews stay hidden in a group of their own, ahead of the site's (search engines merge the groups).
+    const head = options.previews ? 'User-agent: *\nDisallow: /preview/\n\n' : '';
+    const withSitemap = /^sitemap\s*:/im.test(custom) ? custom : `${custom}\n\n${sitemap}`;
+    return `${head}${withSitemap}\n`;
+  }
   const lines = ['User-agent: *'];
   if (seo?.hideSite) lines.push('Disallow: /');
-  else lines.push('Disallow: /admin', 'Disallow: /api');
-  if (seo?.robotsExtra) lines.push('', seo.robotsExtra);
-  lines.push('', `Sitemap: ${origin}/sitemap.xml`);
+  else {
+    if (options.previews) lines.push('Disallow: /preview/');
+    lines.push('Disallow: /admin', 'Disallow: /api');
+  }
+  if (seo?.robotsExtra && !seo.hideSite) lines.push('', seo.robotsExtra);
+  lines.push('', sitemap);
   return `${lines.join('\n')}\n`;
 }
 

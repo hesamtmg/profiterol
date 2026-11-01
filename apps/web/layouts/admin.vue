@@ -10,12 +10,13 @@ const nav = [
   { to: '/admin/designs', label: 'Print orders', icon: 'mdi-tshirt-crew-outline', printDesigner: true },
   { to: '/admin/media', label: 'Media', icon: 'mdi-image-multiple-outline' },
   { to: '/admin/settings', label: 'Site settings', icon: 'mdi-palette-outline' },
+  { to: '/admin/seo', label: 'SEO', icon: 'mdi-magnify', seo: true },
   { to: '/admin/redirects', label: 'Redirects', icon: 'mdi-directions-fork' },
   { to: '/admin/users', label: 'Users', icon: 'mdi-account-multiple-outline', admin: true },
   { to: '/admin/previews', label: 'Preview sites', icon: 'mdi-eye-outline', admin: true, previews: true },
   { to: '/admin/sites', label: 'Sites', icon: 'mdi-web', owner: true },
 ];
-const { isAdmin, isOwner, printDesigner } = useAuth();
+const { isAdmin, isOwner, printDesigner, canManageSeo } = useAuth();
 // Preview sites: on the sites the owner allows it on (Admin → Sites).
 const hostsPreviews = computed(() => !!user.value?.site?.hostsPreviews);
 const visibleNav = computed(() =>
@@ -24,6 +25,7 @@ const visibleNav = computed(() =>
       (!item.admin || isAdmin.value) &&
       (!item.owner || isOwner.value) &&
       (!item.printDesigner || printDesigner.value) &&
+      (!item.seo || canManageSeo.value) &&
       (!item.previews || hostsPreviews.value),
   ),
 );

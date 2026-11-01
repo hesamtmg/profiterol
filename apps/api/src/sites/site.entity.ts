@@ -52,6 +52,13 @@ export class Site {
   printDesigner: boolean;
 
   /**
+   * Whether the site's own admins may change its search engine settings, sitemap and robots.txt (Admin → SEO). When
+   * the owner turns it off, only owners can, and the site keeps the settings it has.
+   */
+  @Column({ default: true })
+  seoAllowed: boolean;
+
+  /**
    * A preview made for someone thinking of buying a site: served at <PREVIEW_URL>/preview/<previewSlug> instead of
    * its own address, hidden from search engines, and offline once `expiresAt` has passed. Converting it to a real
    * site gives it addresses and clears this (the slug is kept, so old preview links redirect to the new address).

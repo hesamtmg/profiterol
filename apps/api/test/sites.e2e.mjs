@@ -237,6 +237,7 @@ describe('accounts', () => {
     const res = await login(B);
     assert.equal(res.status, 200);
     const bAdmin = res.body.token;
+    ids.bAdmin = bAdmin;
     assert.equal((await call('GET', '/admin/pages', { host: B, token: bAdmin })).status, 200);
     assert.equal((await call('GET', '/admin/pages', { host: A, token: bAdmin })).status, 401, "B's session is refused on A");
     assert.equal((await call('GET', '/admin/sites', { host: B, token: bAdmin })).status, 403);
@@ -258,6 +259,71 @@ describe('accounts', () => {
     assert.equal(ok.status, 200);
     assert.match(ok.headers.get('set-cookie') ?? '', /pt_session=/);
     assert.equal((await sso(B)).status, 401, 'only once');
+  });
+});
+
+describe('SEO, sitemap and robots.txt (Admin → SEO)', () => {
+  test("a site's admin manages its sitemap and robots.txt", async () => {
+    const bAdmin = ids.bAdmin;
+    assert.equal((await call('GET', '/auth/me', { host: B, token: bAdmin })).body.site.seoAllowed, true, 'allowed by default');
+    const view = await call('GET', '/admin/seo', { host: B, token: bAdmin });
+    assert.equal(view.status, 200, JSON.stringify(view.body));
+    assert.equal(view.body.sitemap.url, `http://${B}/sitemap.xml`);
+    assert.ok(view.body.sitemap.groups.some((g) => g.urls.includes(`http://${B}/en/about`)));
+    assert.match(view.body.robots, /Disallow: \/admin/);
+
+    const saved = await call('PUT', '/admin/seo', {
+      host: B,
+      token: bAdmin,
+      body: {
+        seo: {
+          sitemapExclude: ['/en/about/', 'not a path'],
+          sitemapExtra: ['/landing', `https://elsewhere.test/promo`, '/en/about/team'],
+          robotsMode: 'custom',
+          robotsCustom: 'User-agent: *\nDisallow: /tmp\n<script>',
+        },
+      },
+    });
+    assert.equal(saved.status, 200, JSON.stringify(saved.body));
+    assert.deepEqual(saved.body.seo.sitemapExclude, ['/en/about']);
+    assert.deepEqual(saved.body.seo.sitemapExtra, ['/landing', '/promo', '/en/about/team'], 'only paths on the site');
+    assert.equal(saved.body.robots, `User-agent: *\nDisallow: /tmp\n\nSitemap: http://${B}/sitemap.xml\n`);
+    const urls = saved.body.sitemap.groups.flatMap((g) => g.urls);
+    assert.ok(!urls.some((u) => u.includes('/en/about')), 'excluded, with everything under it');
+    assert.deepEqual(saved.body.sitemap.groups.find((g) => g.group === '_extra').urls, [`http://${B}/landing`, `http://${B}/promo`]);
+
+    const groups = (await call('GET', '/public/sitemap', { host: B, token: '' })).body;
+    const paths = groups.flatMap((g) => g.entries.flatMap((e) => e.paths));
+    assert.ok(!paths.some((p) => p.path === 'about'));
+    assert.ok(
+      paths.some((p) => p.locale === '' && p.path === '/landing'),
+      'the renderer gets the added addresses',
+    );
+    assert.equal((await call('GET', '/public/settings', { host: B, token: '' })).body.seo.robotsMode, 'custom');
+  });
+
+  test('the owner can keep a site’s SEO to the owners', async () => {
+    const bAdmin = ids.bAdmin;
+    const off = await call('PATCH', `/admin/sites/${ids.b}`, { body: { seoAllowed: false } });
+    assert.equal(off.status, 200);
+    assert.equal(off.body.seoAllowed, false);
+    assert.equal((await call('GET', '/auth/me', { host: B, token: bAdmin })).body.site.seoAllowed, false);
+    assert.equal((await call('GET', '/admin/seo', { host: B, token: bAdmin })).status, 403);
+    assert.equal((await call('PUT', '/admin/seo', { host: B, token: bAdmin, body: { seo: { hideSite: true } } })).status, 403);
+    assert.equal((await call('PUT', '/admin/settings', { host: B, token: bAdmin, body: { seo: { hideSite: true } } })).status, 403);
+    assert.equal(
+      (await call('PUT', '/admin/settings', { host: B, token: bAdmin, body: { notifyEmail: '' } })).status,
+      200,
+      'the other settings stay theirs',
+    );
+    assert.equal((await call('GET', '/public/settings', { host: B, token: '' })).body.seo.robotsMode, 'custom', 'nothing is reset');
+
+    const asOwner = await call('PUT', '/admin/seo', { host: B, body: { seo: { robotsMode: 'auto' } } });
+    assert.equal(asOwner.status, 200, 'owners still can');
+    assert.match(asOwner.body.robots, /Disallow: \/admin/);
+
+    assert.equal((await call('PATCH', `/admin/sites/${ids.b}`, { body: { seoAllowed: true } })).body.seoAllowed, true);
+    assert.equal((await call('GET', '/admin/seo', { host: B, token: bAdmin })).status, 200, 'allowed again');
   });
 });
 

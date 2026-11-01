@@ -207,7 +207,7 @@ const meta = computed(() => {
   return { title: title(r.collection.name), description: fallback, image: r.list.items.find((i) => i.cover)?.cover ?? '' };
 });
 
-/** Hidden from search engines: the whole site (Settings → SEO, or maintenance), or this page or item. */
+/** Hidden from search engines: the whole site (Admin → SEO, or maintenance), or this page or item. */
 const noindex = computed(() => {
   const r = resolved.value;
   return (
@@ -287,7 +287,7 @@ useHead({
   htmlAttrs: { lang: locale, dir: localeDef.dir },
   // html:root outranks the stylesheet's :root defaults, which load after this tag.
   script: () => structuredData.value.map((data) => ({ type: 'application/ld+json', innerHTML: jsonLdScript(data) })),
-  // Search console ownership checks (Admin → Settings → SEO).
+  // Search console ownership checks (Admin → SEO).
   meta: () => verificationMeta(seo.value),
   style: [
     { innerHTML: () => `${fontFaceCss(settings.value?.fonts)}html:root{${themeToCss(theme.value)}}` },

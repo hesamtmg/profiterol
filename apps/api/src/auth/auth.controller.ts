@@ -121,6 +121,8 @@ export class AuthController {
         name: site.name,
         primary: site.primary,
         printDesigner: site.printDesigner,
+        // Whether this site's admins may manage its SEO, sitemap and robots.txt (Admin → SEO).
+        seoAllowed: site.seoAllowed,
         preview: site.preview,
         // Whether this site's admins may make previews (Admin → Preview sites), and within which limits.
         hostsPreviews: site.hostsPreviews,

@@ -81,6 +81,7 @@ export const toContext = (site: Site): SiteContext => {
       name: site.name,
       adminLang: site.adminLang ?? '',
       printDesigner: site.printDesigner ?? false,
+      seoAllowed: site.seoAllowed ?? true,
       // Previews have no addresses of their own: the domains agent never sees them, and nothing is cached for them.
       primary: url?.hostname ?? '',
       domains: [],
@@ -99,6 +100,7 @@ export const toContext = (site: Site): SiteContext => {
     name: site.name,
     adminLang: site.adminLang ?? '',
     printDesigner: site.printDesigner ?? false,
+    seoAllowed: site.seoAllowed ?? true,
     primary: sorted[0]?.domain ?? '',
     domains: sorted.map((d) => d.domain),
     https: site.ssl === 'active' || (!!config.siteUrl.startsWith('https://') && new URL(config.siteUrl).hostname === sorted[0]?.domain),
@@ -296,6 +298,14 @@ export class SitesService {
   async setPrintDesigner(id: string, printDesigner: boolean) {
     await this.get(id);
     await this.sites.update(id, { printDesigner });
+    this.forget();
+    return this.get(id);
+  }
+
+  /** Lets the site's admins manage its SEO, sitemap and robots.txt, or keeps that to the owners. */
+  async setSeoAllowed(id: string, seoAllowed: boolean) {
+    await this.get(id);
+    await this.sites.update(id, { seoAllowed });
     this.forget();
     return this.get(id);
   }
