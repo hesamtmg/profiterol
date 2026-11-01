@@ -14,7 +14,7 @@ import { DataSource, Repository } from 'typeorm';
 import { AiConnectionsService, connectionLabel } from '../ai/ai-connections';
 import { type AiPart, attachmentNote, type AttachmentInfo } from '../ai/attachments';
 import { AiError, type AiMessage } from '../ai/providers';
-import { currentSiteId } from '../sites/site-context';
+import { currentSiteId, maybeSite } from '../sites/site-context';
 import { BlockCompileError, compileBlock } from './compile';
 import { CustomBlock, type CustomBlockVersion } from './custom-block.entity';
 import { liveCustomDefs } from './live-defs';
@@ -509,4 +509,5 @@ export function readComponents(value: unknown, problems: string[]): SiteComponen
 }
 
 /** Under /api/public, with the code's hash in the name: cached for good, and a new version gets a new address. */
-export const moduleUrl = (id: string, hash: string) => `/api/public/custom-blocks/${id}/${hash}.js`;
+/** The approved module's address. A preview site's is under its own path, where its API answers. */
+export const moduleUrl = (id: string, hash: string) => `${maybeSite()?.prefix ?? ''}/api/public/custom-blocks/${id}/${hash}.js`;

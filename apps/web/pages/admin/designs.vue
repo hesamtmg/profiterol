@@ -59,7 +59,7 @@ const countOf = (s: Status) => items.value.filter((d) => d.status === s).length;
 watch(selected, (d) => (note.value = d?.adminNote ?? ''));
 
 const fileUrl = (d: DesignRequest, which: 'preview' | 'print', download = false) =>
-  `/api/admin/designs/${d.id}/${which}${download ? '?download=1' : ''}`;
+  withSiteBase(`/api/admin/designs/${d.id}/${which}${download ? '?download=1' : ''}`);
 
 /** The number as it is dialled: Persian digits to Latin, spaces and dashes removed. */
 function dial(phone: string) {

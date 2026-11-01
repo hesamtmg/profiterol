@@ -1,9 +1,9 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { NextFunction, Request, Response } from 'express';
-import { DataSource, In, Repository } from 'typeorm';
-import { config } from '../config';
-import { runInSite, type SiteContext } from './site-context';
+import { DataSource, In, LessThan, Repository } from 'typeorm';
+import { config, previewHost } from '../config';
+import { runInSite, siteOrigin, type SiteContext } from './site-context';
 import { type AdminLang, Site, SiteDomain, SslEvent, type SslStep, type SslStepState } from './site.entity';
 
 /** example.com, sub.example.co.uk, localhost, xn--mgbh0fb.xn--mgbaam7a8h (IDN in punycode). */
@@ -35,7 +35,43 @@ export function checkDomain(input: string): string {
   return d;
 }
 
+/** A preview's name in its address: /preview/<slug>. Lowercase letters, digits and dashes, 3 to 40 long. */
+export const PREVIEW_SLUG = /^[a-z0-9][a-z0-9-]{1,38}[a-z0-9]$/;
+/** Names that would read as part of the app rather than someone's site. */
+const RESERVED_SLUGS = new Set(['admin', 'api', 'uploads', 'preview', 'previews', 'www', 'mail', 'demo', 'test', 'new', 'nuxt']);
+/** The path a preview is served under on PREVIEW_URL. */
+export const previewPrefix = (slug: string) => `/preview/${slug}`;
+
+export function checkPreviewSlug(input: string): string {
+  const slug = String(input ?? '')
+    .trim()
+    .toLowerCase();
+  if (!PREVIEW_SLUG.test(slug) || slug.includes('--'))
+    throw new BadRequestException('The preview name may have 3 to 40 lowercase letters, digits and single dashes');
+  if (RESERVED_SLUGS.has(slug)) throw new BadRequestException(`"${slug}" cannot be used as a preview name`);
+  return slug;
+}
+
+/** Whether a preview's time is up. */
+export const previewExpired = (site: Pick<Site, 'preview' | 'expiresAt'>, now = Date.now()) =>
+  site.preview && !!site.expiresAt && site.expiresAt.getTime() <= now;
+
 export const toContext = (site: Site): SiteContext => {
+  if (site.preview) {
+    const url = config.previewUrl ? new URL(config.previewUrl) : null;
+    return {
+      id: site.id,
+      name: site.name,
+      adminLang: site.adminLang ?? '',
+      printDesigner: site.printDesigner ?? false,
+      // Previews have no addresses of their own: the domains agent never sees them, and nothing is cached for them.
+      primary: url?.hostname ?? '',
+      domains: [],
+      https: url?.protocol === 'https:',
+      prefix: previewPrefix(site.previewSlug ?? ''),
+      preview: { expiresAt: site.expiresAt?.toISOString() ?? null, expired: previewExpired(site) },
+    };
+  }
   const sorted = [...site.domains].sort((a, b) => Number(b.primary) - Number(a.primary) || a.createdAt.getTime() - b.createdAt.getTime());
   return {
     id: site.id,
@@ -45,6 +81,8 @@ export const toContext = (site: Site): SiteContext => {
     primary: sorted[0]?.domain ?? '',
     domains: sorted.map((d) => d.domain),
     https: site.ssl === 'active' || (!!config.siteUrl.startsWith('https://') && new URL(config.siteUrl).hostname === sorted[0]?.domain),
+    prefix: '',
+    preview: null,
   };
 };
 
@@ -53,6 +91,7 @@ export class SitesService {
   private readonly log = new Logger(SitesService.name);
   private cache = new Map<string, { site: SiteContext | null; at: number }>();
   private only: { site: SiteContext | null; at: number } | null = null;
+  private previews = new Map<string, { site: Site | null; at: number }>();
   /** What the domains agent last reported (kept in memory: it reports every few seconds). */
   agent: { lastSeen: string; serverIp: string; version: string; managedElsewhere: string[] } | null = null;
 
@@ -67,6 +106,7 @@ export class SitesService {
   forget() {
     this.cache.clear();
     this.only = null;
+    this.previews.clear();
   }
 
   /**
@@ -85,6 +125,8 @@ export class SitesService {
       site = toContext(await this.sites.findOneByOrFail({ id: row.siteId }));
     } else {
       site = await this.onlySite();
+      // A preview is never "the only site" for any address: it lives under its path only.
+      if (site?.prefix) site = null;
     }
     if (this.cache.size > 1000) this.cache.clear();
     this.cache.set(domain, { site, at: Date.now() });
@@ -98,20 +140,52 @@ export class SitesService {
     return this.only.site;
   }
 
+  /** The site (preview or converted) that has this preview name, if any. */
+  async findPreview(slug: string): Promise<Site | null> {
+    const hit = this.previews.get(slug);
+    if (hit && Date.now() - hit.at < CACHE_MS) return hit.site;
+    const site = PREVIEW_SLUG.test(slug) ? await this.sites.findOneBy({ previewSlug: slug }) : null;
+    if (this.previews.size > 1000) this.previews.clear();
+    this.previews.set(slug, { site, at: Date.now() });
+    return site;
+  }
+
+  /**
+   * The site for a request. Normally that is its address; on PREVIEW_URL's address, a request under
+   * /preview/<name> (nginx strips the path and sends it as X-Site-Prefix) is for that preview instead. The header
+   * means nothing on any other address, and nginx always overwrites it, so visitors cannot send their own.
+   */
+  async resolveRequest(host: string, prefix: string): Promise<SiteContext | null> {
+    if (!prefix) return this.resolve(host);
+    const slug = /^\/preview\/([a-z0-9-]+)$/.exec(prefix)?.[1];
+    if (!slug || !previewHost() || normalizeDomain(host) !== previewHost()) return null;
+    const site = await this.findPreview(slug);
+    // A converted preview answers too (with its new address), so old preview links can be sent on to it.
+    if (!site) return null;
+    const ctx = toContext(site);
+    return site.preview ? ctx : { ...ctx, prefix: previewPrefix(slug), movedTo: siteOrigin(ctx) };
+  }
+
   /** Express middleware: runs the request as its site's request, or answers 404 for an address with no site. */
   middleware() {
     return (req: Request, res: Response, next: NextFunction) => {
       // Health checks and the domains agent are not for any one site; uploads are served by file name.
       if (/^\/api\/(health|internal)(\/|$)|^\/uploads\//.test(req.path)) return next();
       const host = String(req.headers['x-forwarded-host'] ?? req.headers.host ?? '').split(',')[0];
-      this.resolve(host).then(
+      const prefix = String(req.headers['x-site-prefix'] ?? '').trim();
+      this.resolveRequest(host, prefix).then(
         (site) => {
           if (!site) {
             res.status(404).json({ statusCode: 404, message: 'No site at this address' });
             return;
           }
+          // A converted preview's old address: only its public settings answer (they say where it moved).
+          if (prefix && !site.preview && !/^\/api\/public\/settings$/.test(req.path)) {
+            res.status(404).json({ statusCode: 404, message: 'This preview has moved' });
+            return;
+          }
           const port = /:(\d+)$/.exec(host.trim())?.[1];
-          runInSite(port ? { ...site, port } : site, () => next());
+          runInSite(port && !site.prefix ? { ...site, port } : site, () => next());
         },
         (err) => next(err),
       );
@@ -262,6 +336,74 @@ export class SitesService {
     if (known && expires.getTime() > known) {
       await this.event(site.id, 'renewed', 'ok', `Certificate renewed; valid until ${expires.toISOString().slice(0, 10)}`);
     }
+  }
+
+  /** A new preview site, served at <PREVIEW_URL>/preview/<slug> until `days` from now. */
+  async createPreview(name: string, slug: string, days: number, prospect: string, adminLang: AdminLang = '') {
+    if (!config.previewUrl) throw new BadRequestException('Preview sites are off: set PREVIEW_URL (e.g. https://profiterol.ir)');
+    const previewSlug = checkPreviewSlug(slug);
+    if (await this.sites.existsBy({ previewSlug })) throw new ConflictException(`The preview name "${previewSlug}" is taken`);
+    const site = await this.sites.save(
+      this.sites.create({
+        name: name.trim().slice(0, 120) || previewSlug,
+        adminLang,
+        preview: true,
+        previewSlug,
+        expiresAt: new Date(Date.now() + days * 86_400_000),
+        prospect: prospect.slice(0, 2000),
+        domains: [],
+      }),
+    );
+    this.forget();
+    return this.get(site.id);
+  }
+
+  /** Moves the end of a preview: `days` more from its current end (or from now, once it has ended). */
+  async extendPreview(id: string, days: number) {
+    const site = await this.get(id);
+    if (!site.preview) throw new BadRequestException('This is not a preview site');
+    const from = Math.max(Date.now(), site.expiresAt?.getTime() ?? Date.now());
+    await this.sites.update(id, { expiresAt: new Date(from + days * 86_400_000) });
+    this.forget();
+    return this.get(id);
+  }
+
+  /** Sets when a preview ends; a time in the past ends it now. */
+  async setPreviewEnd(id: string, expiresAt: Date) {
+    const site = await this.get(id);
+    if (!site.preview) throw new BadRequestException('This is not a preview site');
+    await this.sites.update(id, { expiresAt });
+    this.forget();
+    return this.get(id);
+  }
+
+  async setProspect(id: string, prospect: string) {
+    await this.get(id);
+    await this.sites.update(id, { prospect: prospect.slice(0, 2000) });
+    return this.get(id);
+  }
+
+  /**
+   * The customer bought it: the preview becomes a normal site with its own addresses, keeping its content and
+   * accounts. The preview name stays reserved, so its old links redirect to the new address.
+   */
+  async convertPreview(id: string, primary: string, aliases: string[], ssl: boolean) {
+    const site = await this.get(id);
+    if (!site.preview) throw new BadRequestException('This is not a preview site');
+    const list = await this.checkDomains(primary, aliases, id);
+    await this.dataSource.transaction(async (m) => {
+      await m.save(list.map((domain, i) => m.create(SiteDomain, { siteId: id, domain, primary: i === 0 })));
+      await m.update(Site, id, { preview: false, expiresAt: null });
+    });
+    this.forget();
+    if (ssl) return this.requestSsl(id, 'The preview became a real site');
+    return this.get(id);
+  }
+
+  /** Previews that ended more than `graceDays` ago. */
+  async endedPreviews(graceDays: number) {
+    const before = new Date(Date.now() - graceDays * 86_400_000);
+    return this.sites.find({ where: { preview: true, expiresAt: LessThan(before) } });
   }
 
   async remove(id: string) {

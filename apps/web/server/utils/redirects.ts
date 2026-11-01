@@ -9,15 +9,15 @@ const MAX = 2000;
 const TTL = 5 * 60_000;
 let filledAt = Date.now();
 
-export async function findRedirect(host: string, path: string): Promise<{ to: string; status: number } | null> {
+export async function findRedirect(host: string, path: string, prefix = ''): Promise<{ to: string; status: number } | null> {
   if (Date.now() - filledAt > TTL) forgetRedirects();
-  const key = host + path;
+  const key = host + prefix + path;
   if (known.has(key)) return known.get(key)!;
   let found: { to: string; status: number } | null = null;
   try {
     found = await $fetch<{ to: string; status: number }>('/public/redirect', {
       baseURL: useRuntimeConfig().apiInternal,
-      headers: { 'x-forwarded-host': host },
+      headers: { 'x-forwarded-host': host, ...(prefix ? { 'x-site-prefix': prefix } : {}) },
       query: { path },
       timeout: 3000,
     });

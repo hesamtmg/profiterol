@@ -51,6 +51,25 @@ export class Site {
   @Column({ default: false })
   printDesigner: boolean;
 
+  /**
+   * A preview made for someone thinking of buying a site: served at <PREVIEW_URL>/preview/<previewSlug> instead of
+   * its own address, hidden from search engines, and offline once `expiresAt` has passed. Converting it to a real
+   * site gives it addresses and clears this (the slug is kept, so old preview links redirect to the new address).
+   */
+  @Column({ default: false })
+  preview: boolean;
+
+  @Index({ unique: true })
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  previewSlug: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  expiresAt: Date | null;
+
+  /** Who the preview is for, and the owner's notes. */
+  @Column({ type: 'text', default: '' })
+  prospect: string;
+
   @Column({ type: 'varchar', length: 16, default: 'off' })
   sslMode: SslMode;
 

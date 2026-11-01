@@ -47,7 +47,7 @@ const open = ref(false);
 
 function localeHref(code: string) {
   const alt = props.alternates?.find((a) => a.locale === code);
-  return alt?.slug ? `/${code}/${alt.slug}` : `/${code}`;
+  return withSiteBase(alt?.slug ? `/${code}/${alt.slug}` : `/${code}`);
 }
 
 const cta = computed(() => {
@@ -95,7 +95,7 @@ const nav = computed<HeaderNav>(() => ({
         isGlass ? 'glass text-white @3xl:py-4' : 'bg-[color-mix(in_srgb,var(--c-surface)_92%,transparent)] text-ink shadow-sm backdrop-blur'
       "
     >
-      <a :href="`/${locale}`" class="flex items-center gap-3">
+      <a :href="withSiteBase(`/${locale}`)" class="flex items-center gap-3">
         <img v-if="logo" :src="logo" :alt="siteName" class="h-9 w-auto" :style="isGlass ? 'filter: brightness(0) invert(1)' : ''" />
         <span class="text-lg font-black tracking-tight">{{ siteName }}</span>
       </a>

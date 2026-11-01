@@ -28,6 +28,11 @@ interface SiteRow {
   sslRetryAt: string | null;
   createdAt: string;
   current: boolean;
+  preview: boolean;
+  previewSlug: string | null;
+  expiresAt: string | null;
+  expired: boolean;
+  prospect: string;
 }
 
 interface SslEvent {
@@ -49,6 +54,8 @@ interface Overview {
   sites: SiteRow[];
   agent: { lastSeen: string; serverIp: string; version: string; managedElsewhere: string[] } | null;
   owners: { id: string; email: string; name: string; lastLoginAt: string | null }[];
+  previewUrl: string;
+  previewGraceDays: number;
 }
 
 const api = useApi();
@@ -107,6 +114,9 @@ function here(url: string) {
   u.port = location.port;
   return u.href.replace(/\/$/, '');
 }
+// Preview sites have their own section; the list below is the real sites.
+const liveSites = computed(() => data.value?.sites.filter((s) => !s.preview) ?? []);
+const previewSites = computed(() => data.value?.sites.filter((s) => s.preview) ?? []);
 const agentOnline = computed(() => !!data.value?.agent && Date.now() - new Date(data.value.agent.lastSeen).getTime() < 2 * 60_000);
 const working = computed(() => data.value?.sites.some((s) => s.ssl === 'queued' || s.ssl === 'running') ?? false);
 
@@ -403,7 +413,7 @@ onBeforeUnmount(() => clearInterval(timer));
     <div v-if="!data" class="mt-8 h-40 animate-pulse rounded-[2rem] bg-white" />
     <div v-else class="mt-8 space-y-4">
       <article
-        v-for="s in data.sites"
+        v-for="s in liveSites"
         :key="s.id"
         class="rounded-[2rem] bg-white p-6 shadow-sm"
         :data-site="s.primary"
@@ -592,6 +602,15 @@ onBeforeUnmount(() => clearInterval(timer));
         </div>
       </article>
     </div>
+
+    <AdminPreviewSites
+      v-if="data"
+      :previews="previewSites"
+      :preview-url="data.previewUrl"
+      :grace-days="data.previewGraceDays"
+      :server-ip="data.agent?.serverIp"
+      @changed="refresh"
+    />
 
     <section v-if="data" class="mt-10 rounded-[2rem] bg-white p-7 shadow-sm">
       <div class="flex flex-wrap items-center justify-between gap-3">

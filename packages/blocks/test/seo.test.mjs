@@ -106,4 +106,9 @@ test('public links use the main address, with the port the visitor used on it', 
   assert.equal(publicOrigin('http://localhost', new URL('http://localhost:8080/en')), 'http://localhost:8080');
   assert.equal(publicOrigin('https://a.com', new URL('https://www.a.com/en')), 'https://a.com', 'aliases link to the main address');
   assert.equal(publicOrigin('', new URL('https://b.com:4443/en')), 'https://b.com:4443');
+  assert.equal(
+    publicOrigin('https://p.ir/preview/ali-shop', new URL('https://p.ir/fa')),
+    'https://p.ir/preview/ali-shop',
+    'a preview site keeps its path',
+  );
 });

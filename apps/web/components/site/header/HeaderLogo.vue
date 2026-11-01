@@ -6,7 +6,7 @@ defineProps<{ nav: HeaderNav; withName?: boolean; textClass?: string; imageClass
 </script>
 
 <template>
-  <a :href="`/${nav.locale}`" class="flex shrink-0 items-center gap-3">
+  <a :href="withSiteBase(`/${nav.locale}`)" class="flex shrink-0 items-center gap-3">
     <img
       v-if="nav.logo"
       :src="nav.logo"

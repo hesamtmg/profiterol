@@ -15,6 +15,9 @@ export interface AuthUser {
   ver?: number;
 }
 
+/** Why the accounts of an ended preview cannot sign in. */
+export const PREVIEW_ENDED = 'This preview has ended. Contact us to keep your site.';
+
 export const ROLES_KEY = 'roles';
 /** Restricts a route to the given roles. Without it, any signed-in user may call the route. Owners pass 'admin' too. */
 export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
@@ -47,6 +50,8 @@ export class AuthGuard implements CanActivate {
     if (!user || !user.active || (claims.ver ?? 0) !== user.tokenVersion) throw new UnauthorizedException();
     // A site's accounts only work on that site; owners work on every site.
     if (user.siteId !== null && user.siteId !== maybeSite()?.id) throw new UnauthorizedException();
+    // An ended preview stays open to the owners only (to extend, convert or look at it).
+    if (user.role !== 'owner' && maybeSite()?.preview?.expired) throw new ForbiddenException(PREVIEW_ENDED);
     // The role comes from the database, not the token, so a role change also applies at once.
     req.user = { sub: user.id, email: user.email, role: user.role, ver: user.tokenVersion };
 

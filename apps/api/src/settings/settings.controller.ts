@@ -53,6 +53,7 @@ import { DataSource, Repository } from 'typeorm';
 import { liveCustomDefs } from '../custom-blocks/live-defs';
 import { AuthGuard, type AuthUser, Roles } from '../auth/auth.guard';
 import { SafeUrl } from '../common/safe-url';
+import { config, previewHost } from '../config';
 import { currentSite, currentSiteId, siteOrigin } from '../sites/site-context';
 import { Localized, SavedSection, SiteSettings } from './settings.entity';
 
@@ -199,7 +200,20 @@ export class SettingsController {
   async get() {
     const { notifyEmail: _private, sections: _editorOnly, siteId: _id, ...rest } = await this.settings.get();
     const site = currentSite();
-    return { ...rest, origin: siteOrigin(site), domains: site.domains, adminLang: site.adminLang, printDesigner: site.printDesigner };
+    return {
+      ...rest,
+      // A preview is never indexed: it is someone's trial, on our address. Not stored, so a converted site is.
+      seo: site.preview ? { ...rest.seo, hideSite: true } : rest.seo,
+      origin: siteOrigin(site),
+      domains: site.domains,
+      adminLang: site.adminLang,
+      printDesigner: site.printDesigner,
+      preview: site.preview && { ...site.preview, home: config.previewUrl },
+      // The site whose address hosts the previews (its robots.txt keeps search engines out of /preview/).
+      ...(!site.prefix && site.primary && site.primary === previewHost() ? { previewHome: config.previewUrl } : {}),
+      // The old preview address of a site that has been bought: the renderer sends visitors to the new one.
+      ...(site.movedTo ? { movedTo: site.movedTo } : {}),
+    };
   }
 
   @Get('admin/settings')

@@ -1,5 +1,6 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { CookieOptions, Request, Response } from 'express';
+import { maybeSite } from '../sites/site-context';
 
 /**
  * The admin signs in with a session cookie that page scripts cannot read (httpOnly), so a script injected into the
@@ -16,8 +17,14 @@ export const SESSION_DAYS = 7;
 
 const isHttps = (req: Request) => req.secure;
 
+/**
+ * A preview site shares its address with another site (it is a path on PREVIEW_URL), so its cookies are kept to
+ * that path. Browsers send the cookie with the longer path first and the first one is read, so someone signed in
+ * to the preview uses that session there, and the session on the main site is left alone.
+ */
 function options(req: Request, httpOnly: boolean): CookieOptions {
-  return { httpOnly, secure: isHttps(req), sameSite: 'lax', path: '/', maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000 };
+  const path = maybeSite()?.prefix || '/';
+  return { httpOnly, secure: isHttps(req), sameSite: 'lax', path, maxAge: SESSION_DAYS * 24 * 60 * 60 * 1000 };
 }
 
 export function setSession(req: Request, res: Response, token: string) {

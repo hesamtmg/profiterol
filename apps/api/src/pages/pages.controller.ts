@@ -1,10 +1,8 @@
 import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
-import { blocks, getSiteTemplate, locales, pageTemplates, siteTemplates, siteTemplateTheme, withCommonFields } from '@profiterol/blocks';
-import { NotFoundException } from '@nestjs/common';
+import { blocks, locales, pageTemplates, siteTemplates, withCommonFields } from '@profiterol/blocks';
 import { Roles } from '../auth/auth.guard';
 import { MediaService } from '../media/media.module';
 import { CustomBlocksService, moduleUrl } from '../custom-blocks/custom-blocks.service';
-import { SettingsService } from '../settings/settings.controller';
 import { AuthGuard, type AuthUser } from '../auth/auth.guard';
 
 type Authed = { user: AuthUser };
@@ -139,10 +137,7 @@ export class AdminPagesController {
 @UseGuards(AuthGuard)
 @Roles('admin')
 export class SiteTemplatesController {
-  constructor(
-    private readonly pages: PagesService,
-    private readonly settings: SettingsService,
-  ) {}
+  constructor(private readonly pages: PagesService) {}
 
   @Get()
   list() {
@@ -162,21 +157,7 @@ export class SiteTemplatesController {
   @Post(':key/apply')
   @HttpCode(200)
   async apply(@Param('key') key: string, @Req() req: Authed) {
-    const template = getSiteTemplate(key);
-    if (!template) throw new NotFoundException('Template not found');
-    const created: { id: string; name: string; slug: string }[] = [];
-    for (const p of template.pages) {
-      const page = await this.pages.create({ name: p.name.en, template: p.template, slug: p.slug, titles: p.name });
-      created.push({ id: page.id, name: page.name, slug: page.translations.find((t) => t.locale === 'en')?.slug ?? p.slug });
-    }
-    const current = await this.settings.get();
-    const menu = [...current.menu];
-    // The first page is the home page; the others go in the menu.
-    template.pages.slice(1).forEach((p, i) => {
-      const href = created[i + 1].slug;
-      if (!menu.some((m) => m.href === href)) menu.push({ label: { ...p.name }, href });
-    });
-    await this.settings.update({ theme: siteTemplateTheme(key) ?? current.theme, menu });
+    const created = await this.pages.applySiteTemplate(key);
     return { pages: created, author: req.user.email };
   }
 }

@@ -23,6 +23,7 @@ const SUITES = [
   'import',
   'business',
   'sites',
+  'previews',
   'custom-blocks',
   'custom-css',
   'custom-html',
