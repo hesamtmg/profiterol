@@ -73,7 +73,15 @@ export class PreviewsService implements OnApplicationBootstrap, OnApplicationShu
   async create(dto: CreatePreviewDto, hostId: string | null, author: string) {
     const template = dto.template ?? 'demo';
     if (!['demo', 'blank'].includes(template) && !getSiteTemplate(template)) throw new BadRequestException('Template not found');
-    const site = await this.sites.createPreview(dto.name, dto.slug, dto.days ?? 14, dto.prospect ?? '', dto.adminLang ?? '', hostId);
+    const site = await this.sites.createPreview(
+      dto.name,
+      dto.slug,
+      dto.days ?? 14,
+      dto.prospect ?? '',
+      dto.adminLang ?? '',
+      hostId,
+      dto.printDesigner ?? false,
+    );
     let invite: { email: string; link: string; emailed: boolean } | null = null;
     try {
       await runInSite(toContext(site), async () => {

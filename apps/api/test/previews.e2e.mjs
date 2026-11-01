@@ -108,6 +108,27 @@ describe('preview sites', () => {
     if (agent.status === 200) assert.ok(!agent.body.some((s) => s.id === ids.preview), 'the domains agent never sees previews');
   });
 
+  test('the owner can allow the textile designer on a preview, when making it or later', async () => {
+    assert.equal((await preview('GET', '/public/settings', { token: '' })).body.printDesigner, false, 'off unless asked for');
+    const on = await call('PATCH', `/admin/sites/${ids.preview}`, { body: { printDesigner: true } });
+    assert.equal(on.status, 200, JSON.stringify(on.body));
+    assert.equal(on.body.printDesigner, true);
+    assert.equal((await preview('GET', '/public/settings', { token: '' })).body.printDesigner, true);
+    await call('PATCH', `/admin/sites/${ids.preview}`, { body: { printDesigner: false } });
+    assert.equal((await preview('GET', '/public/settings', { token: '' })).body.printDesigner, false);
+
+    const made = await call('POST', '/admin/sites/previews', {
+      body: { name: 'Tees', slug: `${SLUG}-d`, template: 'blank', printDesigner: true },
+    });
+    assert.equal(made.status, 201, JSON.stringify(made.body));
+    assert.equal(made.body.site.printDesigner, true);
+    assert.equal(
+      (await call('GET', '/public/settings', { host: PREVIEW_HOST, prefix: `${PREFIX}-d`, token: '' })).body.printDesigner,
+      true,
+    );
+    assert.equal((await call('DELETE', `/admin/sites/${made.body.site.id}`, { body: { confirm: `${SLUG}-d` } })).status, 204);
+  });
+
   test('the prospect signs in to the preview’s admin; the cookies stay under its path', async () => {
     assert.equal(
       (await preview('POST', '/auth/reset', { token: '', body: { token: ids.invite, password: 'prospect-pass-1' } })).status,

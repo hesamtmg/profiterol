@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsEmail, IsIn, IsInt, IsISO8601, IsOptional, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsInt, IsISO8601, IsOptional, IsString, Max, MaxLength, Min, ValidateIf } from 'class-validator';
 import { SITE_LOCALES } from '../settings/settings.controller';
 import { ADMIN_LANGS, type AdminLang } from './site.entity';
 
@@ -48,6 +48,11 @@ export class CreatePreviewDto {
   @IsOptional()
   @IsIn(SITE_LOCALES)
   defaultLocale?: string;
+
+  /** Allow the sublimation (textile) designer block and Print orders on the preview. Owners only. */
+  @IsOptional()
+  @IsBoolean()
+  printDesigner?: boolean;
 }
 
 export class UpdatePreviewDto {
