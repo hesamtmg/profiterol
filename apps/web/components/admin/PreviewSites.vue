@@ -399,8 +399,8 @@ onMounted(async () => {
               $t('At your domain registrar, point an A record for {domain} to this server', {
                 domain: cleanDomain(converting[p.id]!.domain) || 'alishop.com',
               })
-            }}
-            <code v-if="serverIp" class="rounded bg-white px-1.5 py-0.5 font-mono" dir="ltr">{{ serverIp }}</code
+            }}<template v-if="serverIp">
+              <code class="rounded bg-white px-1.5 py-0.5 font-mono" dir="ltr">{{ serverIp }}</code></template
             >.
           </p>
           <button type="submit" class="btn-dark mt-3" :disabled="busy || !cleanDomain(converting[p.id]!.domain)">
