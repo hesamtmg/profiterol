@@ -17,8 +17,9 @@ const nav = [
   { to: '/admin/sites', label: 'Sites', icon: 'mdi-web', owner: true },
 ];
 const { isAdmin, isOwner, printDesigner, canManageSeo } = useAuth();
-// Preview sites: on the sites the owner allows it on (Admin → Sites).
-const hostsPreviews = computed(() => !!user.value?.site?.hostsPreviews);
+// Preview sites: always in a site admin's menu (the page says how to get it when the owner has not allowed it yet);
+// owners make theirs in Admin → Sites, so they see it only where it is allowed. Never inside a preview itself.
+const showPreviews = computed(() => !user.value?.site?.preview && (user.value?.role === 'admin' || !!user.value?.site?.hostsPreviews));
 const visibleNav = computed(() =>
   nav.filter(
     (item) =>
@@ -26,7 +27,7 @@ const visibleNav = computed(() =>
       (!item.owner || isOwner.value) &&
       (!item.printDesigner || printDesigner.value) &&
       (!item.seo || canManageSeo.value) &&
-      (!item.previews || hostsPreviews.value),
+      (!item.previews || showPreviews.value),
   ),
 );
 
