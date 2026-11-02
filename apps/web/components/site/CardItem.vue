@@ -70,7 +70,10 @@ const formattedDate = computed(() => {
           <span v-if="formattedDate" class="text-muted">{{ formattedDate }}</span>
         </div>
         <h3 class="text-lg font-black"><EditableText :value="title" :path="titlePath" /></h3>
-        <p v-if="text || (textPath && editing)" class="mt-2 line-clamp-3 text-sm font-extralight leading-relaxed text-muted">
+        <p
+          v-if="text || (textPath && editing)"
+          class="mt-2 line-clamp-3 whitespace-pre-line text-sm font-extralight leading-relaxed text-muted"
+        >
           <EditableText :value="text" :path="textPath" multiline />
         </p>
       </div>
@@ -87,7 +90,7 @@ const formattedDate = computed(() => {
         {{ String(index + 1).padStart(2, '0') }}
       </div>
       <h3 class="mt-5 text-lg font-black @3xl:text-xl"><EditableText :value="title" :path="titlePath" /></h3>
-      <p v-if="text || (textPath && editing)" class="mt-2 text-sm font-extralight leading-relaxed text-muted">
+      <p v-if="text || (textPath && editing)" class="mt-2 whitespace-pre-line text-sm font-extralight leading-relaxed text-muted">
         <EditableText :value="text" :path="textPath" multiline />
       </p>
       <span v-if="href && variant === 'raised'" class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
