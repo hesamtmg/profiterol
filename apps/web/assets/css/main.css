@@ -31,6 +31,18 @@
     font-family: var(--font-fa), var(--font-en), system-ui, sans-serif;
   }
 
+  /* Letter spacing pulls Persian letters apart (they stop joining), so the small spaced-out labels of the blocks
+     (eyebrows, steps, captions) keep normal spacing in Persian. :lang follows the nearest lang attribute, so an
+     English page on the editor's canvas keeps its spacing in the Persian admin. It outranks a tracking class. */
+  [class*='tracking-']:lang(fa) {
+    letter-spacing: normal;
+  }
+
+  /* Monospace fonts have no Persian letters, and the fallback leaves them unjoined: Persian labels use the page font. */
+  .font-mono:lang(fa) {
+    font-family: inherit;
+  }
+
   .admin-ui {
     font-family: 'Inter Variable', 'Vazirmatn Variable', system-ui, sans-serif;
   }

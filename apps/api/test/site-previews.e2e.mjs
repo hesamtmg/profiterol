@@ -166,6 +166,30 @@ describe('previews made by a site', () => {
     assert.equal(owned.status, 200, 'the owner is not held to the limit');
   });
 
+  test('only the owner allows the textile designer on a preview; the site’s admin sees it', async () => {
+    assert.equal(
+      (await agency('POST', '/admin/previews', { body: { name: 'Tees', slug: `${CAFE}-t`, template: 'blank', printDesigner: true } }))
+        .status,
+      403,
+      'not when the site’s admin makes one',
+    );
+    assert.equal((await agency('PATCH', `/admin/sites/${ids.cafe}`, { body: { printDesigner: true } })).status, 403, 'nor later');
+    const prefix = `/preview/${CAFE}`;
+    const designer = async () => (await call('GET', '/public/settings', { host: AGENCY, prefix, token: '' })).body.printDesigner;
+    const listed = async () => (await agency('GET', '/admin/previews')).body.previews.find((p) => p.id === ids.cafe).printDesigner;
+    assert.equal(await designer(), false, 'off by default');
+    assert.equal(await listed(), false);
+
+    const on = await call('PATCH', `/admin/sites/${ids.cafe}`, { body: { printDesigner: true } });
+    assert.equal(on.status, 200, JSON.stringify(on.body));
+    assert.equal(on.body.printDesigner, true);
+    assert.equal(await designer(), true, 'the preview gets the designer');
+    assert.equal(await listed(), true, 'and its maker sees it is on');
+
+    assert.equal((await call('PATCH', `/admin/sites/${ids.cafe}`, { body: { printDesigner: false } })).body.printDesigner, false);
+    assert.equal(await designer(), false);
+  });
+
   test('anyone can be sent the preview’s admin panel, but never an owner’s account', async () => {
     const refused = await agency('POST', `/admin/previews/${ids.cafe}/invite`, { body: { email: ADMIN.email } });
     assert.equal(refused.status, 409, 'an owner’s email gets no password link');

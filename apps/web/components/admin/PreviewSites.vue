@@ -7,6 +7,9 @@
  *   Owners set no limits on themselves, sign in to any preview, and turn bought ones into real sites.
  * - mode "site" (Admin → Preview sites): a site the owner allows it on. Its admins make previews under the site's
  *   own address, within the owner's limits, see only theirs, and ask the owners to move a bought one.
+ *
+ * Only the owners allow the textile (sublimation) designer on a preview, when making it or later; a site's admins
+ * see whether it is on.
  */
 import { locales } from '@profiterol/blocks';
 
@@ -24,6 +27,8 @@ export interface PreviewRow {
   /** Owner view: the site whose admins made it (null: an owner's own). */
   previewHostId?: string | null;
   previewHostName?: string | null;
+  /** The textile designer block and Print orders are allowed on it (only the owners change this). */
+  printDesigner?: boolean;
 }
 
 const props = defineProps<{
@@ -58,6 +63,7 @@ const form = reactive({
   adminEmail: '',
   adminLang: lang.value as '' | 'en' | 'fa',
   defaultLocale: '',
+  printDesigner: false,
 });
 watch(
   maxDays,
@@ -133,10 +139,11 @@ const create = () =>
         prospect: form.prospect,
         adminLang: form.adminLang,
         defaultLocale: form.defaultLocale,
+        ...(owner.value ? { printDesigner: form.printDesigner } : {}),
         ...(form.adminEmail ? { adminEmail: form.adminEmail } : {}),
       },
     });
-    Object.assign(form, { name: '', slug: '', slugTouched: false, prospect: '', adminEmail: '' });
+    Object.assign(form, { name: '', slug: '', slugTouched: false, prospect: '', adminEmail: '', printDesigner: false });
     showAdd.value = false;
     emit('changed');
   });
@@ -158,6 +165,13 @@ const saveNotes = (p: PreviewRow) =>
   run(async () => {
     await api(paths.update(p), { method: 'PATCH', body: { prospect: notes[p.id] ?? '' } });
     notes[p.id] = undefined;
+    emit('changed');
+  });
+
+/** Owners: allow or stop the textile designer block and Print orders on the preview. */
+const toggleDesigner = (p: PreviewRow) =>
+  run(async () => {
+    await api(`/admin/sites/${p.id}`, { method: 'PATCH', body: { printDesigner: !p.printDesigner } });
     emit('changed');
   });
 
@@ -342,6 +356,10 @@ onMounted(async () => {
             <option value="">{{ $t('Each visitor’s browser language') }}</option>
           </select>
         </div>
+        <label v-if="owner" class="flex items-center gap-2 text-sm md:col-span-2">
+          <input v-model="form.printDesigner" type="checkbox" class="h-4 w-4 rounded" data-testid="preview-print-designer" />
+          {{ $t('Allow the sublimation designer and Print orders') }}
+        </label>
         <div class="md:col-span-2">
           <label class="field-label" for="preview-notes">{{ $t('Notes (only you see them)') }}</label>
           <textarea
@@ -408,6 +426,13 @@ onMounted(async () => {
                 data-testid="preview-host"
               >
                 {{ $t('by {site}', { site: p.previewHostName }) }}
+              </span>
+              <span
+                v-if="p.printDesigner"
+                class="rounded-full bg-fuchsia-100 px-2 py-0.5 text-[11px] font-semibold text-fuchsia-800"
+                data-testid="preview-designer-on"
+              >
+                <i class="mdi mdi-tshirt-crew-outline" /> {{ $t('Textile designer') }}
               </span>
             </h3>
             <a
@@ -483,6 +508,19 @@ onMounted(async () => {
           </button>
           <button type="button" class="btn-light" @click="notes[p.id] = p.prospect">
             <i class="mdi mdi-note-edit-outline" /> {{ $t('Notes') }}
+          </button>
+          <button
+            v-if="owner"
+            type="button"
+            class="btn-light"
+            :class="p.printDesigner ? 'text-fuchsia-700' : ''"
+            :disabled="busy"
+            :aria-pressed="!!p.printDesigner"
+            data-testid="toggle-print-designer"
+            @click="toggleDesigner(p)"
+          >
+            <i class="mdi mdi-tshirt-crew-outline" />
+            {{ p.printDesigner ? $t('Turn off the textile designer') : $t('Allow the textile designer') }}
           </button>
           <button type="button" class="btn-light text-emerald-700" data-testid="convert-preview" @click="toggleBought(p)">
             <i class="mdi mdi-check-decagram-outline" /> {{ $t('They bought it') }}
