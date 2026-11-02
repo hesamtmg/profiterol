@@ -1,7 +1,8 @@
 /**
  * Builds the FikkoPrint site (fikkoprint.com) in Persian and English: a printing company that does sublimation
- * printing only — mugs, polyester clothing, phone cases, cushions, metal photo panels and more — with generated
- * placeholder pictures of the products and the process, and a News collection of real sublimation stories.
+ * printing only — mugs, polyester clothing, phone cases, cushions, metal photo panels and more — with real, freely
+ * licensed photos from Wikimedia Commons (see fikkoprint-photos.mjs; each is credited on a "Photo credits" page) and a
+ * News collection of real sublimation stories. Pictures it cannot fetch are drawn instead (all of them with --photos=drawn).
  * Two looks: the warm workshop look of whitecotton.pt in the Atelier blocks (the default, see fikkoprint-atelier.mjs),
  * or a page made mostly of animated blocks (--look=animated).
  * It only talks to the admin API, so it works against a local site or a live one.
@@ -9,20 +10,27 @@
  *   node scripts/seed-fikkoprint.mjs           a separate page at /fa/چاپ-سابلیمیشن and /en/sublimation-printing (safe)
  *   node scripts/seed-fikkoprint.mjs --home    replaces the home page, and sets the site name, logo, menu and colors
  *   add --look=animated                         for the animated page instead of the Atelier one
+ *   PREVIEW=fikkoprint node scripts/seed-fikkoprint.mjs
+ *                                              a preview site at <PREVIEW_URL>/preview/fikkoprint (made if needed, as the
+ *                                              owner; PREVIEW_DAYS long, default 30), filled as with --home
  *
  * Settings: API_URL (default http://localhost:8080/api), ADMIN_EMAIL, ADMIN_PASSWORD, and SITE (the site's address)
  * when the installation has several sites, e.g. SITE=fikkoprint.com.
- * Running it again updates the same page; the pictures are uploaded again each time.
+ * Running it again updates the same pages; drawn pictures are uploaded again each time, the photos only once.
  * On the server, see the "FikkoPrint content" section of DEPLOY.md.
  */
 import { createRequire } from 'node:module';
 import { atelierContent } from './fikkoprint-atelier.mjs';
+import { COMMONS_PHOTOS, creditBlocks, fetchCommonsPhotos } from './fikkoprint-photos.mjs';
 
-const API = (process.env.API_URL ?? 'http://localhost:8080/api').replace(/\/$/, '');
+let API = (process.env.API_URL ?? 'http://localhost:8080/api').replace(/\/$/, '');
 // With several sites, the one to fill: its address, e.g. SITE=fikkoprint.com (sent as X-Forwarded-Host).
 const SITE = process.env.SITE ? { 'x-forwarded-host': process.env.SITE } : {};
 const ADMIN = { email: process.env.ADMIN_EMAIL ?? 'admin@example.com', password: process.env.ADMIN_PASSWORD ?? 'admin12345' };
-const HOME = process.argv.includes('--home');
+// A preview site to fill instead (its name in /preview/<name>); it gets the home page, like --home.
+const PREVIEW = (process.env.PREVIEW ?? '').trim().toLowerCase();
+const HOME = process.argv.includes('--home') || Boolean(PREVIEW);
+const PHOTOS = !process.argv.includes('--photos=drawn');
 const LOOK = process.argv.includes('--look=animated') ? 'animated' : 'atelier';
 
 /** sharp comes with the API: next to this file in the repository, or in /app inside the API image. */
@@ -39,13 +47,16 @@ function loadSharp() {
 const sharp = loadSharp();
 
 // ---------- API ----------
-const login = await fetch(`${API}/auth/login`, {
-  method: 'POST',
-  headers: { 'content-type': 'application/json', ...SITE },
-  body: JSON.stringify(ADMIN),
-});
-if (!login.ok) throw new Error(`login failed (${login.status}): check API_URL, ADMIN_EMAIL and ADMIN_PASSWORD`);
-const token = (await login.json()).token;
+async function signIn() {
+  const res = await fetch(`${API}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', ...SITE },
+    body: JSON.stringify(ADMIN),
+  });
+  if (!res.ok) throw new Error(`login failed at ${API} (${res.status}): check API_URL, ADMIN_EMAIL and ADMIN_PASSWORD`);
+  return (await res.json()).token;
+}
+let token = await signIn();
 
 async function api(method, path, body) {
   const res = await fetch(API + path, {
@@ -58,12 +69,50 @@ async function api(method, path, body) {
   return text ? JSON.parse(text) : null;
 }
 
-async function upload(bytes, name, type) {
+/** Uploads a file to the media library and returns its record (`id`, `url`…). */
+async function uploadMedia(bytes, name, type) {
   const fd = new FormData();
   fd.append('file', new Blob([bytes], { type }), name);
   const res = await fetch(`${API}/admin/media`, { method: 'POST', headers: { authorization: `Bearer ${token}`, ...SITE }, body: fd });
   if (!res.ok) throw new Error(`upload ${name}: ${res.status} ${await res.text()}`);
-  return (await res.json()).url;
+  return res.json();
+}
+const upload = async (bytes, name, type) => (await uploadMedia(bytes, name, type)).url;
+
+// ---------- Preview site: made by the owner if needed; everything below then goes to it ----------
+if (PREVIEW) {
+  const { sites, previewUrl } = await api('GET', '/admin/sites');
+  if (!previewUrl) throw new Error('This server has no PREVIEW_URL, so it cannot hold preview sites (see DEPLOY.md, "Preview sites")');
+  let preview = sites.find((x) => x.previewSlug === PREVIEW);
+  if (!preview) {
+    ({ site: preview } = await api('POST', '/admin/sites/previews', {
+      name: 'FikkoPrint',
+      slug: PREVIEW,
+      template: 'blank',
+      days: Number(process.env.PREVIEW_DAYS ?? 30),
+      prospect: 'FikkoPrint (fikkoprint.com): a sublimation-only print studio. Filled by scripts/seed-fikkoprint.mjs.',
+    }));
+    console.log(`Made the preview site /preview/${PREVIEW}`);
+  }
+  // A preview is served under its path on PREVIEW_URL; nginx (or e2e/proxy.mjs) passes that path on to the API.
+  // PREVIEW_API overrides the address, e.g. to reach that host from inside the server.
+  API = (process.env.PREVIEW_API ?? `${previewUrl}/preview/${PREVIEW}/api`).replace(/\/$/, '');
+  token = await signIn();
+}
+
+// ---------- Real photos from Wikimedia Commons ----------
+let photos = { url: {}, credits: [] };
+if (PHOTOS) {
+  try {
+    photos = await fetchCommonsPhotos({
+      upload: uploadMedia,
+      setMedia: (id, changes) => api('PATCH', `/admin/media/${id}`, changes),
+      listFolder: (folder) => api('GET', `/admin/media?folder=${encodeURIComponent(folder)}`),
+    });
+    console.log(`Photos from Wikimedia Commons: ${photos.credits.length} of ${Object.keys(COMMONS_PHOTOS).length}`);
+  } catch (err) {
+    console.warn(`Wikimedia Commons could not be reached (${err.message}); the pictures are drawn instead.`);
+  }
 }
 
 // ---------- Illustrations: a printed design, the products wearing it, and the steps of the process ----------
@@ -275,6 +324,8 @@ function newsCover({ wide, palette, seed, bg }) {
 
 const NEWS = [
   {
+    // The cover is a general photo of the trade, not of the machine in the story.
+    photo: 'wideFormat',
     slug: { en: 'mimaki-ts330-1800-wide-sublimation-printer', fa: 'میماکی-ts330-1800' },
     date: { en: '7 January 2026', fa: '۱۷ دی ۱۴۰۴' },
     source: 'Mimaki',
@@ -293,6 +344,8 @@ const NEWS = [
     },
   },
   {
+    // The cover is a general photo of the trade, not of the machine in the story.
+    photo: 'fabricMachine',
     slug: { en: 'epson-surecolor-sc-f20000-industrial-dye-sub', fa: 'اپسون-sc-f20000' },
     date: { en: '7 May 2026', fa: '۱۷ اردیبهشت ۱۴۰۵' },
     source: 'Signlink',
@@ -311,6 +364,8 @@ const NEWS = [
     },
   },
   {
+    // The cover is a general photo of the trade, not of the machine in the story.
+    photo: 'fabricPrinter',
     slug: { en: 'mimaki-ts330-1800-wins-edp-award-2026', fa: 'جایزه-edp-میماکی' },
     date: { en: '9 June 2026', fa: '۱۹ خرداد ۱۴۰۵' },
     source: 'Mimaki',
@@ -330,6 +385,8 @@ const NEWS = [
     },
   },
   {
+    // The cover is a general photo of the trade, not of the machine in the story.
+    photo: 'inkPanels',
     slug: { en: 'epson-sc-f300-a3-desktop-sublimation', fa: 'اپسون-sc-f300' },
     date: { en: '17 September 2026', fa: '۲۶ شهریور ۱۴۰۵' },
     source: 'Eye on Display',
@@ -348,6 +405,8 @@ const NEWS = [
     },
   },
   {
+    // The cover is a general photo of the trade, not of the machine in the story.
+    photo: 'tshirt',
     slug: { en: 'epson-surecolor-f370-and-cotton-primer', fa: 'اپسون-f370-پرایمر-پنبه' },
     date: { en: '23 September 2026', fa: '۱ مهر ۱۴۰۵' },
     source: 'Engineering.com',
@@ -367,7 +426,7 @@ const NEWS = [
   },
 ];
 const newsCovers = [];
-for (const [i, n] of NEWS.entries()) newsCovers.push(await up(newsCover(n.cover), `news-${i + 1}.jpg`));
+for (const [i, n] of NEWS.entries()) newsCovers.push(photos.url[n.photo] ?? (await up(newsCover(n.cover), `news-${i + 1}.jpg`)));
 
 // ---------- Content ----------
 const t = (en, fa) => (l) => (l === 'en' ? en : fa);
@@ -1003,7 +1062,8 @@ const blocks = (l) => [
 ];
 
 // ---------- Save ----------
-const atelier = LOOK === 'atelier' ? await atelierContent({ sharp, up, product, step }) : null;
+const atelier =
+  LOOK === 'atelier' ? await atelierContent({ sharp, up, product, photos: photos.url, credits: photos.credits.length > 0 }) : null;
 const animatedTheme = {
   primary: '#e6007e',
   secondary: '#00a0e9',
@@ -1069,8 +1129,14 @@ let page;
 let slugs;
 
 if (HOME) {
-  page = pages.find((p) => p.isHome);
-  slugs = Object.fromEntries(LOCALES.map((l) => [l, page.translations.find((x) => x.locale === l)?.slug ?? '']));
+  // A new (blank) preview has no pages yet.
+  const existingHome = pages.find((p) => p.isHome);
+  page = existingHome ?? (await api('POST', '/admin/pages', { name: 'Home', isHome: true }));
+  const homeSlug = { en: 'home', fa: 'خانه' };
+  // An existing home page keeps its addresses; a new one gets home / خانه.
+  slugs = existingHome
+    ? Object.fromEntries(LOCALES.map((l) => [l, existingHome.translations.find((x) => x.locale === l)?.slug || homeSlug[l]]))
+    : homeSlug;
   const settings = await api('GET', '/admin/settings');
   await api('PUT', '/admin/settings', {
     siteName: { fa: 'فیکوپرینت', en: 'FikkoPrint' },
@@ -1114,3 +1180,22 @@ await api('PATCH', `/admin/pages/${page.id}`, {
 });
 await api('POST', `/admin/pages/${page.id}/publish`);
 console.log(`Published: ${LOCALES.map((l) => `/${l}/${slugs[l]}`).join('  ')}`);
+
+// Where every photo comes from: its author, license, Commons page and original file.
+if (photos.credits.length) {
+  const NAME = 'FikkoPrint photo credits';
+  const credits = pages.find((p) => p.name === NAME) ?? (await api('POST', '/admin/pages', { name: NAME }));
+  const creditSlugs = { en: 'photo-credits', fa: 'اعتبار-عکس‌ها' };
+  await api('PATCH', `/admin/pages/${credits.id}`, {
+    name: NAME,
+    theme: HOME ? null : theme,
+    translations: LOCALES.map((l) => ({
+      locale: l,
+      slug: creditSlugs[l],
+      title: l === 'en' ? 'Photo credits — FikkoPrint' : 'اعتبار عکس‌ها — فیکوپرینت',
+      blocks: creditBlocks(l, photos.credits),
+    })),
+  });
+  await api('POST', `/admin/pages/${credits.id}/publish`);
+  console.log(`Published: ${LOCALES.map((l) => `/${l}/${creditSlugs[l]}`).join('  ')}`);
+}

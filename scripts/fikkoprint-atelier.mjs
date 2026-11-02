@@ -135,43 +135,49 @@ function swatch(sharp, kind, color) {
   return sharp(Buffer.from(svg)).jpeg({ quality: 82 }).toBuffer();
 }
 
-export async function atelierContent({ sharp, up, product, step }) {
+/**
+ * `photos` are uploaded real photos by key (see fikkoprint-photos.mjs); each picture without one is drawn instead.
+ * `credits` (when there are photos) adds a "Photo credits" link at the bottom of the page.
+ */
+export async function atelierContent({ sharp, up, product, photos = {}, credits = false }) {
   const shelf = ['#3a2c25', '#0d0a09'];
+  const pick = async (photo, draw, name) => photos[photo] ?? (await up(draw(), name));
   const img = {
-    studio: await up(scene(sharp, 'studio', { blur: 6 }), 'atelier-studio.jpg'),
-    press: await up(scene(sharp, 'press', { w: 1200, h: 1500 }), 'atelier-press.jpg'),
-    printer: await up(scene(sharp, 'printer', { w: 1200, h: 1500 }), 'atelier-printer.jpg'),
-    facade: await up(scene(sharp, 'facade', { w: 1800, h: 1100 }), 'atelier-facade.jpg'),
-    ctaStudio: await up(scene(sharp, 'press', { blur: 8 }), 'atelier-studio-close.jpg'),
-    mug: await up(product('mug', { palette: 'sunset', seed: 3, bg: shelf }), 'shelf-mug.jpg'),
-    bottle: await up(product('bottle', { palette: 'berry', seed: 29, bg: shelf }), 'shelf-bottle.jpg'),
-    tshirt: await up(product('tshirt', { palette: 'ocean', seed: 5, bg: shelf }), 'shelf-tshirt.jpg'),
-    jersey: await up(product('jersey', { palette: 'team', seed: 31, bg: shelf }), 'shelf-jersey.jpg'),
-    cushion: await up(product('cushion', { palette: 'jungle', seed: 13, bg: shelf }), 'shelf-cushion.jpg'),
-    panel: await up(product('panel', { palette: 'sunset', seed: 17, bg: shelf }), 'shelf-panel.jpg'),
-    puzzle: await up(product('puzzle', { palette: 'candy', seed: 19, bg: shelf }), 'shelf-puzzle.jpg'),
-    phone: await up(product('phone', { palette: 'berry', seed: 11, bg: shelf }), 'shelf-phone.jpg'),
-    mousepad: await up(product('mousepad', { palette: 'ocean', seed: 23, bg: shelf }), 'shelf-mousepad.jpg'),
-    coaster: await up(product('coaster', { palette: 'jungle', seed: 37, bg: shelf }), 'shelf-coasters.jpg'),
-    paper: await up(step('paper'), 'atelier-transfer-paper.jpg'),
-    gas: await up(step('gas'), 'atelier-ink-gas.jpg'),
+    studio: await pick('hero', () => scene(sharp, 'studio', { blur: 6 }), 'atelier-studio.jpg'),
+    press: await pick('pressing', () => scene(sharp, 'press', { w: 1200, h: 1500 }), 'atelier-press.jpg'),
+    printer: await pick('fabricPrinter', () => scene(sharp, 'printer', { w: 1200, h: 1500 }), 'atelier-printer.jpg'),
+    facade: await pick('tehran', () => scene(sharp, 'facade', { w: 1800, h: 1100 }), 'atelier-facade.jpg'),
+    ctaStudio: await pick('wideFormat', () => scene(sharp, 'press', { blur: 8 }), 'atelier-studio-close.jpg'),
   };
-  const sw = {};
-  for (const [key, kind, color] of [
-    ['jersey', 'knit', '#f4f4f2'],
-    ['mesh', 'mesh', '#e8eef5'],
-    ['satin', 'satin', '#ece6f2'],
-    ['canvas', 'canvas', '#ebe3d3'],
-    ['fleece', 'other', '#efe9e1'],
-    ['blend', 'knit', '#d9d6d0'],
-    ['ceramic', 'glaze', '#f7f7f5'],
-    ['aluminium', 'metal', '#c9ccd1'],
-    ['steel', 'metal', '#e5e7ea'],
-    ['polymer', 'glaze', '#eef2f7'],
-    ['neoprene', 'foam', '#2f3237'],
-    ['mdf', 'board', '#f2efe9'],
+  for (const [key, kind, palette, seed] of [
+    ['mug', 'mug', 'sunset', 3],
+    ['bottle', 'bottle', 'berry', 29],
+    ['tshirt', 'tshirt', 'ocean', 5],
+    ['jersey', 'jersey', 'team', 31],
+    ['cushion', 'cushion', 'jungle', 13],
+    ['panel', 'panel', 'sunset', 17],
+    ['puzzle', 'puzzle', 'candy', 19],
+    ['phone', 'phone', 'berry', 11],
+    ['mousepad', 'mousepad', 'ocean', 23],
+    ['coaster', 'coaster', 'jungle', 37],
   ])
-    sw[key] = await up(swatch(sharp, kind, color), `swatch-${key}.jpg`);
+    img[key] = await pick(key, () => product(kind, { palette, seed, bg: shelf }), `shelf-${key}.jpg`);
+  const sw = {};
+  for (const [key, photo, kind, color] of [
+    ['jersey', 'swJersey', 'knit', '#f4f4f2'],
+    ['mesh', 'swMesh', 'mesh', '#e8eef5'],
+    ['satin', 'swSatin', 'satin', '#ece6f2'],
+    ['canvas', 'swCanvas', 'canvas', '#ebe3d3'],
+    ['fleece', 'swFleece', 'other', '#efe9e1'],
+    ['blend', 'swBlend', 'knit', '#d9d6d0'],
+    ['ceramic', 'swCeramic', 'glaze', '#f7f7f5'],
+    ['aluminium', 'panel', 'metal', '#c9ccd1'],
+    ['steel', 'swSteel', 'metal', '#e5e7ea'],
+    ['polymer', 'phone', 'glaze', '#eef2f7'],
+    ['neoprene', 'swNeoprene', 'foam', '#2f3237'],
+    ['mdf', 'swMdf', 'board', '#f2efe9'],
+  ])
+    sw[key] = await pick(photo, () => swatch(sharp, kind, color), `swatch-${key}.jpg`);
 
   const t = (en, fa) => (l) => (l === 'en' ? en : fa);
   const EMAIL = 'info@fikkoprint.com';
@@ -786,13 +792,20 @@ export async function atelierContent({ sharp, up, product, step }) {
             t('Library', 'کتابخانه'),
             '#materials',
           ],
-          [t('News', 'اخبار'), t('Presses, inks and printers', 'پرس، جوهر و چاپگر'), t('Read', 'بخوانید'), '#news'],
+          credits
+            ? [
+                t('Photo credits', 'اعتبار عکس‌ها'),
+                t('Where every photo comes from', 'منبع هر عکس'),
+                t('Sources', 'منابع'),
+                t('photo-credits', 'اعتبار-عکس‌ها'),
+              ]
+            : [t('News', 'اخبار'), t('Presses, inks and printers', 'پرس، جوهر و چاپگر'), t('Read', 'بخوانید'), '#news'],
           [t('Write to us', 'برایمان بنویسید'), EMAIL, t('Email', 'ایمیل'), `mailto:${EMAIL}`],
         ].map(([title, text, linkLabel, link]) => ({
           title: title(l),
           text: typeof text === 'function' ? text(l) : text,
           linkLabel: linkLabel(l),
-          link,
+          link: typeof link === 'function' ? link(l) : link,
         })),
       },
     },
