@@ -193,6 +193,17 @@ API_URL=https://kasradesignstudio.com/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm
 
 The story is written from the old site's About page (born 1992, industrial design at Tabriz Islamic Art University) and from the pictures themselves. The timeline's years for the first brands (2017, from the photos' dates) and the NFTs (2021) are best guesses: check them, and the Persian spelling of Kasra's name, in the editor.
 
+### profiterol.ir content
+
+`scripts/seed-profiterol-ir.mjs` builds profiterol.ir, the site that sells Profiterol: a website for any business, with any feature it needs, in Persian and English. The numbers on it are counted from the code each time it runs (67 features in 10 groups, 93 blocks, 113 business types in 12 groups, 10 themes, 14 page and site templates today), so run it again after adding blocks or themes. The page has an aurora hero whose last word cycles through kinds of business, the real editor, the numbers, one real photo for each of the 12 kinds of business, every feature listed and numbered, four steps from a free preview to your own domain, a few highlights, the free preview offer, questions, and a form asking for a preview (it goes to the Inbox). Its pictures are in `scripts/profiterol-ir/`: real photos from Unsplash (see `CREDITS.md` there) and screenshots of Profiterol's own admin, so nothing is downloaded on the server.
+
+```sh
+$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=http://api:3001/api -e SITE=profiterol.ir \
+  -e CONTACT_EMAIL=… -e CONTACT_PHONE=… api node /seed/seed-profiterol-ir.mjs --home
+```
+
+Without `--home` it adds a separate page, `/fa/ساخت-سایت` and `/en/website-builder`. With `--home` it fills the home page and sets the site name, menu, dark teal colors and country. `CONTACT_EMAIL` and `CONTACT_PHONE` go in the footer and the business details; without them the footer shows neither. Running it again updates the same page and does not upload the pictures twice. The page promises an answer "within one working day" and a free preview: change those words in the editor if they don't fit. Screenshots are in `screenshots-profiterol-ir/`.
+
 ## Behind Oblivion (several sites on one server)
 
 When the server already runs other sites behind the shared [Oblivion](https://github.com/hesamtmg/Oblivion) reverse proxy, Profiterol must not take ports 80/443 itself. `docker-compose.oblivion.yml` changes the stack so that:
