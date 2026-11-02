@@ -381,7 +381,15 @@ export class SitesService {
    * A new preview site, online until `days` from now: the owners' own at <PREVIEW_URL>/preview/<slug>, or, with
    * `hostId`, one made by that site's admins, under that site's address.
    */
-  async createPreview(name: string, slug: string, days: number, prospect: string, adminLang: AdminLang = '', hostId: string | null = null) {
+  async createPreview(
+    name: string,
+    slug: string,
+    days: number,
+    prospect: string,
+    adminLang: AdminLang = '',
+    hostId: string | null = null,
+    printDesigner = false,
+  ) {
     if (!hostId && !config.previewUrl) throw new BadRequestException('Preview sites are off: set PREVIEW_URL (e.g. https://profiterol.ir)');
     const previewSlug = checkPreviewSlug(slug);
     if (await this.sites.existsBy({ previewSlug })) throw new ConflictException(`The preview name "${previewSlug}" is taken`);
@@ -394,6 +402,7 @@ export class SitesService {
         expiresAt: new Date(Date.now() + days * 86_400_000),
         prospect: prospect.slice(0, 2000),
         previewHostId: hostId,
+        printDesigner,
         domains: [],
       }),
     );

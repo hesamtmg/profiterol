@@ -35,6 +35,8 @@ export const previewView = (s: Site) => ({
   expired: previewExpired(s),
   prospect: s.prospect,
   convertRequest: s.convertRequest,
+  // Read only for the site's admins: only the owners turn the textile designer on, preview by preview.
+  printDesigner: s.printDesigner,
   createdAt: s.createdAt,
 });
 
@@ -90,6 +92,7 @@ export class SitePreviewsController {
   @Post()
   async create(@Body() dto: CreatePreviewDto, @Req() req: { user: AuthUser }) {
     const { site, max, maxDays } = this.rules();
+    if (dto.printDesigner) throw new ForbiddenException('Only the owners can allow the textile designer');
     const days = dto.days ?? Math.min(14, maxDays);
     if (days > maxDays) throw new BadRequestException(`A preview can stay online for at most ${maxDays} days`);
     if ((await this.sites.livePreviewCount(site.id)) >= max)
