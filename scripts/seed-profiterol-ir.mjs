@@ -2,7 +2,8 @@
  * Builds profiterol.ir in Persian and English: the site that sells Profiterol itself, a website for any business with
  * any feature it needs. It counts Profiterol's features (the numbers come from the block registry, so they stay
  * right as the builder grows), shows the twelve kinds of business it is made for with real photos, and shows the
- * real editor and admin in screenshots.
+ * real editor and admin in screenshots. Profiterol is also the company: the page shows its own products (Petshop Bahar,
+ * Packeta, Dunga, GIMOO, client sites and the server they run on) and its founder, Hesam Tamjidi.
  *
  * The photos are from Unsplash (free to use, see scripts/profiterol-ir/CREDITS.md) and the screenshots are of
  * Profiterol itself; both are in scripts/profiterol-ir/, so nothing is downloaded while it runs.
@@ -237,6 +238,111 @@ const BUSINESS_PHOTOS = {
 };
 for (const c of businessCategories) if (!BUSINESS_PHOTOS[c.key]) throw new Error(`No photo for the business category "${c.key}"`);
 
+// ---------- The company and its founder ----------
+// Profiterol is also the company: these are the products it builds and runs, and the person behind them.
+const FOUNDER = {
+  name: t('Hesam Tamjidi', 'حسام تمجیدی'),
+  // From his LinkedIn profile.
+  linkedin: 'https://www.linkedin.com/in/hesam-tamjidi-a097495a',
+  role: t('Founder of Profiterol', 'بنیان‌گذار پروفیترول'),
+  background: t(
+    'Senior software development engineer at Parsian E-Commerce, working on payments and online shopping. Profiterol is where he builds his own products, and websites for businesses like yours: designed, written and run by the same hands, from the database to the last pixel on a phone.',
+    'مهندس ارشد توسعه‌ی نرم‌افزار در تجارت الکترونیک پارسیان، در حوزه‌ی پرداخت و خرید آنلاین. پروفیترول جایی است که محصولات خودش را می‌سازد، و سایت کسب‌وکارهایی مثل شما را: طراحی، برنامه‌نویسی و نگه‌داری با یک دست، از پایگاه‌داده تا آخرین پیکسل روی موبایل.',
+  ),
+};
+
+/**
+ * Selected work, each with a 4:5 picture in scripts/profiterol-ir/work/ (screenshots of the real apps in a browser
+ * frame; `fa: true` when there is a Persian one too). `status` sits beside the name; leave `link` empty for no link.
+ */
+const WORK = [
+  {
+    image: 'profiterol',
+    fa: true,
+    title: t('Profiterol', 'پروفیترول'),
+    status: t('Live', 'آنلاین'),
+    kind: t('Website builder', 'سایت‌ساز'),
+    note: t('(You are on it)', '(همین سایت)'),
+    tag: 'Nuxt · NestJS · AI',
+    color: '#0f766e',
+    link: '#features',
+  },
+  {
+    image: 'shoppi',
+    title: t('Petshop Bahar', 'پت‌شاپ بهار'),
+    status: t('Live', 'آنلاین'),
+    kind: t('Online shop, on our Shoppi platform', 'فروشگاه آنلاین، روی پلتفرم شاپی'),
+    note: t('(1,500+ products, online payment)', '(بیش از ۱٬۵۰۰ محصول، پرداخت آنلاین)'),
+    tag: 'E-commerce',
+    color: '#9d174d',
+    link: 'https://petshopbahar.com',
+  },
+  {
+    image: 'packeta',
+    fa: true,
+    title: t('Packeta', 'پکتا'),
+    status: t('Live', 'آنلاین'),
+    kind: t('Multi-wallet fintech and payment gateway', 'کیف پول چندگانه و درگاه پرداخت'),
+    note: t('(Double-entry ledger)', '(دفتر کل دوطرفه)'),
+    tag: 'Fintech',
+    color: '#1d4ed8',
+    link: 'https://packeta.ir',
+  },
+  {
+    image: 'dunga',
+    title: t('Dunga', 'دونگا'),
+    status: t('Live', 'آنلاین'),
+    kind: t('Shared expenses app', 'اپ دونگ و خرج مشترک'),
+    note: t('(Persian first, in Toman)', '(فارسی، به تومان)'),
+    tag: 'Web app',
+    color: '#047857',
+    link: 'https://dunga.ir',
+  },
+  {
+    image: 'gimoo',
+    title: t('GIMOO', 'گیمو'),
+    status: t('Live', 'آنلاین'),
+    kind: t('Online multiplayer board games', 'بازی‌های گروهی آنلاین'),
+    note: t('(5 games, in real time)', '(۵ بازی، هم‌زمان)'),
+    tag: 'Games · Socket.io',
+    color: '#6d28d9',
+    link: 'https://gimoo.ir',
+  },
+  {
+    image: 'fikkoprint',
+    fa: true,
+    title: t('FikkoPrint', 'فیکوپرینت'),
+    status: t('Preview', 'پیش‌نمایش'),
+    kind: t('Print studio, made with Profiterol', 'چاپخانه، ساخته‌شده با پروفیترول'),
+    note: t('(A free preview site)', '(سایت پیش‌نمایش رایگان)'),
+    tag: t('Client site', 'سایت مشتری'),
+    color: '#b45309',
+    link: 'https://profiterol.ir/preview/fikkoprint',
+  },
+  {
+    image: 'mazaheri',
+    fa: true,
+    title: t('Mazaheri Trading', 'بازرگانی مظاهری'),
+    status: t('Client', 'مشتری'),
+    kind: t('Customs clearance guide, made with Profiterol', 'راهنمای ترخیص کالا، ساخته‌شده با پروفیترول'),
+    note: '',
+    tag: t('Client site', 'سایت مشتری'),
+    color: '#b45309',
+    link: '',
+  },
+  {
+    image: 'parsserver',
+    title: t('ParsServer', 'پارس‌سرور'),
+    status: t('Ours', 'زیرساخت'),
+    kind: t('One server for every project', 'یک سرور برای همه‌ی پروژه‌ها'),
+    note: t('(Docker, nginx, PostgreSQL, free SSL)', '(داکر، nginx، PostgreSQL، SSL رایگان)'),
+    tag: 'Infrastructure',
+    color: '#0b1220',
+    link: '',
+  },
+];
+const workImage = (w, l) => `work/${w.image}${w.fa ? `-${l}` : ''}.jpg`;
+
 // ---------- API ----------
 const login = await fetch(`${API}/auth/login`, {
   method: 'POST',
@@ -282,6 +388,7 @@ for (const f of [
   'photos/team-talk.jpg',
   'photos/office-highfive.jpg',
   'product/editor-mobile.jpg',
+  ...WORK.flatMap((w) => (w.fa ? ['en', 'fa'].map((l) => workImage(w, l)) : [workImage(w, 'en')])),
 ]) {
   P[f] = await pic(f);
 }
@@ -507,6 +614,52 @@ const blocks = (l) => [
     },
   },
   {
+    id: 'company',
+    type: 'hello-statement',
+    props: {
+      anchor: 'about',
+      label: t('(Profiterol, the company)', '(پروفیترول، شرکت)')(l),
+      text: t(
+        'Profiterol is a software company. We do not just sell websites: we *build and run* real products, from an online shop and a fintech wallet to multiplayer games and the builder you are looking at. _Your site gets the same care._',
+        'پروفیترول یک شرکت نرم‌افزاری است. ما فقط سایت نمی‌فروشیم؛ محصول واقعی *می‌سازیم و نگه می‌داریم*، از فروشگاه آنلاین و کیف پول مالی تا بازی‌های گروهی و همین سایت‌سازی که می‌بینید. _سایت شما هم همین دقت را می‌گیرد._',
+      )(l),
+      look: 'dark',
+    },
+  },
+  {
+    id: 'work',
+    type: 'work-index',
+    props: {
+      anchor: 'work',
+      label: t('Our work', 'کارهای ما')(l),
+      period: t('Built and run by Profiterol', 'ساخت و نگه‌داری پروفیترول')(l),
+      projects: WORK.map((w) => ({
+        title: w.title(l),
+        year: w.status(l),
+        kind: w.kind(l),
+        note: typeof w.note === 'function' ? w.note(l) : w.note,
+        tag: typeof w.tag === 'function' ? w.tag(l) : w.tag,
+        image: P[workImage(w, l)],
+        color: w.color,
+        link: w.link,
+      })),
+      linkLabel: t('Visit →', 'دیدن ←')(l),
+      look: 'dark',
+    },
+  },
+  {
+    id: 'founder',
+    type: 'statement',
+    props: {
+      anchor: 'founder',
+      title: `${FOUNDER.name(l)} · ${FOUNDER.role(l)}`,
+      text: FOUNDER.background(l),
+      image: P['photos/laptop-typing.jpg'],
+      buttonLabel: t('See his LinkedIn profile', 'پروفایل لینکدین')(l),
+      buttonLink: FOUNDER.linkedin,
+    },
+  },
+  {
     id: 'preview',
     type: 'spinning-badge',
     props: {
@@ -569,6 +722,13 @@ const blocks = (l) => [
           ),
         ],
         [
+          t('Who is behind Profiterol?', 'چه کسی پشت پروفیترول است؟'),
+          t(
+            `Profiterol is a software company founded by Hesam Tamjidi. The same team builds and runs Petshop Bahar, Packeta, Dunga and GIMOO on its own servers, so your site is in hands that keep real products online every day.`,
+            `پروفیترول یک شرکت نرم‌افزاری است که حسام تمجیدی آن را بنیان گذاشته. همین تیم پت‌شاپ بهار، پکتا، دونگا و گیمو را روی سرورهای خودش می‌سازد و نگه می‌دارد؛ پس سایت شما دست کسانی است که هر روز محصول واقعی را آنلاین نگه می‌دارند.`,
+          ),
+        ],
+        [
           t('Can several people edit the site?', 'چند نفر می‌توانند سایت را ویرایش کنند؟'),
           t(
             'Yes. Invite them as admins or editors; each has their own sign-in.',
@@ -616,7 +776,10 @@ const blocks = (l) => [
     type: 'contact-footer',
     props: {
       title: t('Profiterol', 'پروفیترول')(l),
-      text: t('A website for any business, with any feature it needs.', 'وب‌سایت برای هر کسب‌وکار، با هر امکانی که لازم دارد.')(l),
+      text: t(
+        'A website for any business, with any feature it needs. Profiterol is a software company founded by Hesam Tamjidi.',
+        'وب‌سایت برای هر کسب‌وکار، با هر امکانی که لازم دارد. پروفیترول یک شرکت نرم‌افزاری به بنیان‌گذاری حسام تمجیدی است.',
+      )(l),
       email: CONTACT_EMAIL,
       phone: CONTACT_PHONE,
       address: '',
@@ -667,6 +830,8 @@ if (HOME) {
       { href: '#features', label: { fa: 'امکانات', en: 'Features' } },
       { href: '#business', label: { fa: 'کسب‌وکارها', en: 'Businesses' } },
       { href: '#how', label: { fa: 'چطور کار می‌کند', en: 'How it works' } },
+      { href: '#work', label: { fa: 'کارهای ما', en: 'Our work' } },
+      { href: '#about', label: { fa: 'درباره‌ی ما', en: 'About' } },
       { href: '#faq', label: { fa: 'پرسش‌ها', en: 'FAQ' } },
       { href: '#contact', label: { fa: 'پیش‌نمایش رایگان', en: 'Free preview' } },
     ],
