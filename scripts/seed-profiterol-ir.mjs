@@ -818,7 +818,8 @@ let page;
 let slugs;
 
 if (HOME) {
-  page = pages.find((p) => p.isHome);
+  // A site added without the demo pages has no home page yet.
+  page = pages.find((p) => p.isHome) ?? (await api('POST', '/admin/pages', { name: 'Home', isHome: true }));
   slugs = Object.fromEntries(LOCALES.map((l) => [l, page.translations.find((x) => x.locale === l)?.slug ?? '']));
   const settings = await api('GET', '/admin/settings');
   await api('PUT', '/admin/settings', {
