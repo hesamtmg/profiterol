@@ -635,6 +635,202 @@ const blocks = (l) => [
   },
 ];
 
+/** Sections added between the ones in `blocks` (see `withExtra` below), each a function of the locale. */
+const extra = {
+  meat: (l) => ({
+    id: 'meat',
+    type: 'flip-cards',
+    props: {
+      anchor: 'meat',
+      title: t('Know your meat', 'گوشتتان را بشناسید')(l),
+      items: [
+        [
+          img.steaks,
+          t('Beef', 'گوشت گوساله'),
+          t(
+            'From grass-fed Nelore cattle. About 20 g of protein in 100 g of lean beef. For kebab barg, koobideh, stews and steaks.',
+            'از گاوهای نلور علف‌خوار. حدود ۲۰ گرم پروتئین در هر ۱۰۰ گرم گوشت کم‌چرب. برای کباب برگ، کوبیده، خورش و استیک.',
+          ),
+        ],
+        [
+          img.lamb,
+          t('Lamb', 'گوشت گوسفند'),
+          t(
+            'Whole carcasses and cuts. Rich in flavour, about 18 g of protein in 100 g. For shishlik, abgoosht and Persian stews.',
+            'لاشه‌ی کامل و برش‌خورده. خوش‌طعم، حدود ۱۸ گرم پروتئین در هر ۱۰۰ گرم. برای شیشلیک، آبگوشت و خورش‌های ایرانی.',
+          ),
+        ],
+        [
+          img.chickenLegs,
+          t('Chicken', 'مرغ'),
+          t(
+            'Whole birds and parts, each piece frozen apart. About 19 g of protein in 100 g. For joojeh kebab, rice dishes and processing.',
+            'مرغ کامل و قطعه‌بندی‌شده، هر تکه جدا منجمد. حدود ۱۹ گرم پروتئین در هر ۱۰۰ گرم. برای جوجه‌کباب، پلوها و فراوری.',
+          ),
+        ],
+      ].map(([image, title, back]) => ({
+        image,
+        title: title(l),
+        back: back(l),
+        buttonLabel: t('Price list', 'لیست قیمت')(l),
+        buttonLink: '#order',
+      })),
+    },
+  }),
+  journey: (l) => ({
+    id: 'journey',
+    type: 'timeline',
+    props: {
+      anchor: 'journey',
+      title: t('A shipment’s journey', 'سفر یک محموله')(l),
+      items: [
+        [
+          t('Day 1', 'روز ۱'),
+          t('Halal slaughter', 'ذبح اسلامی'),
+          t('At an approved plant in Brazil, under Muslim inspectors.', 'در کشتارگاهی تأییدشده در برزیل، زیر نظر ناظران مسلمان.'),
+        ],
+        [
+          t('Day 2', 'روز ۲'),
+          t('Blast-frozen and packed', 'انجماد سریع و بسته‌بندی'),
+          t('Down to −18 °C, in labelled cartons.', 'تا دمای ۱۸- درجه، در کارتن‌های برچسب‌دار.'),
+        ],
+        [
+          t('Within a week', 'تا یک هفته'),
+          t('Sealed and loaded', 'پلمب و بارگیری'),
+          t('Into refrigerated containers at a Brazilian port.', 'در کانتینرهای یخچال‌دار در بندری در برزیل.'),
+        ],
+        [
+          t('About a month', 'حدود یک ماه'),
+          t('At sea', 'در دریا'),
+          t('Across the ocean to Shahid Rajaee port, Bandar Abbas.', 'از اقیانوس تا بندر شهید رجایی، بندرعباس.'),
+        ],
+        [
+          t('A few days', 'چند روز'),
+          t('Inspection and clearance', 'بازرسی و ترخیص'),
+          t('Veterinary samples, documents, customs.', 'نمونه‌برداری دامپزشکی، مدارک، گمرک.'),
+        ],
+        [
+          t('Then', 'سپس'),
+          t('Cold store and your door', 'سردخانه و درِ فروشگاه شما'),
+          t('By refrigerated truck, to any province.', 'با کامیون یخچال‌دار، به هر استان.'),
+        ],
+      ].map(([date, title, text]) => ({ date: date(l), title: title(l), text: text(l) })),
+    },
+  }),
+  gallery: (l) => ({
+    id: 'gallery',
+    type: 'gallery',
+    props: {
+      anchor: 'gallery',
+      title: t('From farm to fork', 'از مزرعه تا سفره')(l),
+      layout: 'masonry',
+      columns: '3',
+      images: [
+        ['nelore', t('Nelore cattle in Brazil', 'گاوهای نلور در برزیل')],
+        ['poultry', t('Poultry farm', 'مرغداری')],
+        ['herd', t('The herd', 'گله')],
+        ['ship', t('Container ship', 'کشتی کانتینری')],
+        ['reefers', t('Refrigerated containers', 'کانتینرهای یخچال‌دار')],
+        ['port', t('Bandar Abbas', 'بندرعباس')],
+        ['truck', t('On the road at −18 °C', 'در جاده با دمای ۱۸- درجه')],
+        ['market', t('At the butcher’s', 'در قصابی')],
+        ['chelo', t('On the table', 'روی سفره')],
+      ].map(([key, caption]) => ({ image: img[key], caption: caption(l) })),
+    },
+  }),
+  buy: (l) => ({
+    id: 'buy',
+    type: 'pricing',
+    props: {
+      anchor: 'buy',
+      title: t('How to buy', 'چطور بخریم')(l),
+      subtitle: t(
+        'Prices per kilo follow each shipment. Ask for this month’s list.',
+        'قیمت هر کیلو با هر محموله تغییر می‌کند. لیست این ماه را بخواهید.',
+      )(l),
+      currency: '',
+      monthlyLabel: '',
+      yearlyLabel: '',
+      plans: [
+        {
+          name: t('By the carton', 'کارتنی')(l),
+          price: t('From a few cartons', 'از چند کارتن')(l),
+          description: t('For butchers, restaurants and caterers.', 'برای قصابی‌ها، رستوران‌ها و تهیه‌غذاها.')(l),
+          features: t(
+            'Mix beef, lamb and chicken\nDelivered frozen in Tehran\nInvoice with every order\n-Container prices',
+            'ترکیب گوساله، گوسفند و مرغ\nتحویل منجمد در تهران\nفاکتور برای هر سفارش\n-قیمت کانتینری',
+          )(l),
+          highlighted: false,
+          badge: '',
+        },
+        {
+          name: t('By the pallet', 'پالتی')(l),
+          price: t('About a tonne', 'حدود یک تن')(l),
+          description: t('For chain stores and food processors.', 'برای فروشگاه‌های زنجیره‌ای و صنایع غذایی.')(l),
+          features: t(
+            'Better price per kilo\nRefrigerated truck to any province\nCertificates with every lot\nRegular monthly deliveries',
+            'قیمت بهتر برای هر کیلو\nکامیون یخچال‌دار به هر استان\nگواهی‌ها برای هر محموله\nتحویل منظم ماهانه',
+          )(l),
+          highlighted: false,
+          badge: '',
+        },
+        {
+          name: t('By the container', 'کانتینری')(l),
+          price: t('About 25 tonnes', 'حدود ۲۵ تن')(l),
+          description: t('For wholesalers and distributors.', 'برای عمده‌فروشان و پخش‌کنندگان.')(l),
+          features: t(
+            'The best price per kilo\nA sealed reefer, straight from the port\nAll shipping documents\nTemperature log of the voyage',
+            'بهترین قیمت هر کیلو\nکانتینر پلمب‌شده، مستقیم از بندر\nهمه‌ی مدارک حمل\nگزارش دمای کل سفر',
+          )(l),
+          highlighted: true,
+          badge: t('Best price per kilo', 'بهترین قیمت هر کیلو')(l),
+        },
+      ].map((p) => ({ ...p, yearlyPrice: '', period: '', buttonLabel: t('Ask for a price', 'استعلام قیمت')(l), buttonLink: '#order' })),
+    },
+  }),
+  documents: (l) => ({
+    id: 'documents',
+    type: 'card-grid',
+    props: {
+      anchor: 'documents',
+      title: t('The papers with every shipment', 'مدارک همراه هر محموله')(l),
+      subtitle: t(
+        'Ask for them before you buy; we send copies with the price list.',
+        'پیش از خرید آن‌ها را بخواهید؛ نسخه‌ای را همراه لیست قیمت می‌فرستیم.',
+      )(l),
+      variant: 'raised',
+      columns: '3',
+      items: [
+        [t('Halal certificate', 'گواهی حلال'), t('From the Islamic body supervising the plant.', 'از نهاد اسلامی ناظر بر کشتارگاه.')],
+        [
+          t('Health certificate', 'گواهی بهداشت'),
+          t('From the veterinary authority of the exporting country.', 'از مرجع دامپزشکی کشور صادرکننده.'),
+        ],
+        [t('Certificate of origin', 'گواهی مبدأ'), t('Where the meat was produced and packed.', 'محل تولید و بسته‌بندی گوشت.')],
+        [
+          t('Veterinary release', 'مجوز ترخیص دامپزشکی'),
+          t('Iran’s veterinary organisation, after inspection.', 'از سازمان دامپزشکی ایران، پس از بازرسی.'),
+        ],
+        [t('Temperature log', 'گزارش دما'), t('The container’s temperature for the whole voyage.', 'دمای کانتینر در تمام مدت سفر.')],
+        [
+          t('Invoice and packing list', 'فاکتور و لیست بسته‌بندی'),
+          t('Net weight, cuts and dates of every carton.', 'وزن خالص، نوع برش و تاریخ هر کارتن.'),
+        ],
+      ].map(([title, text]) => ({ image: '', title: title(l), text: text(l), link: '' })),
+    },
+  }),
+};
+
+/** Where each extra section goes: before the block with that id. */
+const EXTRA_BEFORE = {
+  steps: ['meat'],
+  origin: ['journey'],
+  story: ['gallery'],
+  cuts: ['buy'],
+  quotes: ['documents'],
+};
+const withExtra = (l) => blocks(l).flatMap((b) => [...(EXTRA_BEFORE[b.id] ?? []).map((k) => extra[k](l)), b]);
+
 // Red, as in the logo: the second color (the soft half of the titles) a lighter red, the dark panels a deep maroon.
 const theme = {
   primary: RED,
@@ -699,7 +895,7 @@ await publishPage(ctx, {
         'Gostaresh Protein Setareh Shargh, an Aghaj Holding company, imports halal frozen beef, lamb and chicken from Brazil and other countries and sells across Iran.',
     },
   },
-  blocks,
+  blocks: withExtra,
 });
 
 await publishPage(ctx, {

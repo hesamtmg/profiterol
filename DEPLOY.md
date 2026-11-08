@@ -218,21 +218,46 @@ Without `--home` it adds a separate page, `/fa/ساخت-سایت` and `/en/websi
 
 Two separate preview sites for two related companies in Tehran, both in Persian (the default language) and English:
 
-- `scripts/seed-aghaj-holding.mjs`: **Aghaj Investment Holding** (هلدینگ سرمایه‌گذاری آغاج) helps people invest in real estate and in importing basic goods (frozen meat from Brazil and other countries, sugar, rice), with business consulting as its key strength. A full-screen photo slider under a floating header, a sentence lighting up word by word, its three lines of business as photo links, **where to invest in property** (Chitgar and District 22, Elahieh and Zafaraniyeh, the shops and offices of west Tehran, Pardis, Kish Island and the Caspian coast, each with why investors go there and a photo that stays beside the list), the place names gliding past, consulting beside a photo, the imported goods in a strip that moves sideways, the road from a farm in Brazil to a market in Tehran, four steps from the first meeting to reports, its group company, questions, a consultation form beside a photo and a "Let's talk" footer with Tehran's time. Green, as in its logo. The places are the `PLACES` list near the top of the script, without prices (they change every month).
-- `scripts/seed-setareh-shargh.mjs`: **Gostaresh Protein Setareh Shargh** (گسترش پروتئین ستاره شرق), managed by Aghaj Holding, imports frozen beef, lamb and chicken from Brazil and other countries into Iran. Built from the Atelier blocks in the red and cream of its logo: a photo hero, the products on a showroom shelf (beef, lamb, chicken), the cold chain in four steps (halal slaughter at the source, frozen and sealed, by sea to Bandar Abbas with the veterinary check, cold store and delivery), where the meat comes from, the shipping, the company in tabs, who it sells to (wholesalers, butchers, restaurants, chain stores), a library of cuts, customer quotes, the real company and its facts, questions, a price-list request form and a closing call to action. The site is named "Gostaresh Protein".
+- `scripts/seed-aghaj-holding.mjs`: **Aghaj Investment Holding** (هلدینگ سرمایه‌گذاری آغاج) helps people invest in real estate and in importing basic goods (frozen meat from Brazil and other countries, sugar, rice), with business consulting as its key strength. A full-screen photo slider under a floating header, a sentence lighting up word by word, its three lines of business as photo links, **where to invest in property** (Chitgar and District 22, Elahieh and Zafaraniyeh, the shops and offices of west Tehran, Pardis, Kish Island and the Caspian coast, each with why investors go there and a photo that stays beside the list), the place names gliding past, a photo grid of those places, an "About Aghaj" story (why a tree), three ways to start (a share in a shipment, partnership in construction, buying a property), consulting beside a photo, who it works with, partnership in construction for landowners, the imported goods in a strip that moves sideways, the road from a farm in Brazil to a market in Tehran, four steps from the first meeting to reports, its group company, client quotes, questions, a consultation form beside a photo and a "Let's talk" footer with Tehran's time. Green, as in its logo. The places are the `PLACES` list near the top of the script, without prices (they change every month).
+- `scripts/seed-setareh-shargh.mjs`: **Gostaresh Protein Setareh Shargh** (گسترش پروتئین ستاره شرق), managed by Aghaj Holding, imports frozen beef, lamb and chicken from Brazil and other countries into Iran. Built from the Atelier blocks in the red and cream of its logo: a photo hero, the products on a showroom shelf (beef, lamb, chicken), "know your meat" flip cards, the cold chain in four steps (halal slaughter at the source, frozen and sealed, by sea to Bandar Abbas with the veterinary check, cold store and delivery), a shipment's journey day by day, where the meat comes from, the shipping, a photo gallery from farm to fork, the company in tabs, who it sells to (wholesalers, butchers, restaurants, chain stores), how to buy (by the carton, the pallet or the container), a library of cuts, the papers that come with every shipment, customer quotes, the real company and its facts, questions, a price-list request form and a closing call to action. The site is named "Gostaresh Protein".
 
 **Logos.** Put each company's own logo in its folder as `logo.svg`, `logo.png` or `logo.webp` (`scripts/aghaj-holding/`, `scripts/setareh-shargh/`; an SVG is turned into a PNG) and run the script again. Without one, the script draws a stand-in in the logo's colors: Aghaj's green tree with its roots, and Gostaresh's red and cream "GP" mark. Use the mark alone (no name beside it): the header writes the site name next to it. Over the photo at the top, the header shows the logo in white.
 
 Each links to the other: on a preview, to `<PREVIEW_URL>/preview/setareh-shargh/` and `<PREVIEW_URL>/preview/aghaj/`; set `PROTEIN_URL` and `AGHAJ_URL` once they have their own addresses. Their pictures are real, freely licensed photos from Wikimedia Commons kept in `scripts/aghaj-holding/` and `scripts/setareh-shargh/` (Tehran and its property market, Chitgar Lake, Pardis, Kish, Ramsar, Shahid Rajaee port, Nelore cattle in Brazil, refrigerated containers, cuts of meat, Persian kebabs…), so nothing is downloaded when the scripts run. Each photo's author and license are written into its description in the media library and listed on a "Photo credits" page (`/fa/اعتبار-عکس‌ها`, `/en/photo-credits`), which says they show the trade, not the companies' own projects or products. `scripts/fetch-commons-photos.mjs <folder>` fetches a folder's photos again from its `photos.json`.
 
-To make and fill the two previews (for 30 days, `PREVIEW_DAYS`) with the owner's login, from a checkout with `npm install` done:
+**Putting them online, step by step.** The previews use only blocks the site already has, so they need no new
+release: the scripts fill the two preview sites through the API.
 
-```sh
-PREVIEW=aghaj API_URL=https://profiterol.ir/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:aghaj-holding
-PREVIEW=setareh-shargh API_URL=https://profiterol.ir/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:setareh-shargh
-```
+1. **The server can hold previews.** In `/opt/profiterol/.env`, `PREVIEW_URL=https://profiterol.ir` (the site that holds
+   them, added in Admin → Sites with SSL). If you just added it, run `./scripts/deploy.sh` once.
+2. **Get the scripts and photos onto the server.** Once this branch is merged into `main`: `cd /opt/profiterol && git pull`.
+   (Before merging: `git fetch origin claude/preview-sites-profiterol-k2iiy4 && git checkout claude/preview-sites-profiterol-k2iiy4`.)
+3. **Optional: the real logos.** Copy them to `scripts/aghaj-holding/logo.png` and `scripts/setareh-shargh/logo.png`
+   (or `.svg`); without them the drawn stand-ins are used.
+4. **Make and fill the previews**, with the API image (it has Node, sharp and the owner's login from `.env`):
 
-or on the server, with the API image: `$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=https://profiterol.ir/api -e PREVIEW=aghaj api node /seed/seed-aghaj-holding.mjs` (and the same for `seed-setareh-shargh.mjs` with `PREVIEW=setareh-shargh`). Without `PREVIEW`, `--home` fills a site's home page and settings instead, and with neither the page is added beside the others. `CONTACT_EMAIL` and `CONTACT_PHONE` go in the footer, the facts and the business details; without them neither is shown. Running again updates the same pages and reuses the uploaded photos. The numbers, facts, quotes and promises on both pages (the free first meeting, "within one working day", the picks of places, 31 provinces, shelf lives, carton weights) are sample content: check them with the companies and change them in the editor. Screenshots are in `screenshots-aghaj-holding/` and `screenshots-setareh-shargh/`.
+   ```sh
+   cd /opt/profiterol
+   C="docker compose -f docker-compose.prod.yml"   # or plain "docker compose" when .env sets COMPOSE_FILE
+   $C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=https://profiterol.ir/api -e PREVIEW=aghaj \
+     -e CONTACT_PHONE=… -e CONTACT_EMAIL=… api node /seed/seed-aghaj-holding.mjs
+   $C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=https://profiterol.ir/api -e PREVIEW=setareh-shargh \
+     -e CONTACT_PHONE=… -e CONTACT_EMAIL=… api node /seed/seed-setareh-shargh.mjs
+   ```
+
+   Each prints "Made the preview site …" the first time, then "Published: …". Or run them from your own computer, from
+   a checkout with `npm install` done:
+   `PREVIEW=aghaj API_URL=https://profiterol.ir/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:aghaj-holding` (and
+   `PREVIEW=setareh-shargh … npm run seed:setareh-shargh`).
+5. **Check them** at `https://profiterol.ir/preview/aghaj/` and `https://profiterol.ir/preview/setareh-shargh/`
+   (Persian first; English under `/en`). They stay online 30 days (`PREVIEW_DAYS`); **+7 / +14 days** in Admin → Sites
+   extends them.
+6. **Hand them over.** Admin → Sites → each preview → **Send admin access** gives the company its own admin account on
+   it. When they buy, point their domain's A record at the server and use **They bought it**; then run the other
+   script again with `PROTEIN_URL=https://their-domain/` or `AGHAJ_URL=…` so the two sites keep linking to each other.
+
+Sign-in allows 20 attempts per 15 minutes and each run signs in twice, so a few runs in a row are fine.
+Without `PREVIEW`, `--home` fills a site's home page and settings instead, and with neither the page is added beside the others. `CONTACT_EMAIL` and `CONTACT_PHONE` go in the footer, the facts and the business details; without them neither is shown. Running again updates the same pages and reuses the uploaded photos. The numbers, facts, quotes and promises on both pages (the free first meeting, "within one working day", the picks of places, 31 provinces, shelf lives, carton weights) are sample content: check them with the companies and change them in the editor. Screenshots are in `screenshots-aghaj-holding/` and `screenshots-setareh-shargh/`.
 
 ## Behind Oblivion (several sites on one server)
 

@@ -504,6 +504,200 @@ const blocks = (l) => [
   },
 ];
 
+/** Sections added between the ones in `blocks` (see `withExtra` below), each a function of the locale. */
+const extra = {
+  about: (l) => ({
+    id: 'about',
+    type: 'information',
+    props: {
+      anchor: 'about',
+      title: t('About Aghaj Holding', 'درباره‌ی هلدینگ آغاج')(l),
+      text: t(
+        'An investment holding in Tehran that puts people’s capital to work in property and in the trade of basic goods, and advises them along the way.',
+        'هلدینگ سرمایه‌گذاری در تهران که سرمایه‌ی مردم را در ملک و تجارت کالاهای اساسی به کار می‌اندازد و در این مسیر کنارشان مشاوره می‌دهد.',
+      )(l),
+      title2: t('Why a tree', 'چرا درخت')(l),
+      subtitle2: t('Aghaj means tree', 'آغاج یعنی درخت')(l),
+      body: t(
+        'A tree grows slowly, from deep roots, and gives shade for years. That is how we think about money: patient investments on solid ground, not quick bets.\n\nOur roots are in Tehran’s property market and in the import trade. We know the neighbourhoods, the builders, the ports and the customs houses, and the people in them.\n\nOne of our branches, Gostaresh Protein, brings frozen meat to Iran from Brazil and other countries. Investors can take part in its shipments through us.',
+        'درخت آرام رشد می‌کند، از ریشه‌های عمیق، و سال‌ها سایه می‌دهد. نگاه ما به سرمایه هم همین است: سرمایه‌گذاری صبورانه روی زمین محکم، نه شرط‌بندی سریع.\n\nریشه‌های ما در بازار ملک تهران و تجارت واردات است. محله‌ها، سازنده‌ها، بندرها و گمرک‌ها و آدم‌هایشان را می‌شناسیم.\n\nیکی از شاخه‌های ما، گسترش پروتئین، گوشت منجمد را از برزیل و کشورهای دیگر به ایران می‌آورد. سرمایه‌گذاران می‌توانند از طریق ما در محموله‌هایش شریک شوند.',
+      )(l),
+      image: img.towers,
+    },
+  }),
+  placesGrid: (l) => ({
+    id: 'places-grid',
+    type: 'photo-grid',
+    props: {
+      size: '2*4',
+      mobileSize: '4*2',
+      items: [
+        ['chitgar', t('Chitgar', 'چیتگر')],
+        ['zafaraniyeh', t('Zafaraniyeh', 'زعفرانیه')],
+        ['residential', t('Elahieh', 'الهیه')],
+        ['towers', t('North Tehran', 'شمال تهران')],
+        ['mall', t('West Tehran commercial', 'تجاری غرب تهران')],
+        ['pardis', t('Pardis', 'پردیس')],
+        ['kish', t('Kish Island', 'جزیره‌ی کیش')],
+        ['ramsar', t('Caspian coast', 'کرانه‌ی خزر')],
+      ].map(([key, title]) => ({ image: img[key], title: title(l), text: '', link: '#places' })),
+    },
+  }),
+  plans: (l) => ({
+    id: 'ways',
+    type: 'pricing',
+    props: {
+      anchor: 'ways',
+      title: t('Three ways to start', 'سه راه برای شروع')(l),
+      subtitle: t(
+        'How long your money works depends on the path. Consulting comes with all three.',
+        'مدت کار کردن سرمایه به مسیر بستگی دارد. مشاوره در هر سه همراه شماست.',
+      )(l),
+      currency: '',
+      monthlyLabel: '',
+      yearlyLabel: '',
+      plans: [
+        {
+          name: t('Share in a shipment', 'سهم در محموله')(l),
+          price: t('Short', 'کوتاه‌مدت')(l),
+          period: t(' · a few months', ' · چند ماه')(l),
+          description: t('A share of an import of frozen meat, sugar or rice.', 'سهمی از یک محموله‌ی وارداتی گوشت منجمد، شکر یا برنج.')(l),
+          features: t(
+            'One shipment, from order to sale\nReports with every document\nProfit when the goods are sold\n-No property to look after',
+            'یک محموله، از ثبت سفارش تا فروش\nگزارش با همه‌ی مدارک\nسود پس از فروش کالا\n-بدون ملکی برای نگهداری',
+          )(l),
+          highlighted: false,
+          badge: '',
+        },
+        {
+          name: t('Partnership in construction', 'مشارکت در ساخت')(l),
+          price: t('Medium', 'میان‌مدت')(l),
+          period: t(' · about 2–3 years', ' · حدود ۲ تا ۳ سال')(l),
+          description: t(
+            'A share in a building project, for landowners and investors.',
+            'سهم در یک پروژه‌ی ساختمانی، برای مالکان زمین و سرمایه‌گذاران.',
+          )(l),
+          features: t(
+            'Builder and permits checked\nShares written in the contract\nPhotos at every stage\nA flat or its value at the end',
+            'سازنده و پروانه بررسی‌شده\nسهم هر طرف در قرارداد\nعکس از هر مرحله\nیک واحد یا ارزش آن در پایان',
+          )(l),
+          highlighted: true,
+          badge: t('Popular with landowners', 'محبوب مالکان زمین')(l),
+        },
+        {
+          name: t('Buying a property', 'خرید ملک')(l),
+          price: t('Long', 'بلندمدت')(l),
+          period: t(' · years', ' · چند سال')(l),
+          description: t(
+            'A flat, a shop or a villa in one of the places we know.',
+            'آپارتمان، مغازه یا ویلا در یکی از جاهایی که می‌شناسیم.',
+          )(l),
+          features: t(
+            'A short list for your budget\nDeed checked by our lawyers\nTenants found for you\nAdvice on when to sell',
+            'فهرست کوتاه متناسب با بودجه\nبررسی سند توسط وکلای ما\nپیدا کردن مستأجر\nمشاوره برای زمان فروش',
+          )(l),
+          highlighted: false,
+          badge: '',
+        },
+      ].map((p) => ({ ...p, yearlyPrice: '', buttonLabel: t('Ask about this', 'درباره‌اش بپرسید')(l), buttonLink: '#contact' })),
+    },
+  }),
+  who: (l) => ({
+    id: 'who',
+    type: 'focus-list',
+    props: {
+      anchor: 'who',
+      label: t('Who we work with', 'با چه کسانی کار می‌کنیم')(l),
+      items: t(
+        [
+          'Individual investors',
+          'Families saving for later',
+          'Landowners',
+          'Builders',
+          'Business owners',
+          'Importers and wholesalers',
+          'Iranians abroad',
+        ],
+        [
+          'سرمایه‌گذاران شخصی',
+          'خانواده‌هایی که برای آینده پس‌انداز می‌کنند',
+          'مالکان زمین',
+          'سازندگان',
+          'صاحبان کسب‌وکار',
+          'واردکنندگان و عمده‌فروشان',
+          'ایرانیان خارج از کشور',
+        ],
+      )(l).map((title) => ({ title, link: '#contact' })),
+    },
+  }),
+  partnership: (l) => ({
+    id: 'partnership',
+    type: 'horizon-right',
+    props: {
+      anchor: 'partnership',
+      image: img.construction,
+      mobileImage: '',
+      title: t('Own land? Build on it with us.', 'زمین دارید؟ با ما بسازید.')(l),
+      text: t(
+        'Landowners bring the land, investors and builders bring the rest. We find the builder, check the permits, write each side’s share into one clear contract and report until the keys are handed over.',
+        'مالک زمین، زمین را می‌آورد و سرمایه‌گذار و سازنده بقیه را. ما سازنده را پیدا می‌کنیم، پروانه‌ها را بررسی می‌کنیم، سهم هر طرف را در یک قرارداد روشن می‌نویسیم و تا تحویل کلید گزارش می‌دهیم.',
+      )(l),
+    },
+  }),
+  quotes: (l) => ({
+    id: 'quotes',
+    type: 'testimonials',
+    props: {
+      title: t('What clients say', 'مشتریان چه می‌گویند')(l),
+      items: [
+        [
+          t(
+            'I came to buy a flat in the north and left with a better idea: two smaller flats in Chitgar. They checked every document before I signed.',
+            'برای خرید آپارتمانی در شمال شهر آمدم و با ایده‌ی بهتری برگشتم: دو واحد کوچک‌تر در چیتگر. پیش از امضا همه‌ی مدارک را بررسی کردند.',
+          ),
+          t('Reza A.', 'رضا ا.'),
+          t('Property investor', 'سرمایه‌گذار ملک'),
+        ],
+        [
+          t(
+            'We had never imported anything. They walked us through one shipment of frozen beef, from the order to the cold store.',
+            'هیچ‌وقت چیزی وارد نکرده بودیم. یک محموله‌ی گوشت منجمد را از ثبت سفارش تا سردخانه همراهمان پیش بردند.',
+          ),
+          t('Maryam S.', 'مریم س.'),
+          t('Partner in a shipment', 'شریک یک محموله'),
+        ],
+        [
+          t(
+            'We had land and no builder. A year and a half later, the frame is up and every share is on paper.',
+            'زمین داشتیم و سازنده نداشتیم. یک سال و نیم بعد، اسکلت بالا رفته و سهم همه روی کاغذ است.',
+          ),
+          t('Hossein T.', 'حسین ت.'),
+          t('Landowner', 'مالک زمین'),
+        ],
+        [
+          t(
+            'The best advice I got was not to do a deal I was excited about.',
+            'بهترین توصیه‌ای که گرفتم این بود که معامله‌ای را که برایش هیجان داشتم انجام ندهم.',
+          ),
+          t('Hamid K.', 'حمید ک.'),
+          t('Business owner', 'صاحب کسب‌وکار'),
+        ],
+      ].map(([quote, name, role]) => ({ quote: quote(l), name: name(l), role: role(l), photo: '' })),
+      seconds: 7,
+    },
+  }),
+};
+
+/** Where each extra section goes: before the block with that id. */
+const EXTRA_BEFORE = {
+  places: ['about'],
+  'places-ticker': ['placesGrid'],
+  consulting: ['plans'],
+  imports: ['who', 'partnership'],
+  faq: ['quotes'],
+};
+const withExtra = (l) => blocks(l).flatMap((b) => [...(EXTRA_BEFORE[b.id] ?? []).map((k) => extra[k](l)), b]);
+
 const theme = {
   primary: GREEN,
   secondary: '#c9b27a',
@@ -570,7 +764,7 @@ await publishPage(ctx, {
         'Aghaj Holding in Tehran helps you invest in property (Chitgar, north Tehran, Pardis, Kish and the Caspian coast) and in importing basic goods such as frozen meat from Brazil. Consulting is our key strength.',
     },
   },
-  blocks,
+  blocks: withExtra,
 });
 
 await publishPage(ctx, {

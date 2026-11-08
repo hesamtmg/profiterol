@@ -245,5 +245,18 @@
     "license": "CC BY 3.0",
     "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
     "file": "photos/ramsar.jpg"
+  },
+  {
+    "key": "construction",
+    "title": "Construction work in Tehran.jpg",
+    "en": "A residential tower going up in Tehran",
+    "fa": "ساخت یک برج مسکونی در تهران",
+    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Construction_work_in_Tehran.jpg/1920px-Construction_work_in_Tehran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Construction_work_in_Tehran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "page": "https://commons.wikimedia.org/wiki/File:Construction_work_in_Tehran.jpg",
+    "author": "Jan Honvehlmann",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "file": "photos/construction.jpg"
   }
 ]
