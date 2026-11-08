@@ -1,0 +1,39 @@
+{
+  "hero": [
+    "File:Meat production process showing fresh cut of steak held by butcher in professional attire.jpg",
+    "A butcher holding a fresh cut of beef",
+    "قصابی با یک تکه گوشت تازه‌ی گوساله"
+  ],
+  "beefShoulder": ["File:Frozen beef shoulder.jpg", "Frozen beef shoulder", "سردست گوساله‌ی منجمد"],
+  "beefBlock": ["File:Frozen beef shoulder (20241031).jpg", "A block of frozen beef", "قطعه‌ی گوشت گوساله‌ی منجمد"],
+  "beefRolls": ["File:Frozen beef rolls.jpg", "Frozen sliced beef", "گوشت گوساله‌ی ورقه‌ای منجمد"],
+  "steak": ["File:Raw beef steak, 2011.jpg", "A raw beef steak", "استیک خام گوساله"],
+  "steaks": ["File:Raw beef steaks.jpg", "Raw beef steaks", "استیک‌های خام گوساله"],
+  "lamb": ["File:Raw lamb cutlets with shredded ginger and rosemary.jpg", "Lamb cutlets", "شیشلیک گوسفندی"],
+  "lambCarcass": [
+    "File:Lamb carcasses Kasap Suat Kadinlar Carsisi Istanbul 2026.jpg",
+    "Whole lamb carcasses at a butcher's",
+    "لاشه‌ی کامل گوسفند در قصابی"
+  ],
+  "chickenLegs": ["File:Raw leg chicken quarters.jpg", "Chicken leg quarters", "ران مرغ"],
+  "chickenMarket": ["File:Raw chicken for sale.jpg", "Whole chickens and chicken parts for sale", "مرغ کامل و قطعه‌بندی‌شده برای فروش"],
+  "nelore": ["File:Nelore cattle Brasil.jpg", "Nelore cattle grazing in Brazil", "گاوهای نلور در چراگاهی در برزیل"],
+  "herd": ["File:Nelore cattle - 12704276665.jpg", "A herd of Nelore cattle", "گله‌ی گاوهای نلور"],
+  "poultry": ["File:Galinha Caipira feeding.jpg", "Free-range chickens on a Brazilian farm", "مرغ‌های آزاد در مزرعه‌ای در برزیل"],
+  "ship": ["File:MSC Corsica (IMO 7905924).jpg", "A container ship at the quay", "کشتی کانتینری در اسکله"],
+  "reefers": [
+    "File:2016-08 Frachtschiffreise MS Dornbusch Container-Lashings werden gelöst 1785.jpg",
+    "Refrigerated containers on a ship",
+    "کانتینرهای یخچال‌دار روی کشتی"
+  ],
+  "port": ["File:Shahid Rajaee Port 2020-01-28 34.jpg", "Shahid Rajaee port, Bandar Abbas", "بندر شهید رجایی، بندرعباس"],
+  "truck": ["File:Chereau-semiremorque-byRundvald.jpg", "A refrigerated trailer", "تریلی یخچال‌دار"],
+  "counter": [
+    "File:Cornish beef, Great Cornish Food Store, Waitrose, Truro Cornwall - June 2025.jpg",
+    "Cuts of beef at a butcher's counter",
+    "برش‌های گوشت گوساله در ویترین قصابی"
+  ],
+  "market": ["File:Meat Market, Firuzabad, Iran (14817210727).jpg", "A meat shop in Firuzabad, Iran", "یک قصابی در فیروزآباد"],
+  "koobideh": ["File:Traditional Kebab of Kazerun.jpg", "Kebab koobideh", "کباب کوبیده"],
+  "chelo": ["File:Isfahan 1220532 nevit.jpg", "Chelo kebab in Isfahan", "چلوکباب در اصفهان"]
+}

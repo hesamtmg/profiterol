@@ -1,0 +1,44 @@
+{
+  "hero": ["File:North of Tehran Skyline view.jpg", "Northern Tehran under the Alborz mountains", "شمال تهران زیر رشته‌کوه البرز"],
+  "skyline": ["File:Tehran Skyline and Alborz Mountains.jpg", "Tehran and the Alborz mountains", "تهران و کوه‌های البرز"],
+  "cranes": [
+    "File:Tehran Burning Horizons - panoramio (4).jpg",
+    "Tower cranes over Tehran at sunset",
+    "جرثقیل‌های برجی بر فراز تهران در غروب"
+  ],
+  "construction": ["File:Construction work in Tehran.jpg", "A residential tower going up in Tehran", "ساخت یک برج مسکونی در تهران"],
+  "towers": ["File:Tehran from Qeytariyeh.jpg", "Residential towers in northern Tehran", "برج‌های مسکونی شمال تهران"],
+  "residential": [
+    "File:Iran Elahiyeh, Tehran, Iran (9116203127).jpg",
+    "Apartment towers in Elahiyeh, Tehran",
+    "برج‌های مسکونی الهیه، تهران"
+  ],
+  "district": [
+    "File:Tehran Waterfall Park and a new Tehran district (29147095948).jpg",
+    "A new district of Tehran by the lake",
+    "محله‌ای تازه‌ساز در تهران کنار دریاچه"
+  ],
+  "mall": ["File:Iran Mall, Téhéran (2).jpg", "A commercial complex in Tehran", "یک مجتمع تجاری در تهران"],
+  "interior": [
+    "File:Modern living room with stylish furniture and a view of the outdoors in a cozy apartment setting.jpg",
+    "A finished apartment",
+    "یک آپارتمان آماده‌ی سکونت"
+  ],
+  "port": [
+    "File:Shahid Rajaee Port 2020-01-28 23.jpg",
+    "A cargo ship at Shahid Rajaee port, Bandar Abbas",
+    "کشتی باری در بندر شهید رجایی، بندرعباس"
+  ],
+  "warehouse": ["File:Modern warehouse with pallet rack storage system.jpg", "A warehouse of palletised goods", "انبار کالا روی پالت"],
+  "sugar": ["File:Sacks of raw sugar in the Philippines.jpg", "Sacks of raw sugar", "کیسه‌های شکر خام"],
+  "rice": [
+    "File:Rice Paddies en route from Rudbar to Banzar-e Anzali - Northwestern Iran (7420144770).jpg",
+    "Rice paddies in Gilan",
+    "شالیزارهای گیلان"
+  ],
+  "beef": ["File:Frozen beef shoulder.jpg", "Frozen beef shoulder", "سردست گوساله‌ی منجمد"],
+  "cattle": ["File:Nelore cattle - 12704276665.jpg", "Nelore cattle on a Brazilian farm", "گاوهای نلور در مزرعه‌ای در برزیل"],
+  "meeting": ["File:Office meeting room with glass walls - 0Z7A2206.jpg", "A meeting room", "اتاق جلسه"],
+  "table": ["File:Cowork Videmonte.jpg", "A table for working sessions", "میز جلسات کاری"],
+  "bazaarTrade": ["File:Grand Bazaar, Tehran 07.jpg", "Goods arriving in the Grand Bazaar of Tehran", "رسیدن بار به بازار بزرگ تهران"]
+}

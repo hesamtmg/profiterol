@@ -37,6 +37,15 @@ const people = computed(() => props.p.people ?? []);
 const current = computed(() => people.value[active.value] ?? people.value[0]);
 const others = computed(() => people.value.map((person, i) => ({ person, i })).filter(({ i }) => i !== active.value));
 const textLeft = computed(() => props.p.textSide !== 'right');
+/**
+ * On phones the cards sit beside the text. One card is wide; with two or three they are narrower, and the text keeps
+ * clear of all of them (the side gap, each card and the gaps between them, and the text's own inset).
+ */
+const manyCards = computed(() => others.value.length > 1);
+const cardsWidth = computed(() => {
+  const n = Math.max(others.value.length, 1);
+  return manyCards.value ? `${0.5 + n * 2.25 + (n - 1) * 0.5 + 2}rem` : '6.5rem';
+});
 const dir = computed(() => getLocale(props.locale)?.dir ?? 'ltr');
 
 /** The side cards wear the active person's color, as in the original design. */
@@ -118,8 +127,9 @@ function fallback(color: string) {
       <div
         v-if="current"
         :key="active"
-        class="absolute bottom-24 z-10 max-w-[calc(100%-6.5rem)] @3xl:bottom-28 @3xl:max-w-[52rem]"
+        class="absolute bottom-24 z-10 max-w-[calc(100%-var(--cards-w))] @3xl:bottom-28 @3xl:max-w-[52rem]"
         :class="textLeft ? 'left-6 @3xl:left-[10%]' : 'right-6 @3xl:right-[10%]'"
+        :style="{ '--cards-w': cardsWidth }"
         :dir="dir"
         :lang="locale"
       >
@@ -144,13 +154,17 @@ function fallback(color: string) {
     </Transition>
 
     <!-- The other people, as tall cards at the side -->
-    <div class="absolute bottom-10 z-20 flex gap-3" :class="textLeft ? 'right-2 @3xl:-right-20' : 'left-2 flex-row-reverse @3xl:-left-20'">
+    <div
+      class="absolute bottom-10 z-20 flex @3xl:gap-3"
+      :class="[textLeft ? 'right-2 @3xl:-right-20' : 'left-2 flex-row-reverse @3xl:-left-20', manyCards ? 'gap-2' : 'gap-3']"
+    >
       <button
         v-for="{ person, i } in others"
         :key="`card-${i}`"
         type="button"
-        class="relative h-[50dvh] w-14 overflow-hidden rounded-full transition-all duration-1000 ease-in-out @3xl:h-[78dvh] @3xl:w-28"
+        class="relative h-[50dvh] overflow-hidden rounded-full transition-all duration-1000 ease-in-out @3xl:h-[78dvh] @3xl:w-28"
         :class="[
+          manyCards ? 'w-9' : 'w-14',
           cardsIn ? 'opacity-100' : textLeft ? 'opacity-0 @3xl:translate-x-20' : 'opacity-0 @3xl:-translate-x-20',
           textLeft ? '@3xl:hover:-translate-x-24' : '@3xl:hover:translate-x-24',
         ]"
@@ -167,7 +181,8 @@ function fallback(color: string) {
             v-if="person.cardLogo"
             :src="person.cardLogo"
             alt=""
-            class="h-32 w-10 object-contain @3xl:h-48 @3xl:w-7"
+            class="h-32 object-contain @3xl:h-48 @3xl:w-7"
+            :class="manyCards ? 'w-6' : 'w-10'"
             style="filter: brightness(0) invert(1)"
           />
           <span v-else class="text-xs font-black uppercase tracking-[0.2em] [writing-mode:vertical-rl] @3xl:w-7 @3xl:text-sm" :dir="dir">{{

@@ -23,6 +23,8 @@
     "seed:kasra": "node scripts/seed-kasra.mjs",
     "seed:fikkoprint": "node scripts/seed-fikkoprint.mjs",
     "seed:profiterol-ir": "node scripts/seed-profiterol-ir.mjs",
+    "seed:aghaj-holding": "node scripts/seed-aghaj-holding.mjs",
+    "seed:setareh-shargh": "node scripts/seed-setareh-shargh.mjs",
     "check:business-types": "node scripts/check-business-types.mjs"
   },
   "engines": {

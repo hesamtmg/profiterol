@@ -214,6 +214,24 @@ $C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=http://api:3001/api 
 
 Without `--home` it adds a separate page, `/fa/ساخت-سایت` and `/en/website-builder`. With `--home` it fills the home page and sets the site name, menu, dark teal colors and country. `CONTACT_EMAIL` and `CONTACT_PHONE` go in the footer and the business details; without them the footer shows neither. Running it again updates the same page and does not upload the pictures twice. The page promises an answer "within one working day" and a free preview: change those words in the editor if they don't fit. Screenshots are in `screenshots-profiterol-ir/`.
 
+### Aghaj Holding and Setareh Shargh
+
+Two separate preview sites for two related companies in Tehran, both in Persian (the default language) and English:
+
+- `scripts/seed-aghaj-holding.mjs`: **Aghaj Investment Holding** (هلدینگ سرمایه‌گذاری آغاج) helps people invest in real estate and in importing basic goods (frozen meat from Brazil and other countries, sugar, rice), with business consulting as its key strength. A spotlight hero with its three lines of business and the line "Consulting is our key power", the numbers, photo panels of where capital can work, consulting, four stacking cards on investing in property (choose, check the deed and permits, partnership in construction, rent or sell), the basic goods it imports, the road from a farm in Brazil to a market in Tehran, four steps from the first meeting to reports, its group company, client quotes, questions, a form to book a consultation, a closing panel and the footer. Navy and gold, with a gold tree for a logo ("aghaj" is a tree).
+- `scripts/seed-setareh-shargh.mjs`: **Gostaresh Protein Setareh Shargh** (گسترش پروتئین ستاره شرق), managed by Aghaj Holding, imports frozen beef, lamb and chicken from Brazil and other countries into Iran. Built from the Atelier blocks in ice blue with a meat-red accent: a photo hero, the products on a showroom shelf (beef, lamb, chicken), the cold chain in four steps (halal slaughter at the source, frozen and sealed, by sea to Bandar Abbas with the veterinary check, cold store and delivery), where the meat comes from, the shipping, the company in tabs, who it sells to (wholesalers, butchers, restaurants, chain stores), a library of cuts, customer quotes, the real company and its facts, questions, a price-list request form and a closing call to action. Its logo is a red eight-pointed star ("setareh shargh" is the star of the east).
+
+Each links to the other: on a preview, to `<PREVIEW_URL>/preview/setareh-shargh/` and `<PREVIEW_URL>/preview/aghaj/`; set `PROTEIN_URL` and `AGHAJ_URL` once they have their own addresses. Their pictures are real, freely licensed photos from Wikimedia Commons kept in `scripts/aghaj-holding/` and `scripts/setareh-shargh/` (Tehran and its property market, Shahid Rajaee port, Nelore cattle in Brazil, refrigerated containers, cuts of meat, Persian kebabs…), so nothing is downloaded when the scripts run. Each photo's author and license are written into its description in the media library and listed on a "Photo credits" page (`/fa/اعتبار-عکس‌ها`, `/en/photo-credits`), which says they show the trade, not the companies' own projects or products. `scripts/fetch-commons-photos.mjs <folder>` fetches a folder's photos again from its `photos.json`.
+
+To make and fill the two previews (for 30 days, `PREVIEW_DAYS`) with the owner's login, from a checkout with `npm install` done:
+
+```sh
+PREVIEW=aghaj API_URL=https://profiterol.ir/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:aghaj-holding
+PREVIEW=setareh-shargh API_URL=https://profiterol.ir/api ADMIN_EMAIL=… ADMIN_PASSWORD=… npm run seed:setareh-shargh
+```
+
+or on the server, with the API image: `$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=https://profiterol.ir/api -e PREVIEW=aghaj api node /seed/seed-aghaj-holding.mjs` (and the same for `seed-setareh-shargh.mjs` with `PREVIEW=setareh-shargh`). Without `PREVIEW`, `--home` fills a site's home page and settings instead, and with neither the page is added beside the others. `CONTACT_EMAIL` and `CONTACT_PHONE` go in the footer, the facts and the business details; without them neither is shown. Running again updates the same pages and reuses the uploaded photos. The numbers, facts, quotes and promises on both pages (the free first meeting, "within one working day", 31 provinces, shelf lives, carton weights) are sample content: check them with the companies and change them in the editor. Screenshots are in `screenshots-aghaj-holding/` and `screenshots-setareh-shargh/`.
+
 ## Behind Oblivion (several sites on one server)
 
 When the server already runs other sites behind the shared [Oblivion](https://github.com/hesamtmg/Oblivion) reverse proxy, Profiterol must not take ports 80/443 itself. `docker-compose.oblivion.yml` changes the stack so that:
