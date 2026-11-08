@@ -5,7 +5,7 @@
  * each other but are separate sites.
  *
  * It uses the Atelier blocks (photo hero, showroom shelf, step cards, story tabs, capability cards, a library of cuts,
- * fanned quotes, the real place and a photo call to action) in cold, ice-blue colors with a meat-red accent. The photos
+ * fanned quotes, the real place and a photo call to action) in the red and cream of the company's logo. The photos
  * are real, freely licensed pictures from Wikimedia Commons kept in scripts/setareh-shargh/ (fetched with
  * fetch-commons-photos.mjs), each credited on a "Photo credits" page. They show the trade in general, not the
  * company's own products, ships, stores or people.
@@ -20,10 +20,10 @@
  * settings and DEPLOY.md, "Aghaj Holding and Setareh Shargh", for running it on the server.
  */
 import { fileURLToPath } from 'node:url';
-import { connect, creditBlocks, faDigits, loadSharp, publishPage, t, uploadPhotos } from './preview-seed-lib.mjs';
+import { connect, creditBlocks, faDigits, loadSharp, ownLogo, publishPage, t, uploadPhotos } from './preview-seed-lib.mjs';
 
 const ctx = await connect({
-  name: 'Setareh Shargh Protein',
+  name: 'Gostaresh Protein',
   prospect:
     'Gostaresh Protein Setareh Shargh (Tehran): frozen meat imports, an Aghaj Holding company. Filled by scripts/seed-setareh-shargh.mjs.',
 });
@@ -39,16 +39,33 @@ const PHONE = process.env.CONTACT_PHONE ?? '';
 const aghajBase = process.env.AGHAJ_URL ?? (ctx.preview ? `${ctx.previewUrl}/preview/aghaj/` : '');
 const aghaj = (l) => (aghajBase ? `${aghajBase.replace(/\/?$/, '/')}${l}` : '#story');
 
-/** The logo mark: an eight-pointed star ("setareh shargh" is the star of the east) in meat red. */
+/** The red and cream of the company's logo. */
+const RED = '#d93654';
+const CREAM = '#fde4c4';
+const DIR = fileURLToPath(new URL('./setareh-shargh', import.meta.url));
+
+/**
+ * The logo: the company's own file in scripts/setareh-shargh/ (logo.svg, logo.png or logo.webp) when it is there.
+ * Otherwise its "GP" mark redrawn: two rounded red shapes facing each other, each with a cream tab, on a transparent
+ * background. The header writes the name "Gostaresh Protein" beside it.
+ */
 async function logo() {
-  const pts = Array.from({ length: 16 }, (_, i) => {
-    const r = i % 2 ? 30 : 64;
-    const a = (Math.PI / 8) * i - Math.PI / 2;
-    return `${80 + r * Math.cos(a)},${80 + r * Math.sin(a)}`;
-  }).join(' ');
-  // Transparent around the star, so a header over a photo can turn it white.
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><polygon points="${pts}" fill="#b4232c"/></svg>`;
-  return loadSharp()(Buffer.from(svg)).png().toBuffer();
+  const own = await ownLogo(DIR);
+  if (own) return own;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="760" height="540" viewBox="0 0 760 540">
+    <g fill="${CREAM}">
+      <path d="M 345 188 Q 365 188 365 208 V 362 A 50 50 0 0 1 315 412 H 255 V 278 A 90 90 0 0 1 345 188 Z"/>
+      <path d="M 438 310 H 498 V 440 A 95 95 0 0 1 403 535 Q 388 535 388 520 V 360 A 50 50 0 0 1 438 310 Z"/>
+    </g>
+    <g fill="${RED}">
+      <path d="M 115 0 H 345 Q 365 0 365 20 A 85 85 0 0 1 280 105 H 152 Q 112 105 112 145 V 270 Q 112 310 152 310 H 255 V 392 Q 255 412 235 412 H 115 A 115 115 0 0 1 0 297 V 115 A 115 115 0 0 1 115 0 Z"/>
+      <path d="M 410 0 H 640 A 115 115 0 0 1 755 115 V 297 A 115 115 0 0 1 640 412 H 498 V 330 Q 498 310 518 310 H 605 Q 645 310 645 270 V 145 Q 645 105 605 105 H 475 A 85 85 0 0 1 390 20 Q 390 0 410 0 Z"/>
+    </g></svg>`;
+  return {
+    bytes: await loadSharp()(Buffer.from(svg)).resize({ height: 240 }).png().toBuffer(),
+    name: 'gostaresh-logo-gp.png',
+    type: 'image/png',
+  };
 }
 
 const blocks = (l) => [
@@ -618,14 +635,15 @@ const blocks = (l) => [
   },
 ];
 
+// Red, as in the logo: the second color (the soft half of the titles) a lighter red, the dark panels a deep maroon.
 const theme = {
-  primary: '#b4232c',
-  secondary: '#5b8db8',
-  dark: '#0d1b26',
-  background: '#eef3f6',
+  primary: RED,
+  secondary: '#e8717f',
+  dark: '#2a0e15',
+  background: '#faf3ef',
   surface: '#ffffff',
-  text: '#0e1720',
-  muted: '#5f6f7c',
+  text: '#1f1114',
+  muted: '#7a6266',
   radius: '1.5rem',
   buttonRadius: '0.25rem',
   fontFa: 'Vazirmatn',
@@ -638,8 +656,10 @@ const theme = {
 if (ctx.home) {
   const settings = await ctx.api('GET', '/admin/settings');
   await ctx.api('PUT', '/admin/settings', {
-    siteName: { fa: 'ستاره شرق', en: 'Setareh Shargh' },
-    logo: (await ctx.upload(await logo(), 'setareh-shargh-logo.png', 'image/png')).url,
+    siteName: { fa: 'گسترش پروتئین', en: 'Gostaresh Protein' },
+    logo: await logo()
+      .then(({ bytes, name, type }) => ctx.upload(bytes, name, type))
+      .then((m) => m.url),
     theme: { ...settings.theme, ...theme },
     defaultLocale: 'fa',
     menu: [
@@ -669,12 +689,12 @@ await publishPage(ctx, {
   titles: { fa: 'گسترش پروتئین ستاره شرق — واردات گوشت منجمد', en: 'Gostaresh Protein Setareh Shargh — Frozen meat imports' },
   seo: {
     fa: {
-      seoTitle: 'واردات گوشت منجمد گوساله، گوسفند و مرغ از برزیل | ستاره شرق',
+      seoTitle: 'واردات گوشت منجمد گوساله، گوسفند و مرغ از برزیل | گسترش پروتئین',
       seoDescription:
         'گسترش پروتئین ستاره شرق، از شرکت‌های هلدینگ آغاج، گوشت منجمد حلال گوساله، گوسفند و مرغ را از برزیل و کشورهای دیگر وارد می‌کند و به سراسر ایران می‌فروشد.',
     },
     en: {
-      seoTitle: 'Frozen beef, lamb and chicken imported from Brazil | Setareh Shargh',
+      seoTitle: 'Frozen beef, lamb and chicken imported from Brazil | Gostaresh Protein',
       seoDescription:
         'Gostaresh Protein Setareh Shargh, an Aghaj Holding company, imports halal frozen beef, lamb and chicken from Brazil and other countries and sells across Iran.',
     },
@@ -686,14 +706,14 @@ await publishPage(ctx, {
   name: 'Setareh Shargh photo credits',
   theme: ctx.home ? null : theme,
   slugs: { fa: 'اعتبار-عکس‌ها', en: 'photo-credits' },
-  titles: { fa: 'اعتبار عکس‌ها — ستاره شرق', en: 'Photo credits — Setareh Shargh' },
+  titles: { fa: 'اعتبار عکس‌ها — گسترش پروتئین', en: 'Photo credits — Gostaresh Protein' },
   blocks: (l) =>
     creditBlocks(
       l,
       credits,
       t(
-        'The photos on this site are freely licensed pictures from Wikimedia Commons, chosen to show the meat trade: cattle and poultry in Brazil, ports, refrigerated containers, cuts of meat and Persian dishes. They are not photos of Setareh Shargh’s own products, shipments, stores or people. Each one links to its page and original file on Commons, with its author and license.',
-        'عکس‌های این سایت تصاویری با مجوز آزاد از ویکی‌انبار (Wikimedia Commons) هستند که برای نشان دادن تجارت گوشت انتخاب شده‌اند: دام و طیور در برزیل، بندرها، کانتینرهای یخچال‌دار، برش‌های گوشت و غذاهای ایرانی. این‌ها عکس محصولات، محموله‌ها، فروشگاه‌ها یا کارکنان ستاره شرق نیستند. هر عکس به صفحه و فایل اصلی‌اش در ویکی‌انبار، با نام پدیدآورنده و مجوزش، پیوند دارد.',
+        'The photos on this site are freely licensed pictures from Wikimedia Commons, chosen to show the meat trade: cattle and poultry in Brazil, ports, refrigerated containers, cuts of meat and Persian dishes. They are not photos of Gostaresh Protein’s own products, shipments, stores or people. Each one links to its page and original file on Commons, with its author and license.',
+        'عکس‌های این سایت تصاویری با مجوز آزاد از ویکی‌انبار (Wikimedia Commons) هستند که برای نشان دادن تجارت گوشت انتخاب شده‌اند: دام و طیور در برزیل، بندرها، کانتینرهای یخچال‌دار، برش‌های گوشت و غذاهای ایرانی. این‌ها عکس محصولات، محموله‌ها، فروشگاه‌ها یا کارکنان گسترش پروتئین نیستند. هر عکس به صفحه و فایل اصلی‌اش در ویکی‌انبار، با نام پدیدآورنده و مجوزش، پیوند دارد.',
       ),
     ),
 });

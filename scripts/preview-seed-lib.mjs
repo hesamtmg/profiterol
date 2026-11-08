@@ -116,8 +116,12 @@ export async function uploadPhotos({ api, upload }, dir, folder) {
 
 const escHtml = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-/** The blocks of a "Photo credits" page: why the photos are there, a grid linking to Commons, and the full list. */
-export function creditBlocks(l, credits, intro) {
+/**
+ * The blocks of a "Photo credits" page: why the photos are there, a grid linking to Commons, and the full list. With
+ * `heroImage` the page opens on that photo with the title and the why over it (for a header that floats over the first
+ * block on every page).
+ */
+export function creditBlocks(l, credits, intro, { heroImage = '' } = {}) {
   const tr = (en, fa) => (l === 'en' ? en : fa);
   const list = credits
     .map(
@@ -128,7 +132,13 @@ export function creditBlocks(l, credits, intro) {
     )
     .join('');
   return [
-    { id: 'credits-intro', type: 'text', props: { title: tr('Photo credits', 'اعتبار عکس‌ها'), body: intro(l), align: 'start' } },
+    heroImage
+      ? {
+          id: 'credits-intro',
+          type: 'horizon',
+          props: { image: heroImage, mobileImage: '', title: tr('Photo credits', 'اعتبار عکس‌ها'), text: intro(l), blur: true },
+        }
+      : { id: 'credits-intro', type: 'text', props: { title: tr('Photo credits', 'اعتبار عکس‌ها'), body: intro(l), align: 'start' } },
     {
       id: 'credits-grid',
       type: 'card-grid',
@@ -165,4 +175,26 @@ export async function publishPage({ api }, { name, home = false, theme = null, s
   await api('POST', `/admin/pages/${page.id}/publish`);
   console.log(`Published: ${LOCALES.map((l) => `/${l}/${slugs[l]}`).join('  ')}`);
   return slugs;
+}
+
+/**
+ * The company's own logo when `dir` has one (logo.svg, logo.png or logo.webp), as PNG or WebP bytes ready to upload
+ * (`{ bytes, name, type }`; an SVG is turned into a PNG, since the media library takes no SVG). Otherwise null, and the
+ * script draws a stand-in.
+ */
+export async function ownLogo(dir) {
+  const base = path.basename(dir);
+  const svg = path.join(dir, 'logo.svg');
+  if (fs.existsSync(svg)) {
+    const bytes = await loadSharp()(fs.readFileSync(svg), { density: 300 }).resize({ height: 400 }).png().toBuffer();
+    return { bytes, name: `${base}-logo.png`, type: 'image/png' };
+  }
+  for (const [ext, type] of [
+    ['png', 'image/png'],
+    ['webp', 'image/webp'],
+  ]) {
+    const file = path.join(dir, `logo.${ext}`);
+    if (fs.existsSync(file)) return { bytes: fs.readFileSync(file), name: `${base}-logo.${ext}`, type };
+  }
+  return null;
 }

@@ -26,32 +26,6 @@
     "file": "photos/skyline.jpg"
   },
   {
-    "key": "cranes",
-    "title": "Tehran Burning Horizons - panoramio (4).jpg",
-    "en": "Tower cranes over Tehran at sunset",
-    "fa": "جرثقیل‌های برجی بر فراز تهران در غروب",
-    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a4/Tehran_Burning_Horizons_-_panoramio_%284%29.jpg/1920px-Tehran_Burning_Horizons_-_panoramio_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "original": "https://upload.wikimedia.org/wikipedia/commons/a/a4/Tehran_Burning_Horizons_-_panoramio_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "page": "https://commons.wikimedia.org/wiki/File:Tehran_Burning_Horizons_-_panoramio_(4).jpg",
-    "author": "Behrooz Rezvani",
-    "license": "CC BY 3.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
-    "file": "photos/cranes.jpg"
-  },
-  {
-    "key": "construction",
-    "title": "Construction work in Tehran.jpg",
-    "en": "A residential tower going up in Tehran",
-    "fa": "ساخت یک برج مسکونی در تهران",
-    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a9/Construction_work_in_Tehran.jpg/1920px-Construction_work_in_Tehran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "original": "https://upload.wikimedia.org/wikipedia/commons/a/a9/Construction_work_in_Tehran.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "page": "https://commons.wikimedia.org/wiki/File:Construction_work_in_Tehran.jpg",
-    "author": "Jan Honvehlmann",
-    "license": "CC BY-SA 4.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
-    "file": "photos/construction.jpg"
-  },
-  {
     "key": "towers",
     "title": "Tehran from Qeytariyeh.jpg",
     "en": "Residential towers in northern Tehran",
@@ -78,19 +52,6 @@
     "file": "photos/residential.jpg"
   },
   {
-    "key": "district",
-    "title": "Tehran Waterfall Park and a new Tehran district (29147095948).jpg",
-    "en": "A new district of Tehran by the lake",
-    "fa": "محله‌ای تازه‌ساز در تهران کنار دریاچه",
-    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/Tehran_Waterfall_Park_and_a_new_Tehran_district_%2829147095948%29.jpg/1920px-Tehran_Waterfall_Park_and_a_new_Tehran_district_%2829147095948%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "original": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Tehran_Waterfall_Park_and_a_new_Tehran_district_%2829147095948%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "page": "https://commons.wikimedia.org/wiki/File:Tehran_Waterfall_Park_and_a_new_Tehran_district_(29147095948).jpg",
-    "author": "Ninara from Helsinki, Finland",
-    "license": "CC BY 2.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
-    "file": "photos/district.jpg"
-  },
-  {
     "key": "mall",
     "title": "Iran Mall, Téhéran (2).jpg",
     "en": "A commercial complex in Tehran",
@@ -102,19 +63,6 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "file": "photos/mall.jpg"
-  },
-  {
-    "key": "interior",
-    "title": "Modern living room with stylish furniture and a view of the outdoors in a cozy apartment setting.jpg",
-    "en": "A finished apartment",
-    "fa": "یک آپارتمان آماده‌ی سکونت",
-    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/49/Modern_living_room_with_stylish_furniture_and_a_view_of_the_outdoors_in_a_cozy_apartment_setting.jpg/1920px-Modern_living_room_with_stylish_furniture_and_a_view_of_the_outdoors_in_a_cozy_apartment_setting.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
-    "original": "https://upload.wikimedia.org/wikipedia/commons/4/49/Modern_living_room_with_stylish_furniture_and_a_view_of_the_outdoors_in_a_cozy_apartment_setting.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-    "page": "https://commons.wikimedia.org/wiki/File:Modern_living_room_with_stylish_furniture_and_a_view_of_the_outdoors_in_a_cozy_apartment_setting.jpg",
-    "author": "Shixart1985",
-    "license": "CC BY 2.0",
-    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
-    "file": "photos/interior.jpg"
   },
   {
     "key": "port",
@@ -232,5 +180,70 @@
     "license": "CC BY-SA 4.0",
     "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
     "file": "photos/bazaarTrade.jpg"
+  },
+  {
+    "key": "chitgar",
+    "title": "Chitgar Lake, Tehran, Iran - 2023.jpg",
+    "en": "New towers by Chitgar Lake, District 22, Tehran",
+    "fa": "برج‌های تازه کنار دریاچه‌ی چیتگر، منطقه‌ی ۲۲ تهران",
+    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/9/98/Chitgar_Lake%2C_Tehran%2C_Iran_-_2023.jpg/1920px-Chitgar_Lake%2C_Tehran%2C_Iran_-_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/9/98/Chitgar_Lake%2C_Tehran%2C_Iran_-_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "page": "https://commons.wikimedia.org/wiki/File:Chitgar_Lake,_Tehran,_Iran_-_2023.jpg",
+    "author": "Parsa 2au",
+    "license": "CC BY-SA 4.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0",
+    "file": "photos/chitgar.jpg"
+  },
+  {
+    "key": "zafaraniyeh",
+    "title": "زعفرانیه - panoramio.jpg",
+    "en": "Zafaraniyeh, northern Tehran",
+    "fa": "زعفرانیه، شمال تهران",
+    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/c/c1/%D8%B2%D8%B9%D9%81%D8%B1%D8%A7%D9%86%DB%8C%D9%87_-_panoramio.jpg/1920px-%D8%B2%D8%B9%D9%81%D8%B1%D8%A7%D9%86%DB%8C%D9%87_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/c/c1/%D8%B2%D8%B9%D9%81%D8%B1%D8%A7%D9%86%DB%8C%D9%87_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "page": "https://commons.wikimedia.org/wiki/File:%D8%B2%D8%B9%D9%81%D8%B1%D8%A7%D9%86%DB%8C%D9%87_-_panoramio.jpg",
+    "author": "mehrad afkham",
+    "license": "CC BY-SA 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0",
+    "file": "photos/zafaraniyeh.jpg"
+  },
+  {
+    "key": "pardis",
+    "title": "Pardis, Tehran Province, Iran (53871221095).jpg",
+    "en": "Pardis new town, east of Tehran",
+    "fa": "شهر جدید پردیس، شرق تهران",
+    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e4/Pardis%2C_Tehran_Province%2C_Iran_%2853871221095%29.jpg/1920px-Pardis%2C_Tehran_Province%2C_Iran_%2853871221095%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/e/e4/Pardis%2C_Tehran_Province%2C_Iran_%2853871221095%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "page": "https://commons.wikimedia.org/wiki/File:Pardis,_Tehran_Province,_Iran_(53871221095).jpg",
+    "author": "Ninara",
+    "license": "CC BY 2.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/2.0",
+    "file": "photos/pardis.jpg"
+  },
+  {
+    "key": "kish",
+    "title": "Kish - panoramio - Farid Atar (2).jpg",
+    "en": "The coast of Kish Island",
+    "fa": "ساحل جزیره‌ی کیش",
+    "image": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Kish_-_panoramio_-_Farid_Atar_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Kish_-_panoramio_-_Farid_Atar_%282%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "page": "https://commons.wikimedia.org/wiki/File:Kish_-_panoramio_-_Farid_Atar_(2).jpg",
+    "author": "Farid Atar",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "file": "photos/kish.jpg"
+  },
+  {
+    "key": "ramsar",
+    "title": "Ramsar, Mazandaran Province, Iran - panoramio (4).jpg",
+    "en": "Green hills at Ramsar, on the Caspian coast",
+    "fa": "تپه‌های سرسبز رامسر، کرانه‌ی خزر",
+    "image": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Ramsar%2C_Mazandaran_Province%2C_Iran_-_panoramio_%284%29.jpg/1920px-Ramsar%2C_Mazandaran_Province%2C_Iran_-_panoramio_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/3/38/Ramsar%2C_Mazandaran_Province%2C_Iran_-_panoramio_%284%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+    "page": "https://commons.wikimedia.org/wiki/File:Ramsar,_Mazandaran_Province,_Iran_-_panoramio_(4).jpg",
+    "author": "هاوبەشی مامە دارا",
+    "license": "CC BY 3.0",
+    "licenseUrl": "https://creativecommons.org/licenses/by/3.0",
+    "file": "photos/ramsar.jpg"
   }
 ]
