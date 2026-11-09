@@ -1,12 +1,12 @@
 <script setup lang="ts">
 /**
- * The low-poly animals behind a hero (see lib/animals-scene). Three.js is fetched only by pages that use it. The
- * animals walk in once the page loader (if any) has gone, so visitors see them arrive; in the editor and for
- * visitors who asked for less motion they simply stand in place.
+ * The animals under a hero (see lib/animals-scene), each made solid from its cut-out picture. Three.js is fetched
+ * only by pages that use it. The animals rise into place once the page loader (if any) has gone, so visitors see
+ * them arrive; in the editor and for visitors who asked for less motion they simply stand in place.
  */
-import type { AnimalKind } from '../../../lib/lowpoly-animals';
+import type { SceneAnimal } from '../../../lib/animals-scene';
 
-const props = defineProps<{ kinds: AnimalKind[]; still: boolean }>();
+const props = defineProps<{ animals: SceneAnimal[]; still: boolean }>();
 
 const box = ref<HTMLElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -22,7 +22,7 @@ onMounted(async () => {
       import('../../../lib/animals-scene'),
     ]);
     if (!canvas.value || !box.value) return;
-    scene = animalsScene(THREE, Reflector, canvas.value, { kinds: props.kinds, still: props.still });
+    scene = animalsScene(THREE, Reflector, canvas.value, { animals: props.animals, still: props.still });
   } catch {
     return; // No WebGL: the hero shows without its animals.
   }
@@ -32,6 +32,7 @@ onMounted(async () => {
     scene.resize(r.width, r.height);
   });
   sized.observe(el);
+  await scene.ready;
   ready.value = true;
 
   // Walk in once the page loader is out of the way (or after a few seconds whatever happens).

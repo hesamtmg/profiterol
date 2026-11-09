@@ -2,10 +2,9 @@
 /**
  * Glowing colors drifting behind a headline. The headline's words rise in one by one, the last word keeps
  * changing, and a soft light follows the mouse. Everything holds still for visitors who turn off motion.
- * With the "3D low-poly animals" scene, the headline sits at the top and the animals (AnimalsScene) stand
- * below it on black glass, walking in once the page has loaded.
+ * With the "3D animals from pictures" scene, the headline sits at the top and the animals (AnimalsScene) stand
+ * below it on black glass, rising into place once the page has loaded.
  */
-import { animalKinds, type AnimalKind } from '../../../lib/lowpoly-animals';
 import EditableText from '../../site/EditableText.vue';
 import AnimalsScene from './AnimalsScene.vue';
 
@@ -22,7 +21,7 @@ const props = defineProps<{
     color: string;
     look: string;
     scene?: string;
-    animals?: { kind: string }[];
+    animals?: { image: string; size?: number; flip?: boolean; flies?: boolean }[];
   };
   locale: string;
 }>();
@@ -31,10 +30,12 @@ const editing = Boolean(useBlockEditing());
 const reduced = useReducedMotion();
 const root = ref<HTMLElement | null>(null);
 const dark = computed(() => props.p.look !== 'light');
-const kinds = computed(() =>
-  (props.p.animals ?? []).map((a) => a.kind as AnimalKind).filter((k) => (animalKinds as readonly string[]).includes(k)),
+const animals = computed(() =>
+  (props.p.animals ?? [])
+    .filter((a) => a?.image)
+    .map((a) => ({ image: a.image, size: Number(a.size) || 1, flip: Boolean(a.flip), flies: Boolean(a.flies) })),
 );
-const withAnimals = computed(() => props.p.scene === 'animals' && kinds.value.length > 0);
+const withAnimals = computed(() => props.p.scene === 'animals' && animals.value.length > 0);
 const titleWords = computed(() =>
   String(props.p.title ?? '')
     .split(/\s+/)
@@ -213,7 +214,7 @@ onBeforeUnmount(() => {
     <AnimalsScene
       v-if="withAnimals"
       class="pointer-events-none relative -z-10 -mx-6 -mt-6 h-[42vh] min-h-[280px] @3xl:-mx-16 @3xl:-mt-[12vh] @3xl:h-[54vh]"
-      :kinds="kinds"
+      :animals="animals"
       :still="editing || reduced"
     />
 

@@ -403,6 +403,31 @@ await uploadKind('about', '', 'Kasra · About');
 for (const k of KINDS) await uploadKind(k.key, k.dir, `Kasra · ${k.name('en')}`);
 console.log();
 
+/**
+ * The NFT animals cut out of their cards (see scripts/kasra-animals/cut-out.py), for the 3D animals in the hero:
+ * how tall each stands next to the others (from Kasra's group pictures), and which way it faces.
+ */
+const ANIMALS_DIR = new URL('./kasra-animals/', import.meta.url).pathname;
+const heroAnimals = [];
+for (const [name, size, flip, flies] of [
+  ['tiger', 0.62, false, false],
+  ['bear', 1, false, false],
+  ['wolf', 0.55, true, false],
+  ['bull', 0.7, false, false],
+  ['unicorn', 0.95, false, false],
+  ['mammoth', 1.2, false, false],
+  ['rhino', 0.78, false, false],
+  ['owl', 0.5, false, true],
+]) {
+  const image = await upload(
+    () => readFileSync(join(ANIMALS_DIR, `${name}.webp`)),
+    `${name}-cut-out.webp`,
+    'image/webp',
+    'Kasra · 3D animals',
+  );
+  heroAnimals.push({ image, size, flip, flies });
+}
+
 /** A picture's address; also notes that it is used, so the end of the script can prove every picture is. */
 function pic(key, file) {
   const url = pics[key]?.[file];
@@ -519,9 +544,9 @@ const story = (l) => [
       secondButtonLink: '#contact',
       color: '#f5c400',
       look: 'dark',
-      // Kasra's NFT animals as low-poly 3D models, walking in under the headline once the loader is gone.
+      // Kasra's NFT animals made solid in 3D, rising out of black glass under the headline once the loader is gone.
       scene: 'animals',
-      animals: ['owl', 'bull', 'unicorn', 'tiger', 'bear', 'wolf', 'mammoth', 'rhino'].map((kind) => ({ kind })),
+      animals: heroAnimals,
     },
   },
   {
