@@ -886,6 +886,9 @@ const story = (l) => [
       buttonLink: href(kind.nft),
       items: files.nft.filter((f) => f.startsWith('Planet')).map((f) => ({ image: pic('nft', f), icon: '', name: caption('nft', f, l) })),
       seconds: 40,
+      look: '3d',
+      // Each planet picture is a disc about 64% as wide as the square, on a nebula.
+      fill: 62,
     },
   },
   {

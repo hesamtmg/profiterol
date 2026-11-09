@@ -928,6 +928,22 @@ export const animatedDefinitions: BlockDef[] = [
         ],
       },
       { key: 'seconds', label: 'Seconds per turn', type: 'number' },
+      {
+        key: 'look',
+        label: 'Look',
+        type: 'select',
+        help: '3D wraps each logo or photo around a lit, spinning sphere — made for round pictures like planets.',
+        options: [
+          { value: 'flat', label: 'Flat tiles' },
+          { value: '3d', label: '3D spheres' },
+        ],
+      },
+      {
+        key: 'fill',
+        label: 'Planet size in the picture (%)',
+        type: 'number',
+        help: "For the 3D look: how much of each picture's width the round planet takes up. 100 when the picture is just the planet.",
+      },
     ],
     defaults: {
       eyebrow: 'Works with',
@@ -948,6 +964,8 @@ export const animatedDefinitions: BlockDef[] = [
         ['mdi-youtube', 'YouTube'],
       ].map(([icon, name]) => ({ image: '', icon, name })),
       seconds: 40,
+      look: 'flat',
+      fill: 100,
     },
   },
   {
