@@ -425,8 +425,32 @@ for (const [name, size, flip, flies] of [
     'image/webp',
     'Kasra · 3D animals',
   );
-  heroAnimals.push({ image, size, flip, flies });
+  heroAnimals.push({ image, size, flip, flies, name });
 }
+/** The same animals for the animals-and-planets scenes: named, and which way each looks in its picture. */
+const ANIMAL_NAMES = {
+  tiger: t('Tiger', 'ببر'),
+  bear: t('Bear', 'خرس'),
+  wolf: t('Wolf', 'گرگ'),
+  bull: t('Bull', 'گاو نر'),
+  unicorn: t('Unicorn', 'تک‌شاخ'),
+  mammoth: t('Mammoth', 'ماموت'),
+  rhino: t('Rhino', 'کرگدن'),
+  owl: t('Owl', 'جغد'),
+};
+const LOOKS_RIGHT = new Set(['tiger', 'bear']);
+const cosmosAnimals = (l) =>
+  heroAnimals.map(({ image, size, flies, name }) => ({
+    image,
+    name: ANIMAL_NAMES[name](l),
+    size,
+    faces: LOOKS_RIGHT.has(name) ? 'right' : 'left',
+    flies,
+  }));
+
+/** The eight NFT planets, named, for the animals-and-planets scenes. DV-1958 first: it is the ground of the horizon. */
+const nftPlanets = (l) =>
+  files.nft.filter((f) => f.startsWith('Planet')).map((f) => ({ image: pic('nft', f), name: caption('nft', f, l) }));
 
 /** A picture's address; also notes that it is used, so the end of the script can prove every picture is. */
 function pic(key, file) {
@@ -546,7 +570,7 @@ const story = (l) => [
       look: 'dark',
       // Kasra's NFT animals made solid in 3D, rising out of black glass under the headline once the loader is gone.
       scene: 'animals',
-      animals: heroAnimals,
+      animals: heroAnimals.map(({ image, size, flip, flies }) => ({ image, size, flip, flies })),
     },
   },
   {
@@ -904,18 +928,68 @@ const story = (l) => [
     },
   },
   {
-    id: 'planets',
-    type: 'orbit',
+    id: 'worlds',
+    type: 'cosmos-3d',
     props: {
       eyebrow: t('NFT', 'ان‌اف‌تی')(l),
+      title: t('Every animal has its own planet', 'هر حیوان سیاره‌ی خودش را دارد')(l),
+      text: t(
+        'Kasra’s low poly animals, each on one of his imaginary planets.',
+        'حیوانات لوپلی کسری، هر کدام روی یکی از سیاره‌های خیالی‌اش.',
+      )(l),
+      buttonLabel: '',
+      buttonLink: '',
+      scene: 'worlds',
+      planets: nftPlanets(l),
+      animals: cosmosAnimals(l),
+      fill: 62,
+    },
+  },
+  {
+    id: 'horizon',
+    type: 'cosmos-3d',
+    props: {
+      eyebrow: '',
+      title: t('A walk on Planet DV-1958', 'قدم‌زدن روی سیاره‌ی DV-1958')(l),
+      text: t('Scroll, and the planet turns under their feet.', 'اسکرول کنید تا سیاره زیر پایشان بچرخد.')(l),
+      buttonLabel: '',
+      buttonLink: '',
+      scene: 'horizon',
+      planets: nftPlanets(l),
+      animals: cosmosAnimals(l),
+      fill: 62,
+    },
+  },
+  {
+    id: 'planets',
+    type: 'cosmos-3d',
+    props: {
+      eyebrow: '',
       title: t('A small solar system', 'یک منظومه‌ی کوچک')(l),
-      text: t('Eight imaginary planets, each with a code name and a year.', 'هشت سیاره‌ی خیالی، هر کدام با یک رمز و یک سال.')(l),
+      text: t(
+        'Eight imaginary planets, each with a code name and a year, and a rider on each.',
+        'هشت سیاره‌ی خیالی، هر کدام با یک رمز و یک سال، و یک سوار روی هر کدام.',
+      )(l),
+      buttonLabel: '',
+      buttonLink: '',
+      scene: 'parade',
+      planets: nftPlanets(l),
+      animals: cosmosAnimals(l),
+      fill: 62,
+    },
+  },
+  {
+    id: 'journey',
+    type: 'cosmos-3d',
+    props: {
+      eyebrow: t('NFT', 'ان‌اف‌تی')(l),
+      title: t('A trip through the NFTs', 'سفری میان ان‌اف‌تی‌ها')(l),
+      text: t('From planet to planet, meeting the animals on the way.', 'از سیاره‌ای به سیاره‌ی دیگر، و دیدار با حیوانات در راه.')(l),
       buttonLabel: t('See every NFT', 'دیدن همه‌ی ان‌اف‌تی‌ها')(l),
       buttonLink: href(kind.nft),
-      items: files.nft.filter((f) => f.startsWith('Planet')).map((f) => ({ image: pic('nft', f), icon: '', name: caption('nft', f, l) })),
-      seconds: 40,
-      look: '3d',
-      // Each planet picture is a disc about 64% as wide as the square, on a nebula.
+      scene: 'journey',
+      planets: nftPlanets(l),
+      animals: cosmosAnimals(l),
       fill: 62,
     },
   },

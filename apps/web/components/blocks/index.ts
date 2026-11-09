@@ -43,6 +43,7 @@ import ExpandingPanels from './animated/ExpandingPanels.vue';
 import ProgressBars from './animated/ProgressBars.vue';
 import PictureText from './animated/PictureText.vue';
 import Orbit from './animated/Orbit.vue';
+import Cosmos3d from './animated/Cosmos3d.vue';
 import CardFan from './animated/CardFan.vue';
 import PhotoColumns from './animated/PhotoColumns.vue';
 import BlueprintStatement from './studio/BlueprintStatement.vue';
@@ -145,6 +146,7 @@ export const blockComponents: Record<string, Component> = {
   'progress-bars': ProgressBars,
   'picture-text': PictureText,
   orbit: Orbit,
+  'cosmos-3d': Cosmos3d,
   'card-fan': CardFan,
   'photo-columns': PhotoColumns,
   // The awakeagency.dev look
