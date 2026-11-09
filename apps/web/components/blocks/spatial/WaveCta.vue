@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Giant chunky words on the main color, one letter swapped for a spinning shape (the "O" of "TOUCH"); each letter
- * hops when pointed at. The bottom edge can be a row of waves melting into a dark block below, like the footer.
+ * hops when pointed at (in Persian and other joined scripts, each word, with the shape between words). The bottom edge can be a row of waves melting into a dark block below, like the footer.
  */
 import EditableText from '../../site/EditableText.vue';
 import SpatialShape from './SpatialShape.vue';
@@ -30,6 +30,13 @@ const words = computed(() => {
   });
   return out.filter((w) => w.length);
 });
+/**
+ * Persian, Arabic and other joined scripts lose their joins when every letter is its own box, so there the words stay
+ * whole (each word hops) and the shape sits between the first and second word instead of replacing a letter.
+ */
+const joined = computed(() => /[\p{Script=Arabic}\p{Script=Syriac}\p{Script=Nko}\p{Script=Mongolian}]/u.test(props.p.title));
+const joinedWords = computed(() => props.p.title.split(/\s+/).filter(Boolean));
+const joinedShapeAt = computed(() => (props.p.letter.trim() ? Math.min(1, joinedWords.value.length) : -1));
 /** Ten round bumps along the bottom, filled in the dark color. */
 const wavePath = `M0 40 V30 ${Array.from({ length: 10 }, (_, i) => {
   const x = i * 100;
@@ -48,6 +55,21 @@ const href = computed(() => (props.p.link && !editing ? resolveHref(props.p.link
     >
       <h2 v-if="editing" class="wave-words font-black uppercase leading-[0.9] tracking-tight">
         <EditableText :value="p.title" path="title" placeholder="Words" />
+      </h2>
+      <h2
+        v-else-if="joined"
+        class="wave-words mx-auto flex max-w-[11em] flex-wrap items-center justify-center gap-x-[0.28em] font-black leading-[1.15]"
+      >
+        <span class="sr-only">{{ p.title }}</span>
+        <template v-for="(word, w) in joinedWords" :key="w">
+          <span v-if="w === joinedShapeAt" class="hop inline-block h-[0.74em] w-[0.74em]" aria-hidden="true">
+            <SpatialShape :shape="p.shape" spin :seconds="10" />
+          </span>
+          <span class="hop inline-block" aria-hidden="true">{{ word }}</span>
+        </template>
+        <span v-if="joinedShapeAt === joinedWords.length" class="hop inline-block h-[0.74em] w-[0.74em]" aria-hidden="true">
+          <SpatialShape :shape="p.shape" spin :seconds="10" />
+        </span>
       </h2>
       <h2 v-else class="wave-words mx-auto flex max-w-[11em] flex-wrap justify-center gap-x-[0.28em] font-black uppercase leading-[0.9]">
         <span class="sr-only">{{ p.title }}</span>
