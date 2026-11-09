@@ -3,8 +3,9 @@
  * The 3D look of the orbit block: a small solar system seen in perspective from above and in front. Each picture
  * becomes a globe (see lib/planet-globe) with a little relief and a glowing atmosphere, spinning on its own tilted
  * axis while the two dashed orbits carry the planets round in opposite directions; on a dark background a few stars
- * drift behind. Moving the pointer swings the camera a little; pointing at the system stops the orbits (the planets
- * keep spinning) and names the planet under the pointer. Three.js is only downloaded by pages that use this look.
+ * drift behind. Each planet can be grabbed and turned by hand, and keeps turning for a moment when let go. Moving
+ * the pointer swings the camera a little; pointing at the system stops the orbits (the planets keep spinning) and
+ * names the planet under the pointer. Three.js is only downloaded by pages that use this look.
  * While `still` (the editor, or a visitor who asked for less motion) one frame is drawn and nothing moves. Emits
  * `ready` once the first frame with its pictures is on screen, and `failed` when the browser can't draw WebGL.
  */
@@ -105,13 +106,15 @@ onMounted(async () => {
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60);
   let distance = 4;
 
-  // Light comes from the middle of the system, like a sun, with soft fill so the far sides aren't black.
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x404060, dark ? 0.9 : 1.3));
-  const sun = new THREE.PointLight(0xfff4e0, 3.2, 0, 0);
-  scene.add(sun);
-  const key = new THREE.DirectionalLight(0xffffff, 0.8);
-  key.position.set(-2, 3, 2);
+  // Real shading, so each planet reads as a ball: a strong light from the upper left gives every planet a lit side,
+  // a soft shadow side and a glossy highlight; a warm light in the middle of the system, like a sun, catches the
+  // sides facing it; and only a little fill, so the shadow sides stay dark without going black.
+  scene.add(new THREE.HemisphereLight(0xdde4ff, 0x10101a, dark ? 0.35 : 0.7));
+  const key = new THREE.DirectionalLight(0xffffff, 3);
+  key.position.set(-2.5, 3, 2.2);
   scene.add(key);
+  const sun = new THREE.PointLight(0xffd9a0, 2.2, 0, 0);
+  scene.add(sun);
 
   const ringColor = new THREE.Color(ringTone.value ? getComputedStyle(ringTone.value).color : '#cbd5e1');
   const accent = new THREE.Color(accentTone.value ? getComputedStyle(accentTone.value).color : '#6366f1');
@@ -132,12 +135,20 @@ onMounted(async () => {
     direction: number;
     speed: number;
     spin: number;
+    /** Extra turn from being dragged, in radians per second round the camera's up and right axes; it dies away. */
+    fling: Three.Vector2;
     name: string;
   }
   const planets: Planet[] = [];
 
   function makePlanet(item: Item, size: number) {
-    const material = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, color: item.image ? 0xffffff : accent });
+    const material = new THREE.MeshPhysicalMaterial({
+      roughness: 0.62,
+      metalness: 0,
+      clearcoat: 0.5,
+      clearcoatRoughness: 0.3,
+      color: item.image ? 0xffffff : accent,
+    });
     const glowMaterial = new THREE.ShaderMaterial({
       vertexShader: ATMOSPHERE_VERTEX,
       fragmentShader: ATMOSPHERE_FRAGMENT,
@@ -219,6 +230,7 @@ onMounted(async () => {
         direction: ring.direction,
         speed: ring.speed,
         spin: 0.25 + hash(seed + 11) * 0.3,
+        fling: new THREE.Vector2(),
         name: item.name,
       });
     });
@@ -308,29 +320,82 @@ onMounted(async () => {
   const pointer = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
   let hovering = false;
-  function pick() {
+  let grabbed: { planet: Planet; x: number; y: number; time: number } | null = null;
+  function planetAt() {
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(
       planets.map((p) => p.body),
       false,
     )[0];
-    const planet = hit && planets.find((p) => p.body === hit.object);
+    return hit && planets.find((p) => p.body === hit.object);
+  }
+  function pick() {
+    const planet = grabbed?.planet ?? planetAt();
+    el.style.cursor = grabbed ? 'grabbing' : planet ? 'grab' : '';
     if (!planet?.name) return (label.value = null);
     const at = planet.holder.position.clone();
     at.y -= planet.glow.scale.x * 1.25;
     at.project(camera);
     label.value = { name: planet.name, x: (at.x + 1) * 50, y: (1 - at.y) * 50 };
   }
+  /** Turn a planet's globe round an axis given in world space (its parents are tilted, so convert first). */
+  const turnAxis = new THREE.Vector3();
+  const parentTurn = new THREE.Quaternion();
+  const turn = new THREE.Quaternion();
+  function spinBy(planet: Planet, axis: Three.Vector3, angle: number) {
+    planet.body.parent!.getWorldQuaternion(parentTurn).invert();
+    turnAxis.copy(axis).applyQuaternion(parentTurn).normalize();
+    planet.body.quaternion.premultiply(turn.setFromAxisAngle(turnAxis, angle));
+  }
+  const up = new THREE.Vector3();
+  const right = new THREE.Vector3();
+  function spinFromScreen(planet: Planet, dx: number, dy: number) {
+    up.set(0, 1, 0).applyQuaternion(camera.quaternion);
+    right.set(1, 0, 0).applyQuaternion(camera.quaternion);
+    spinBy(planet, up, dx);
+    spinBy(planet, right, dy);
+  }
+
+  // Grab a planet to turn it by hand; let go and it keeps turning for a moment.
+  function down(e: PointerEvent) {
+    move(e);
+    const planet = planetAt();
+    if (!planet) return;
+    grabbed = { planet, x: e.clientX, y: e.clientY, time: performance.now() };
+    planet.fling.set(0, 0);
+    el.setPointerCapture(e.pointerId);
+    pick();
+  }
+  function release(e: PointerEvent) {
+    if (!grabbed) return;
+    grabbed = null;
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+    pick();
+    start();
+  }
   function move(e: PointerEvent) {
     const rect = el.getBoundingClientRect();
     pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
-    hovering = e.pointerType === 'mouse';
+    hovering = e.pointerType === 'mouse' || Boolean(grabbed);
+    if (grabbed) {
+      // A drag across the planet's width turns it about half way round.
+      const perPixel = 3 / Math.max(rect.width * grabbed.planet.body.scale.x, 1);
+      const dx = (e.clientX - grabbed.x) * perPixel;
+      const dy = (e.clientY - grabbed.y) * perPixel;
+      const now = performance.now();
+      const dt = Math.max((now - grabbed.time) / 1000, 1 / 120);
+      spinFromScreen(grabbed.planet, dx, dy);
+      grabbed.planet.fling.set(dx / dt, dy / dt).clampLength(0, 12);
+      Object.assign(grabbed, { x: e.clientX, y: e.clientY, time: now });
+      if (props.still) redraw();
+    }
     view.toAzimuth = pointer.x * SWING.azimuth;
     view.toElevation = ELEVATION + pointer.y * SWING.elevation;
     pick();
     if (props.still) redraw();
   }
   function leave() {
+    if (grabbed) return;
     hovering = false;
     view.toAzimuth = 0;
     view.toElevation = ELEVATION;
@@ -338,6 +403,9 @@ onMounted(async () => {
   }
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerleave', leave);
+  el.addEventListener('pointerdown', down);
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
 
   // The clock only runs while the system is on screen and allowed to move.
   let visible = true;
@@ -351,7 +419,15 @@ onMounted(async () => {
     last = now;
     if (!hovering) orbitTime += dt;
     place(orbitTime);
-    for (const p of planets) p.body.rotation.y += dt * p.spin;
+    for (const p of planets) {
+      if (p !== grabbed?.planet) {
+        p.body.rotateY(dt * p.spin);
+        if (p.fling.lengthSq() > 1e-4) {
+          spinFromScreen(p, p.fling.x * dt, p.fling.y * dt);
+          p.fling.multiplyScalar(Math.exp(-dt * 2.5));
+        }
+      }
+    }
     const ease = 1 - Math.exp(-dt * 4);
     view.azimuth += (view.toAzimuth - view.azimuth) * ease;
     view.elevation += (view.toElevation - view.elevation) * ease;
@@ -398,6 +474,9 @@ onMounted(async () => {
     sized.disconnect();
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerleave', leave);
+    el.removeEventListener('pointerdown', down);
+    el.removeEventListener('pointerup', release);
+    el.removeEventListener('pointercancel', release);
     disposables.forEach((d) => d.dispose());
     renderer.dispose();
   };
@@ -414,7 +493,7 @@ onBeforeUnmount(() => dispose());
 </script>
 
 <template>
-  <div ref="box" class="absolute inset-[-6%] transition-opacity duration-700" :class="ready ? 'opacity-100' : 'opacity-0'">
+  <div ref="box" class="absolute inset-[-6%] touch-pan-y transition-opacity duration-700" :class="ready ? 'opacity-100' : 'opacity-0'">
     <canvas ref="canvas" class="block h-full w-full" aria-hidden="true" />
     <span ref="ringTone" class="hidden text-slate-300" />
     <span ref="accentTone" class="hidden text-primary" />
