@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * The 3D look of the orbit block: a small solar system seen in perspective from above and in front. Each picture
- * becomes a globe (see lib/planet-globe) with a little relief and a glowing atmosphere, spinning on its own tilted
+ * becomes a globe (see lib/planet-kit) with a little relief and a glowing atmosphere, spinning on its own tilted
  * axis while the two dashed orbits carry the planets round in opposite directions; on a dark background a few stars
  * drift behind. Each planet can be grabbed and turned by hand, and keeps turning for a moment when let go. Moving
  * the pointer swings the camera a little; pointing at the system stops the orbits (the planets keep spinning) and
@@ -10,7 +10,7 @@
  * `ready` once the first frame with its pictures is on screen, and `failed` when the browser can't draw WebGL.
  */
 import type * as Three from 'three';
-import { planetSurface } from '../../../lib/planet-globe';
+import { hash, onDarkBackground, planetKit } from '../../../lib/planet-kit';
 
 interface Item {
   image: string;
@@ -46,46 +46,6 @@ function split(items: Item[]) {
   ].filter((r) => r.items.length);
 }
 
-/** A steady pseudo-random number in 0…1 for planet `i` of orbit `r`, so sizes and tilts don't change on reload. */
-const hash = (n: number) => {
-  const x = Math.sin(n * 12.9898) * 43758.5453;
-  return x - Math.floor(x);
-};
-
-/** True when the nearest painted background behind `el` is dark. */
-function onDark(el: HTMLElement) {
-  for (let node: HTMLElement | null = el; node; node = node.parentElement) {
-    const m = getComputedStyle(node).backgroundColor.match(/[\d.]+/g);
-    if (!m || (m[3] !== undefined && Number(m[3]) < 0.5)) continue;
-    const [r, g, b] = m.map(Number) as [number, number, number];
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 110;
-  }
-  return false;
-}
-
-const ATMOSPHERE_VERTEX = /* glsl */ `
-  varying vec3 vNormal;
-  varying vec3 vView;
-  void main() {
-    vec4 world = modelViewMatrix * vec4(position, 1.0);
-    vNormal = normalize(normalMatrix * normal);
-    vView = normalize(-world.xyz);
-    gl_Position = projectionMatrix * world;
-  }
-`;
-const ATMOSPHERE_FRAGMENT = /* glsl */ `
-  uniform vec3 glow;
-  uniform float strength;
-  varying vec3 vNormal;
-  varying vec3 vView;
-  void main() {
-    // Seen from outside, the shell's inner faces run from the planet's edge (facing the viewer about halfway) to the
-    // shell's own edge (side on): brightest against the planet, fading to nothing at the edge.
-    float hug = clamp(abs(dot(vNormal, vView)) / 0.5, 0.0, 1.0);
-    gl_FragColor = vec4(glow, hug * hug * strength);
-  }
-`;
-
 onMounted(async () => {
   let THREE: typeof Three;
   let renderer: Three.WebGLRenderer;
@@ -100,30 +60,17 @@ onMounted(async () => {
   const el = box.value;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
-  const dark = onDark(el);
+  const dark = onDarkBackground(el);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60);
   let distance = 4;
 
-  // Real shading, so each planet reads as a ball: a strong light from the upper left gives every planet a lit side,
-  // a soft shadow side and a glossy highlight; a warm light in the middle of the system, like a sun, catches the
-  // sides facing it; and only a little fill, so the shadow sides stay dark without going black.
-  scene.add(new THREE.HemisphereLight(0xdde4ff, 0x10101a, dark ? 0.35 : 0.7));
-  const key = new THREE.DirectionalLight(0xffffff, 3);
-  key.position.set(-2.5, 3, 2.2);
-  scene.add(key);
-  const sun = new THREE.PointLight(0xffd9a0, 2.2, 0, 0);
-  scene.add(sun);
-
   const ringColor = new THREE.Color(ringTone.value ? getComputedStyle(ringTone.value).color : '#cbd5e1');
   const accent = new THREE.Color(accentTone.value ? getComputedStyle(accentTone.value).color : '#6366f1');
   const fill = Math.min(Math.max(Number(props.fill) || 100, 10), 100) / 100;
-  const sphere = new THREE.SphereGeometry(1, 96, 64);
-  const halo = new THREE.SphereGeometry(1.16, 48, 32);
-  const disposables: { dispose(): void }[] = [sphere, halo];
-  const loader = new THREE.ImageLoader();
-  loader.setCrossOrigin('anonymous');
+  const kit = planetKit(THREE, renderer, { fill, accent, dark });
+  kit.light(scene);
   const loads: Promise<unknown>[] = [];
 
   interface Planet {
@@ -140,51 +87,6 @@ onMounted(async () => {
     name: string;
   }
   const planets: Planet[] = [];
-
-  function makePlanet(item: Item, size: number) {
-    const material = new THREE.MeshPhysicalMaterial({
-      roughness: 0.62,
-      metalness: 0,
-      clearcoat: 0.5,
-      clearcoatRoughness: 0.3,
-      color: item.image ? 0xffffff : accent,
-    });
-    const glowMaterial = new THREE.ShaderMaterial({
-      vertexShader: ATMOSPHERE_VERTEX,
-      fragmentShader: ATMOSPHERE_FRAGMENT,
-      uniforms: { glow: { value: accent.clone() }, strength: { value: 0.9 } },
-      side: THREE.BackSide,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    disposables.push(material, glowMaterial);
-    if (item.image) {
-      loads.push(
-        loader
-          .loadAsync(item.image)
-          .then((image) => {
-            const surface = planetSurface(image, fill);
-            const texture = new THREE.CanvasTexture(surface.canvas);
-            texture.colorSpace = THREE.SRGBColorSpace;
-            texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
-            material.map = texture;
-            // The picture's own light and dark doubles as a height map, for a little relief.
-            material.bumpMap = texture;
-            material.bumpScale = 2.5;
-            material.needsUpdate = true;
-            glowMaterial.uniforms.glow!.value.setRGB(...surface.color, THREE.SRGBColorSpace).multiplyScalar(1.6);
-            disposables.push(texture);
-          })
-          .catch(() => material.color.copy(accent)),
-      );
-    }
-    const body = new THREE.Mesh(sphere, material);
-    const glow = new THREE.Mesh(halo, glowMaterial);
-    body.scale.setScalar(size);
-    glow.scale.setScalar(size);
-    return { body, glow };
-  }
 
   const PLANET = 0.13;
   let reach = 0;
@@ -204,13 +106,15 @@ onMounted(async () => {
     const line = new THREE.Line(lineGeometry, lineMaterial);
     line.computeLineDistances();
     scene.add(line);
-    disposables.push(lineGeometry, lineMaterial);
+    kit.keep(lineGeometry);
+    kit.keep(lineMaterial);
 
     ring.items.forEach((item, i) => {
       const seed = r * 10 + i + 1;
       const size = PLANET * (0.85 + hash(seed) * 0.35);
       reach = Math.max(reach, ring.radius + size * 1.2);
-      const { body, glow } = makePlanet(item, size);
+      const { body, glow, loaded } = kit.make(item.image, size);
+      loads.push(loaded);
       // Tip each planet's axis back toward the camera, so it shows its equator rather than a pole, plus a little lean.
       const pivot = new THREE.Group();
       pivot.rotation.set(-ELEVATION + (hash(seed + 7) - 0.5) * 0.3, 0, (hash(seed + 3) - 0.5) * 0.6);
@@ -250,7 +154,8 @@ onMounted(async () => {
     starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.55 });
     scene.add(new THREE.Points(starGeometry, starMaterial));
-    disposables.push(starGeometry, starMaterial);
+    kit.keep(starGeometry);
+    kit.keep(starMaterial);
   }
 
   function place(time: number) {
@@ -477,7 +382,7 @@ onMounted(async () => {
     el.removeEventListener('pointerdown', down);
     el.removeEventListener('pointerup', release);
     el.removeEventListener('pointercancel', release);
-    disposables.forEach((d) => d.dispose());
+    kit.dispose();
     renderer.dispose();
   };
 

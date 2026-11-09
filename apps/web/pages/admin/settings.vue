@@ -57,6 +57,7 @@ const loaderStyleOptions: { value: LoaderStyle; label: string }[] = [
   { value: 'pulse', label: 'Pulsing circles' },
   { value: 'typing', label: 'Site name typed letter by letter' },
   { value: 'curtain', label: 'Curtain opening on the site' },
+  { value: 'planets', label: '3D planets gathering round the counter' },
 ];
 
 const cssPlaceholder = '.site h1 {\n  letter-spacing: -0.02em;\n}';
@@ -365,6 +366,42 @@ onMounted(load);
             :field="imageField('loaderBgMobile', $t('Background picture on phones (empty: the same picture)'))"
           />
           <FieldInput v-model="settings.loader.logo" :field="imageField('loaderLogo', $t('Loader logo (empty: the site logo)'))" />
+          <div v-if="settings.loader.style === 'planets'" class="sm:col-span-2">
+            <p class="field-label">{{ $t('Planet pictures (round planets, up to 8)') }}</p>
+            <div class="grid gap-3 sm:grid-cols-4">
+              <div v-for="(_, i) in settings.loader.planets" :key="i" class="relative">
+                <FieldInput v-model="settings.loader.planets[i]" :field="imageField(`loaderPlanet${i}`, $t('Planet {n}', { n: i + 1 }))" />
+                <button
+                  type="button"
+                  class="absolute end-0 top-0 text-xs text-slate-400 hover:text-red-600"
+                  :aria-label="$t('Remove')"
+                  @click="settings.loader.planets.splice(i, 1)"
+                >
+                  <i class="mdi mdi-close" />
+                </button>
+              </div>
+            </div>
+            <button
+              v-if="settings.loader.planets.length < 8"
+              type="button"
+              class="btn-light mt-2"
+              @click="settings.loader.planets.push('')"
+            >
+              <i class="mdi mdi-plus" /> {{ $t('Add a planet') }}
+            </button>
+            <label class="field-label mt-3" for="loader-planet-fill">{{
+              $t('Planet size in the picture: {n}%', { n: settings.loader.planetFill })
+            }}</label>
+            <input
+              id="loader-planet-fill"
+              v-model.number="settings.loader.planetFill"
+              type="range"
+              min="30"
+              max="100"
+              step="1"
+              class="w-full"
+            />
+          </div>
           <div class="space-y-1.5 sm:col-span-2 sm:grid sm:grid-cols-3 sm:gap-3 sm:space-y-0">
             <div v-for="c in loaderColorFields" :key="c.key" class="flex items-center gap-2.5">
               <input

@@ -15,7 +15,7 @@ export interface SavedTheme {
 }
 
 /** How the loading screen looks. */
-export const loaderStyles = ['percent', 'bar', 'name', 'logo', 'spinner', 'dots', 'curtain', 'typing', 'pulse'] as const;
+export const loaderStyles = ['percent', 'bar', 'name', 'logo', 'spinner', 'dots', 'curtain', 'typing', 'pulse', 'planets'] as const;
 export type LoaderStyle = (typeof loaderStyles)[number];
 
 /** How big the loader's name, counter and logo are drawn. */
@@ -51,6 +51,10 @@ export interface LoaderSettings {
   minSeconds: number;
   /** Do not show it on phones (narrow screens). */
   hideOnMobile: boolean;
+  /** The "3D planets" style: round pictures of planets (up to 8) that gather round the counter as the page loads. */
+  planets: string[];
+  /** How much of each planet picture's width the round planet takes up (10–100, %). */
+  planetFill: number;
 }
 
 export const defaultLoader: LoaderSettings = {
@@ -69,6 +73,8 @@ export const defaultLoader: LoaderSettings = {
   logo: '',
   minSeconds: 1.2,
   hideOnMobile: false,
+  planets: [],
+  planetFill: 100,
 };
 
 /** Font names end up in CSS, so only letters (any script), digits, spaces, dashes and underscores. */
@@ -171,6 +177,11 @@ export function cleanLoader(input: unknown): LoaderSettings {
     logo: pick(src.logo, LOADER_PICTURE),
     minSeconds: Math.round(clampNumber(src.minSeconds, 0.5, 6, defaultLoader.minSeconds) * 10) / 10,
     hideOnMobile: src.hideOnMobile === true,
+    planets: (Array.isArray(src.planets) ? src.planets : [])
+      .map((v) => pick(v, LOADER_PICTURE))
+      .filter(Boolean)
+      .slice(0, 8),
+    planetFill: Math.round(clampNumber(src.planetFill, 10, 100, defaultLoader.planetFill)),
   };
 }
 

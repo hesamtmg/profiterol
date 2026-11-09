@@ -193,7 +193,7 @@ $C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -v /opt/kasra/kasra-app/public/
   -e API_URL=http://api:3001/api -e SITE=kasradesignstudio.com api node /seed/seed-kasra.mjs --images /kasra --home
 ```
 
-`SITE` picks the site when one install runs several sites; leave it out otherwise. Without `--home` the story goes on a separate page, `/fa/kasra` and `/en/kasra`, with the colors set on the pages only. With `--home` it goes on the home page, and the script also sets the site name, a transparent copy of Kasra's logo, the favicon, the menu, the yellow and graphite colors, and the contact details. Running it again updates the same pages and does not upload the pictures twice. Add `--dry-run` to check the pictures and build the pages without signing in.
+`SITE` picks the site when one install runs several sites; leave it out otherwise. Without `--home` the story goes on a separate page, `/fa/kasra` and `/en/kasra`, with the colors set on the pages only. With `--home` it goes on the home page, and the script also sets the site name, a transparent copy of Kasra's logo, the favicon, the menu, the yellow and graphite colors, the contact details, and the loading screen (the eight NFT planets gathering round the counter in 3D). Running it again updates the same pages and does not upload the pictures twice. Add `--dry-run` to check the pictures and build the pages without signing in.
 
 From your own computer instead:
 
