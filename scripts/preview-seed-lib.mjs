@@ -201,9 +201,10 @@ export async function ownLogo(dir) {
 
 /**
  * The page loader: the company's logo in a ring that fills up as the page loads, over a real photo that starts blurred
- * and sharpens, with a short line under it. Shown once per visit, for at least `minSeconds`.
+ * and sharpens, with a short line under it. Shown once per visit, for at least `minSeconds`. Other fields of the
+ * loader can be passed to change it (e.g. `style: 'pulse'`).
  */
-export const loaderWith = ({ logo, background, text, dark }) => ({
+export const loaderWith = ({ logo, background, text, dark, ...more }) => ({
   enabled: true,
   style: 'logo',
   text,
@@ -219,4 +220,6 @@ export const loaderWith = ({ logo, background, text, dark }) => ({
   logo,
   minSeconds: 1.8,
   hideOnMobile: false,
+  // Anything else (style, textColor, overlay…) as the site wants it.
+  ...more,
 });
