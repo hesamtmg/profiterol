@@ -23,7 +23,7 @@
  * preview-seed-lib.mjs for the connection settings and DEPLOY.md, "Aghaj Holding and Setareh Shargh", for running it.
  */
 import { fileURLToPath } from 'node:url';
-import { connect, creditBlocks, faDigits, loadSharp, ownLogo, publishPage, t, uploadPhotos } from './preview-seed-lib.mjs';
+import { connect, creditBlocks, faDigits, loadSharp, loaderWith, ownLogo, publishPage, t, uploadPhotos } from './preview-seed-lib.mjs';
 
 const ctx = await connect({
   name: 'Aghaj Holding',
@@ -717,11 +717,19 @@ const theme = {
 
 if (ctx.home) {
   const settings = await ctx.api('GET', '/admin/settings');
+  const logoUrl = await logo()
+    .then(({ bytes, name, type }) => ctx.upload(bytes, name, type))
+    .then((m) => m.url);
   await ctx.api('PUT', '/admin/settings', {
     siteName: { fa: 'هلدینگ آغاج', en: 'Aghaj Holding' },
-    logo: await logo()
-      .then(({ bytes, name, type }) => ctx.upload(bytes, name, type))
-      .then((m) => m.url),
+    logo: logoUrl,
+    // While a page loads: the logo in a filling ring over a real photo that sharpens.
+    loader: loaderWith({
+      logo: logoUrl,
+      background: img.hero,
+      text: { fa: 'هلدینگ سرمایه‌گذاری آغاج · ملک، واردات، مشاوره', en: 'Aghaj Investment Holding · property, imports, consulting' },
+      dark: theme.dark,
+    }),
     theme: { ...settings.theme, ...theme },
     // The header floats over the photo slider (and over the photo that opens the credits page).
     header: { ...settings.header, overlay: true },

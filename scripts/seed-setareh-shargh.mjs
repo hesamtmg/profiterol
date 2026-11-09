@@ -20,7 +20,7 @@
  * settings and DEPLOY.md, "Aghaj Holding and Setareh Shargh", for running it on the server.
  */
 import { fileURLToPath } from 'node:url';
-import { connect, creditBlocks, faDigits, loadSharp, ownLogo, publishPage, t, uploadPhotos } from './preview-seed-lib.mjs';
+import { connect, creditBlocks, faDigits, loadSharp, loaderWith, ownLogo, publishPage, t, uploadPhotos } from './preview-seed-lib.mjs';
 
 const ctx = await connect({
   name: 'Gostaresh Protein',
@@ -851,11 +851,19 @@ const theme = {
 
 if (ctx.home) {
   const settings = await ctx.api('GET', '/admin/settings');
+  const logoUrl = await logo()
+    .then(({ bytes, name, type }) => ctx.upload(bytes, name, type))
+    .then((m) => m.url);
   await ctx.api('PUT', '/admin/settings', {
     siteName: { fa: 'گسترش پروتئین', en: 'Gostaresh Protein' },
-    logo: await logo()
-      .then(({ bytes, name, type }) => ctx.upload(bytes, name, type))
-      .then((m) => m.url),
+    logo: logoUrl,
+    // While a page loads: the logo in a filling ring over a real photo that sharpens.
+    loader: loaderWith({
+      logo: logoUrl,
+      background: img.nelore,
+      text: { fa: 'گسترش پروتئین · از چراگاه‌های برزیل تا سفره‌های ایران', en: 'Gostaresh Protein · from the pastures of Brazil to Iran' },
+      dark: theme.dark,
+    }),
     theme: { ...settings.theme, ...theme },
     defaultLocale: 'fa',
     menu: [

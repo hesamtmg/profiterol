@@ -198,3 +198,25 @@ export async function ownLogo(dir) {
   }
   return null;
 }
+
+/**
+ * The page loader: the company's logo in a ring that fills up as the page loads, over a real photo that starts blurred
+ * and sharpens, with a short line under it. Shown once per visit, for at least `minSeconds`.
+ */
+export const loaderWith = ({ logo, background, text, dark }) => ({
+  enabled: true,
+  style: 'logo',
+  text,
+  background,
+  backgroundMobile: '',
+  oncePerSession: true,
+  textColor: '',
+  accentColor: '',
+  backgroundColor: dark,
+  overlay: 55,
+  blur: true,
+  size: 'large',
+  logo,
+  minSeconds: 1.8,
+  hideOnMobile: false,
+});
