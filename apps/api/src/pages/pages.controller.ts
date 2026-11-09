@@ -8,6 +8,8 @@ import { AuthGuard, type AuthUser } from '../auth/auth.guard';
 type Authed = { user: AuthUser };
 import { AddBlocksDto, CreatePageDto, UpdatePageDto } from './pages.dto';
 import { PagesService } from './pages.service';
+import { BlockAccessService } from '../sites/block-access';
+import { currentSiteId } from '../sites/site-context';
 
 /** Public, read-only endpoints used by the site renderer. */
 @Controller('public')
@@ -41,11 +43,13 @@ export class AdminPagesController {
   constructor(
     private readonly pages: PagesService,
     private readonly customBlocks: CustomBlocksService,
+    private readonly blockAccess: BlockAccessService,
   ) {}
 
   /**
    * Block registry and locales, so the editor always matches what the API accepts. `custom`: the site's approved
-   * custom blocks, with where to load each one's code.
+   * custom blocks, with where to load each one's code. `hidden`: built-in blocks the owner has not allowed on this
+   * site (Admin → Components), left out of the editor's block library.
    */
   @Get('schema')
   async schema() {
@@ -53,6 +57,7 @@ export class AdminPagesController {
     return {
       blocks,
       locales,
+      hidden: await this.blockAccess.hiddenFor(currentSiteId()),
       custom: custom.flatMap((b) =>
         b.live && b.status === 'live' ? [{ def: withCommonFields(b.live.def), url: moduleUrl(b.id, b.live.hash) }] : [],
       ),

@@ -119,16 +119,22 @@ const categories: { key: BlockCategory; label: string }[] = [
 
 /** The site's approved custom blocks (made with the AI block builder), from the API. */
 const customDefs = ref<BlockDef[]>([]);
+/** Built-in blocks the owner has not allowed on this site (Admin → Components). */
+const hiddenBlocks = ref<string[]>([]);
 const libraryFor = (category: BlockCategory) =>
   category === 'custom'
     ? customDefs.value
     : // The print designer is only on sites the owner has allowed it on.
-      blockDefs.filter((b) => b.category === category && (printDesigner.value || !designBlockTypes.includes(b.type)));
+      blockDefs.filter(
+        (b) =>
+          b.category === category && !hiddenBlocks.value.includes(b.type) && (printDesigner.value || !designBlockTypes.includes(b.type)),
+      );
 
 /** Makes the site's custom blocks known to the editor (getBlock, createBlock) and to BlockView, which loads their code. */
 async function loadCustomBlocks() {
   try {
-    const schema = await api<{ custom: { def: BlockDef; url: string }[] }>('/admin/pages/schema');
+    const schema = await api<{ custom: { def: BlockDef; url: string }[]; hidden?: string[] }>('/admin/pages/schema');
+    hiddenBlocks.value = schema.hidden ?? [];
     registerCustomBlocks(schema.custom.map((c) => c.def));
     setCustomBlockScripts(schema.custom.map((c) => ({ type: c.def.type, url: c.url, defaults: c.def.defaults })));
     customDefs.value = schema.custom.map((c) => c.def);

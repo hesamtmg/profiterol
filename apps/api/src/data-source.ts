@@ -10,6 +10,7 @@ import { Media } from './media/media.entity';
 import { Page, PageRevision, PageTranslation } from './pages/page.entity';
 import { Redirect } from './redirects/redirects.module';
 import { SiteSettings } from './settings/settings.entity';
+import { BlockAccess } from './sites/block-access';
 import { Site, SiteDomain, SslEvent } from './sites/site.entity';
 import { User } from './users/user.entity';
 
@@ -21,6 +22,7 @@ export const dataSourceOptions: DataSourceOptions = {
     Site,
     SiteDomain,
     SslEvent,
+    BlockAccess,
     User,
     Page,
     PageTranslation,

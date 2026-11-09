@@ -18,6 +18,7 @@ import {
   findBlock,
   fontNames,
   formBlockTypes,
+  getBlock,
   getSiteTemplate,
   isLocale,
   locales,
@@ -35,6 +36,7 @@ import { SettingsService } from '../settings/settings.controller';
 import { cleanHtml } from '../common/rich-text';
 import { purgePageCache } from '../common/page-cache';
 import { currentSite, currentSiteId, runInSite } from '../sites/site-context';
+import { BlockAccessService, blockTypesIn, withoutTypes } from '../sites/block-access';
 import { SitesService } from '../sites/sites.service';
 import { slugify, UNIQUE_VIOLATION } from '../common/slug';
 import { AddBlocksDto, CreatePageDto, TranslationDto, UpdatePageDto } from './pages.dto';
@@ -104,6 +106,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     private readonly settings: SettingsService,
     private readonly sites: SitesService,
     private readonly customBlocks: CustomBlocksService,
+    private readonly blockAccess: BlockAccessService,
   ) {}
 
   /** Scheduled publishing: checks every 30 seconds for pages due to go online or offline. */
@@ -161,11 +164,13 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
 
   async create(dto: CreatePageDto & { slug?: string; titles?: Record<string, string> }) {
     const given = dto.translations ?? [];
+    // Blocks the owner has not allowed on this site are left out of templates (Admin → Components).
+    const hidden = await this.blockAccess.hiddenFor(currentSiteId());
     // Every page gets one translation per locale so the editor can switch languages straight away.
     const translations = await Promise.all(
       locales.map(async (l) => {
         const t = given.find((g) => g.locale === l.code);
-        const blocks = dto.template ? templateBlocks(dto.template, l.code) : [];
+        const blocks = dto.template ? withoutTypes(templateBlocks(dto.template, l.code), hidden) : [];
         return (
           t ?? {
             locale: l.code,
@@ -177,7 +182,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
       }),
     );
     const custom = await this.customBlocks.liveDefs();
-    translations.forEach((t) => this.assertBlocks(t.blocks, t.locale, custom));
+    translations.forEach((t) => this.assertBlocks(t.blocks, t.locale, custom, hidden));
 
     const siteId = currentSiteId();
     return this.save(async (manager) => {
@@ -196,7 +201,8 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
   async update(id: string, dto: UpdatePageDto, author = '') {
     const page = await this.get(id);
     const custom = dto.translations ? await this.customBlocks.liveDefs() : [];
-    dto.translations?.forEach((t) => this.assertBlocks(t.blocks, t.locale, custom));
+    const hidden = dto.translations ? await this.blockAccess.hiddenFor(page.siteId) : [];
+    dto.translations?.forEach((t) => this.assertBlocks(t.blocks, t.locale, custom, hidden, this.typesOf(page)));
     const customFonts = dto.theme ? fontNames((await this.settings.get()).fonts) : [];
 
     return this.save(async (manager) => {
@@ -360,7 +366,7 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
   async addBlocks(id: string, dto: AddBlocksDto, author = '') {
     const page = await this.get(id);
     const custom = await this.customBlocks.liveDefs();
-    this.assertBlocks(dto.blocks, dto.locale, custom);
+    this.assertBlocks(dto.blocks, dto.locale, custom, await this.blockAccess.hiddenFor(page.siteId), this.typesOf(page));
     const translation = page.translations.find((t) => t.locale === dto.locale);
     if (!translation) throw new NotFoundException('This page has no such language');
     const copies = mapRichText(
@@ -540,8 +546,24 @@ export class PagesService implements OnApplicationBootstrap, OnApplicationShutdo
     };
   }
 
-  /** `custom`: the site's approved custom blocks, which pages may use besides the built-in ones. */
-  private assertBlocks(blocks: unknown, locale: string, custom: BlockDef[]) {
+  /** Every block type the page has now, in any language, draft or published. */
+  private typesOf(page: Page): Set<string> {
+    const types = new Set<string>();
+    for (const t of page.translations ?? []) blockTypesIn(t.publishedBlocks, blockTypesIn(t.blocks, types));
+    return types;
+  }
+
+  /**
+   * `custom`: the site's approved custom blocks, which pages may use besides the built-in ones. `hidden`: built-in
+   * blocks the owner has not allowed on this site (Admin → Components); they cannot be added, but a page that already
+   * had one before the owner restricted it (`existing`) keeps it, so live pages never break.
+   */
+  private assertBlocks(blocks: unknown, locale: string, custom: BlockDef[], hidden: string[] = [], existing = new Set<string>()) {
+    const added = [...blockTypesIn(blocks)].filter((t) => hidden.includes(t) && !existing.has(t));
+    if (added.length) {
+      const names = added.map((t) => getBlock(t)?.label ?? t).join(', ');
+      throw new BadRequestException(`This site may not use these blocks: ${names}. Ask the owner to allow them.`);
+    }
     if (!currentSite().printDesigner && Array.isArray(blocks) && hasBlockType(blocks as BlockNode[], designBlockTypes)) {
       throw new BadRequestException(
         'The print designer is not enabled on this site. Remove it from the page, or ask the owner to allow it.',

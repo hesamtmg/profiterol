@@ -15,6 +15,7 @@ const nav = [
   { to: '/admin/users', label: 'Users', icon: 'mdi-account-multiple-outline', admin: true },
   { to: '/admin/previews', label: 'Preview sites', icon: 'mdi-eye-outline', admin: true, previews: true },
   { to: '/admin/sites', label: 'Sites', icon: 'mdi-web', owner: true },
+  { to: '/admin/components', label: 'Components', icon: 'mdi-puzzle-outline', owner: true },
 ];
 const { isAdmin, isOwner, printDesigner, canManageSeo } = useAuth();
 // Preview sites: always in a site admin's menu (the page says how to get it when the owner has not allowed it yet);
