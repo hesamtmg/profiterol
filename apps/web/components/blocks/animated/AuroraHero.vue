@@ -2,8 +2,12 @@
 /**
  * Glowing colors drifting behind a headline. The headline's words rise in one by one, the last word keeps
  * changing, and a soft light follows the mouse. Everything holds still for visitors who turn off motion.
+ * With the "3D low-poly animals" scene, the headline sits at the top and the animals (AnimalsScene) stand
+ * below it on black glass, walking in once the page has loaded.
  */
+import { animalKinds, type AnimalKind } from '../../../lib/lowpoly-animals';
 import EditableText from '../../site/EditableText.vue';
+import AnimalsScene from './AnimalsScene.vue';
 
 const props = defineProps<{
   p: {
@@ -17,6 +21,8 @@ const props = defineProps<{
     secondButtonLink: string;
     color: string;
     look: string;
+    scene?: string;
+    animals?: { kind: string }[];
   };
   locale: string;
 }>();
@@ -25,6 +31,10 @@ const editing = Boolean(useBlockEditing());
 const reduced = useReducedMotion();
 const root = ref<HTMLElement | null>(null);
 const dark = computed(() => props.p.look !== 'light');
+const kinds = computed(() =>
+  (props.p.animals ?? []).map((a) => a.kind as AnimalKind).filter((k) => (animalKinds as readonly string[]).includes(k)),
+);
+const withAnimals = computed(() => props.p.scene === 'animals' && kinds.value.length > 0);
 const titleWords = computed(() =>
   String(props.p.title ?? '')
     .split(/\s+/)
@@ -70,8 +80,11 @@ onBeforeUnmount(() => {
 <template>
   <section
     ref="root"
-    class="relative isolate flex min-h-[92dvh] items-center overflow-hidden px-6 py-28 @3xl:px-16"
-    :class="dark ? 'bg-[#07070c] text-white' : 'bg-surface text-ink'"
+    class="relative isolate flex overflow-hidden px-6 @3xl:px-16"
+    :class="[
+      withAnimals ? 'min-h-[100dvh] flex-col justify-end pt-28 @3xl:pt-32' : 'min-h-[92dvh] items-center py-28',
+      dark ? 'bg-[#07070c] text-white' : 'bg-surface text-ink',
+    ]"
     :style="{ '--shimmer-mid': p.color || '#7c5cff' }"
     @pointermove="onPointer"
   >
@@ -196,8 +209,17 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <!-- The animals, under the headline (rising a little behind the buttons on wide screens) -->
+    <AnimalsScene
+      v-if="withAnimals"
+      class="pointer-events-none relative -z-10 -mx-6 -mt-6 h-[42vh] min-h-[280px] @3xl:-mx-16 @3xl:-mt-[12vh] @3xl:h-[54vh]"
+      :kinds="kinds"
+      :still="editing || reduced"
+    />
+
     <!-- Scroll cue -->
     <div
+      v-if="!withAnimals"
       class="pointer-events-none absolute bottom-6 left-1/2 flex h-10 w-6 -translate-x-1/2 justify-center rounded-full border-2 border-current opacity-40"
       aria-hidden="true"
     >

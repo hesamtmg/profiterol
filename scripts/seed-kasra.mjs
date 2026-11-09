@@ -519,6 +519,9 @@ const story = (l) => [
       secondButtonLink: '#contact',
       color: '#f5c400',
       look: 'dark',
+      // Kasra's NFT animals as low-poly 3D models, walking in under the headline once the loader is gone.
+      scene: 'animals',
+      animals: ['owl', 'bull', 'unicorn', 'tiger', 'bear', 'wolf', 'mammoth', 'rhino'].map((kind) => ({ kind })),
     },
   },
   {

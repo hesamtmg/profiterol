@@ -45,6 +45,40 @@ export const animatedDefinitions: BlockDef[] = [
           { value: 'light', label: 'Light' },
         ],
       },
+      {
+        key: 'scene',
+        label: 'Below the headline',
+        type: 'select',
+        options: [
+          { value: 'glow', label: 'Nothing (just the glows)' },
+          { value: 'animals', label: '3D low-poly animals' },
+        ],
+      },
+      {
+        key: 'animals',
+        label: 'Animals (3D scene)',
+        type: 'list',
+        itemLabel: 'kind',
+        max: 8,
+        help: 'Standing side by side in this order; the owl flies above. On phones only the middle three stand.',
+        fields: [
+          {
+            key: 'kind',
+            label: 'Animal',
+            type: 'select',
+            options: [
+              { value: 'owl', label: 'Owl' },
+              { value: 'tiger', label: 'Tiger' },
+              { value: 'bear', label: 'Bear' },
+              { value: 'wolf', label: 'Wolf' },
+              { value: 'bull', label: 'Bull' },
+              { value: 'unicorn', label: 'Unicorn' },
+              { value: 'mammoth', label: 'Mammoth' },
+              { value: 'rhino', label: 'Rhino' },
+            ],
+          },
+        ],
+      },
     ],
     defaults: {
       eyebrow: 'Design studio',
@@ -57,6 +91,8 @@ export const animatedDefinitions: BlockDef[] = [
       secondButtonLink: '#projects',
       color: '#7c5cff',
       look: 'dark',
+      scene: 'glow',
+      animals: ['owl', 'bull', 'unicorn', 'tiger', 'bear', 'wolf', 'mammoth', 'rhino'].map((kind) => ({ kind })),
     },
   },
   {
