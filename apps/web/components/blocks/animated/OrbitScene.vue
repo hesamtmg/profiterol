@@ -1,13 +1,15 @@
 <script setup lang="ts">
 /**
- * The 3D look of the orbit block: each picture wrapped around a lit sphere that rocks gently on its axis while the two
- * dashed rings carry the spheres round in opposite directions, seen from straight above like the flat look. Moving
- * the pointer tilts the whole system a little; pointing at it stops the rings (the spheres keep rocking) and names
- * the sphere under the pointer. Three.js is only downloaded by pages that use this look. While `still` (the editor,
- * or a visitor who asked for less motion) one frame is drawn and nothing moves. Emits `ready` once the first frame
- * with its pictures is on screen, and `failed` when the browser can't draw WebGL, so the block can fall back.
+ * The 3D look of the orbit block: a small solar system seen in perspective from above and in front. Each picture
+ * becomes a globe (see lib/planet-globe) with a little relief and a glowing atmosphere, spinning on its own tilted
+ * axis while the two dashed orbits carry the planets round in opposite directions; on a dark background a few stars
+ * drift behind. Moving the pointer swings the camera a little; pointing at the system stops the orbits (the planets
+ * keep spinning) and names the planet under the pointer. Three.js is only downloaded by pages that use this look.
+ * While `still` (the editor, or a visitor who asked for less motion) one frame is drawn and nothing moves. Emits
+ * `ready` once the first frame with its pictures is on screen, and `failed` when the browser can't draw WebGL.
  */
 import type * as Three from 'three';
+import { planetSurface } from '../../../lib/planet-globe';
 
 interface Item {
   image: string;
@@ -25,47 +27,63 @@ const accentTone = ref<HTMLElement | null>(null);
 const ready = ref(false);
 const label = ref<{ name: string; x: number; y: number } | null>(null);
 
-/** The view reaches a little past the block's square so spheres on the outer ring aren't cut off. */
-const VIEW = 1.12;
-const PLANET = 0.13;
-const TILT = 0.2;
-/** How far, in radians, each planet rocks either way on its axis. */
-const SWAY = 0.5;
+/** How high the camera looks down on the orbits, in radians (0 = edge on, π/2 = straight down). */
+const ELEVATION = 0.85;
+const FOV = 32;
+/** How far the pointer swings the camera: round the system, and up and down. */
+const SWING = { azimuth: 0.35, elevation: 0.12 };
 
 let dispose = () => {};
-
-/**
- * A sphere whose texture coordinates read a round picture of a planet: the disc in the middle of the picture
- * (`fill` of its width) covers the half facing the viewer, so at rest the sphere looks like the picture, and the far
- * half shows it mirrored, so the sphere can spin all the way round without a seam. Longitude is spread evenly across
- * the disc rather than projected, so the rim isn't smeared as it turns to the front.
- */
-function discSphere(THREE: typeof Three, radius: number, fill: number) {
-  const geometry = new THREE.SphereGeometry(radius, 64, 40);
-  const position = geometry.attributes.position!;
-  const uv = geometry.attributes.uv!;
-  const p = new THREE.Vector3();
-  for (let i = 0; i < position.count; i++) {
-    p.fromBufferAttribute(position, i).normalize();
-    const lat = Math.asin(Math.max(-1, Math.min(1, p.y)));
-    let lon = Math.atan2(p.x, p.z);
-    if (Math.abs(lon) > Math.PI / 2) lon = Math.sign(lon) * Math.PI - lon;
-    const x = (lon / (Math.PI / 2)) * Math.cos(lat);
-    uv.setXY(i, 0.5 + (x * fill) / 2, 0.5 + (p.y * fill) / 2);
-  }
-  uv.needsUpdate = true;
-  return geometry;
-}
 let redraw = () => {};
 
-/** The inner ring takes up to five, the outer the rest — as in the flat look. */
+/** The inner orbit takes up to five planets, the outer the rest — as in the flat look. */
 function split(items: Item[]) {
   const inner = Math.min(5, Math.ceil(items.length * 0.4));
   return [
-    { items: items.slice(0, inner), radius: 0.56, direction: -1, speed: 1 },
-    { items: items.slice(inner), radius: 0.94, direction: 1, speed: 1.4 },
+    { items: items.slice(0, inner), radius: 0.56, direction: 1, speed: 1 },
+    { items: items.slice(inner), radius: 0.94, direction: -1, speed: 1.4 },
   ].filter((r) => r.items.length);
 }
+
+/** A steady pseudo-random number in 0…1 for planet `i` of orbit `r`, so sizes and tilts don't change on reload. */
+const hash = (n: number) => {
+  const x = Math.sin(n * 12.9898) * 43758.5453;
+  return x - Math.floor(x);
+};
+
+/** True when the nearest painted background behind `el` is dark. */
+function onDark(el: HTMLElement) {
+  for (let node: HTMLElement | null = el; node; node = node.parentElement) {
+    const m = getComputedStyle(node).backgroundColor.match(/[\d.]+/g);
+    if (!m || (m[3] !== undefined && Number(m[3]) < 0.5)) continue;
+    const [r, g, b] = m.map(Number) as [number, number, number];
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b < 110;
+  }
+  return false;
+}
+
+const ATMOSPHERE_VERTEX = /* glsl */ `
+  varying vec3 vNormal;
+  varying vec3 vView;
+  void main() {
+    vec4 world = modelViewMatrix * vec4(position, 1.0);
+    vNormal = normalize(normalMatrix * normal);
+    vView = normalize(-world.xyz);
+    gl_Position = projectionMatrix * world;
+  }
+`;
+const ATMOSPHERE_FRAGMENT = /* glsl */ `
+  uniform vec3 glow;
+  uniform float strength;
+  varying vec3 vNormal;
+  varying vec3 vView;
+  void main() {
+    // Seen from outside, the shell's inner faces run from the planet's edge (facing the viewer about halfway) to the
+    // shell's own edge (side on): brightest against the planet, fading to nothing at the edge.
+    float hug = clamp(abs(dot(vNormal, vView)) / 0.5, 0.0, 1.0);
+    gl_FragColor = vec4(glow, hug * hug * strength);
+  }
+`;
 
 onMounted(async () => {
   let THREE: typeof Three;
@@ -81,134 +99,241 @@ onMounted(async () => {
   const el = box.value;
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  const dark = onDark(el);
 
   const scene = new THREE.Scene();
-  const camera = new THREE.OrthographicCamera(-VIEW, VIEW, VIEW, -VIEW, 0.1, 20);
-  camera.position.set(0, 0, 6);
+  const camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60);
+  let distance = 4;
 
-  scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-  const sun = new THREE.DirectionalLight(0xffffff, 1.1);
-  sun.position.set(-2.5, 2.5, 3);
+  // Light comes from the middle of the system, like a sun, with soft fill so the far sides aren't black.
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x404060, dark ? 0.9 : 1.3));
+  const sun = new THREE.PointLight(0xfff4e0, 3.2, 0, 0);
   scene.add(sun);
-
-  const system = new THREE.Group();
-  scene.add(system);
+  const key = new THREE.DirectionalLight(0xffffff, 0.8);
+  key.position.set(-2, 3, 2);
+  scene.add(key);
 
   const ringColor = new THREE.Color(ringTone.value ? getComputedStyle(ringTone.value).color : '#cbd5e1');
   const accent = new THREE.Color(accentTone.value ? getComputedStyle(accentTone.value).color : '#6366f1');
-  const sphere = discSphere(THREE, PLANET, Math.min(Math.max(Number(props.fill) || 100, 10), 100) / 100);
-  const disposables: { dispose(): void }[] = [sphere];
-  const loader = new THREE.TextureLoader();
+  const fill = Math.min(Math.max(Number(props.fill) || 100, 10), 100) / 100;
+  const sphere = new THREE.SphereGeometry(1, 96, 64);
+  const halo = new THREE.SphereGeometry(1.16, 48, 32);
+  const disposables: { dispose(): void }[] = [sphere, halo];
+  const loader = new THREE.ImageLoader();
   loader.setCrossOrigin('anonymous');
   const loads: Promise<unknown>[] = [];
 
-  function material(item: Item) {
-    const m = new THREE.MeshStandardMaterial({ roughness: 0.8, metalness: 0, color: item.image ? 0xffffff : accent });
-    disposables.push(m);
+  interface Planet {
+    holder: Three.Group;
+    body: Three.Mesh;
+    glow: Three.Mesh;
+    angle: number;
+    radius: number;
+    direction: number;
+    speed: number;
+    spin: number;
+    name: string;
+  }
+  const planets: Planet[] = [];
+
+  function makePlanet(item: Item, size: number) {
+    const material = new THREE.MeshStandardMaterial({ roughness: 0.85, metalness: 0, color: item.image ? 0xffffff : accent });
+    const glowMaterial = new THREE.ShaderMaterial({
+      vertexShader: ATMOSPHERE_VERTEX,
+      fragmentShader: ATMOSPHERE_FRAGMENT,
+      uniforms: { glow: { value: accent.clone() }, strength: { value: 0.9 } },
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    disposables.push(material, glowMaterial);
     if (item.image) {
       loads.push(
         loader
           .loadAsync(item.image)
-          .then((texture) => {
+          .then((image) => {
+            const surface = planetSurface(image, fill);
+            const texture = new THREE.CanvasTexture(surface.canvas);
             texture.colorSpace = THREE.SRGBColorSpace;
-            texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-            m.map = texture;
-            m.needsUpdate = true;
+            texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+            material.map = texture;
+            // The picture's own light and dark doubles as a height map, for a little relief.
+            material.bumpMap = texture;
+            material.bumpScale = 2.5;
+            material.needsUpdate = true;
+            glowMaterial.uniforms.glow!.value.setRGB(...surface.color, THREE.SRGBColorSpace).multiplyScalar(1.6);
             disposables.push(texture);
           })
-          .catch(() => m.color.copy(accent)),
+          .catch(() => material.color.copy(accent)),
       );
     }
-    return m;
+    const body = new THREE.Mesh(sphere, material);
+    const glow = new THREE.Mesh(halo, glowMaterial);
+    body.scale.setScalar(size);
+    glow.scale.setScalar(size);
+    return { body, glow };
   }
 
-  interface Ring {
-    group: Three.Group;
-    direction: number;
-    speed: number;
-  }
-  const rings: Ring[] = [];
-  const planets: { mesh: Three.Mesh; spin: number; phase: number; name: string }[] = [];
-
+  const PLANET = 0.13;
+  let reach = 0;
   split(props.items ?? []).forEach((ring, r) => {
-    const group = new THREE.Group();
-    system.add(group);
-
     const points = Array.from({ length: 257 }, (_, i) => {
       const a = (i / 256) * Math.PI * 2;
-      return new THREE.Vector3(Math.cos(a) * ring.radius, Math.sin(a) * ring.radius, 0);
+      return new THREE.Vector3(Math.cos(a) * ring.radius, 0, Math.sin(a) * ring.radius);
     });
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
     const lineMaterial = new THREE.LineDashedMaterial({
       color: ringColor,
       dashSize: 0.025,
-      gapSize: 0.018,
+      gapSize: 0.02,
       transparent: true,
-      opacity: 0.9,
+      opacity: 0.8,
     });
     const line = new THREE.Line(lineGeometry, lineMaterial);
     line.computeLineDistances();
-    group.add(line);
+    scene.add(line);
     disposables.push(lineGeometry, lineMaterial);
 
     ring.items.forEach((item, i) => {
-      // Evenly spaced, starting at the top and going clockwise, like the flat look.
-      const a = Math.PI / 2 - (i / ring.items.length) * Math.PI * 2;
+      const seed = r * 10 + i + 1;
+      const size = PLANET * (0.85 + hash(seed) * 0.35);
+      reach = Math.max(reach, ring.radius + size * 1.2);
+      const { body, glow } = makePlanet(item, size);
+      // Tip each planet's axis back toward the camera, so it shows its equator rather than a pole, plus a little lean.
       const pivot = new THREE.Group();
-      pivot.position.set(Math.cos(a) * ring.radius, Math.sin(a) * ring.radius, 0);
-      pivot.rotation.set(0.12, 0, ((i * 0.61) % 0.6) - 0.3);
-      const mesh = new THREE.Mesh(sphere, material(item));
-      mesh.rotation.y = SWAY * Math.sin(i * 1.7 + r);
-      pivot.add(mesh);
-      group.add(pivot);
-      planets.push({ mesh, spin: 0.35 + ((i * 0.17 + r * 0.11) % 0.3), phase: i * 1.7 + r, name: item.name });
+      pivot.rotation.set(-ELEVATION + (hash(seed + 7) - 0.5) * 0.3, 0, (hash(seed + 3) - 0.5) * 0.6);
+      pivot.add(body);
+      const holder = new THREE.Group();
+      // The atmosphere glows by adding light, so it only shows (and is only drawn) on a dark background.
+      holder.add(pivot);
+      if (dark) holder.add(glow);
+      scene.add(holder);
+      body.rotation.y = hash(seed + 5) * Math.PI * 2;
+      planets.push({
+        holder,
+        body,
+        glow,
+        angle: -Math.PI / 2 + (i / ring.items.length) * Math.PI * 2,
+        radius: ring.radius,
+        direction: ring.direction,
+        speed: ring.speed,
+        spin: 0.25 + hash(seed + 11) * 0.3,
+        name: item.name,
+      });
     });
-    rings.push({ group, direction: ring.direction, speed: ring.speed });
   });
+
+  // A few stars far behind, only where they'll show.
+  if (dark) {
+    const count = 500;
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const u = hash(i + 101) * 2 - 1;
+      const t = hash(i + 202) * Math.PI * 2;
+      const s = Math.sqrt(1 - u * u) * 14;
+      positions.set([Math.cos(t) * s, u * 14, Math.sin(t) * s], i * 3);
+    }
+    const starGeometry = new THREE.BufferGeometry();
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, transparent: true, opacity: 0.55 });
+    scene.add(new THREE.Points(starGeometry, starMaterial));
+    disposables.push(starGeometry, starMaterial);
+  }
+
+  function place(time: number) {
+    for (const p of planets) {
+      const a = p.angle + p.direction * ((time * Math.PI * 2) / (seconds() * p.speed));
+      p.holder.position.set(Math.cos(a) * p.radius, 0, Math.sin(a) * p.radius);
+    }
+  }
+
+  const view = { azimuth: 0, elevation: ELEVATION, toAzimuth: 0, toElevation: ELEVATION };
+  function aim() {
+    const e = view.elevation;
+    camera.position.set(
+      Math.sin(view.azimuth) * Math.cos(e) * distance,
+      Math.sin(e) * distance,
+      Math.cos(view.azimuth) * Math.cos(e) * distance,
+    );
+    camera.lookAt(0, -0.04, 0);
+  }
+
+  /** Back the camera off until every orbit, with its planets, fits inside the frame. */
+  function fit() {
+    const probe = new THREE.Vector3();
+    const fits = (d: number) => {
+      distance = d;
+      aim();
+      camera.updateMatrixWorld();
+      for (let k = 0; k < 48; k++) {
+        const a = (k / 48) * Math.PI * 2;
+        for (const y of [-PLANET * 1.3, PLANET * 1.3]) {
+          probe.set(Math.cos(a) * reach, y, Math.sin(a) * reach).project(camera);
+          if (Math.abs(probe.x) > 0.97 || Math.abs(probe.y) > 0.97) return false;
+        }
+      }
+      return true;
+    };
+    let lo = 1;
+    let hi = 20;
+    for (let n = 0; n < 24; n++) {
+      const mid = (lo + hi) / 2;
+      if (fits(mid)) hi = mid;
+      else lo = mid;
+    }
+    distance = hi;
+    aim();
+  }
 
   function resize() {
     const { width, height } = el.getBoundingClientRect();
     if (!width || !height) return;
     renderer.setSize(width, height, false);
-    const aspect = width / height;
-    camera.left = -VIEW * Math.max(aspect, 1);
-    camera.right = VIEW * Math.max(aspect, 1);
-    camera.top = VIEW / Math.min(aspect, 1);
-    camera.bottom = -VIEW / Math.min(aspect, 1);
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    const azimuth = view.azimuth;
+    const elevation = view.elevation;
+    view.azimuth = 0;
+    view.elevation = ELEVATION;
+    fit();
+    view.azimuth = azimuth;
+    view.elevation = elevation;
+    aim();
     renderer.render(scene, camera);
   }
   redraw = () => renderer.render(scene, camera);
 
-  // Pointer: tilt toward it, stop the rings while it's over the system, name the sphere under it.
+  // Pointer: swing the camera toward it, stop the orbits while it's over the system, name the planet under it.
   const pointer = new THREE.Vector2();
-  const tilt = { x: 0, y: 0, toX: 0, toY: 0 };
   const raycaster = new THREE.Raycaster();
   let hovering = false;
   function pick() {
     raycaster.setFromCamera(pointer, camera);
     const hit = raycaster.intersectObjects(
-      planets.map((p) => p.mesh),
+      planets.map((p) => p.body),
       false,
     )[0];
-    const planet = hit && planets.find((p) => p.mesh === hit.object);
+    const planet = hit && planets.find((p) => p.body === hit.object);
     if (!planet?.name) return (label.value = null);
-    const at = new THREE.Vector3();
-    planet.mesh.getWorldPosition(at).project(camera);
+    const at = planet.holder.position.clone();
+    at.y -= planet.glow.scale.x * 1.25;
+    at.project(camera);
     label.value = { name: planet.name, x: (at.x + 1) * 50, y: (1 - at.y) * 50 };
   }
   function move(e: PointerEvent) {
     const rect = el.getBoundingClientRect();
     pointer.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
     hovering = e.pointerType === 'mouse';
-    tilt.toX = -pointer.y * TILT;
-    tilt.toY = pointer.x * TILT;
+    view.toAzimuth = pointer.x * SWING.azimuth;
+    view.toElevation = ELEVATION + pointer.y * SWING.elevation;
     pick();
     if (props.still) redraw();
   }
   function leave() {
     hovering = false;
-    tilt.toX = tilt.toY = 0;
+    view.toAzimuth = 0;
+    view.toElevation = ELEVATION;
     label.value = null;
   }
   el.addEventListener('pointermove', move);
@@ -219,21 +344,18 @@ onMounted(async () => {
   let frame = 0;
   let last = 0;
   let orbitTime = 0;
-  let spinTime = 0;
   const seconds = () => Math.max(Number(props.seconds) || 40, 5);
   function tick(now: number) {
     frame = 0;
     const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
     last = now;
     if (!hovering) orbitTime += dt;
-    for (const ring of rings) ring.group.rotation.z = ring.direction * ((orbitTime * Math.PI * 2) / (seconds() * ring.speed));
-    // Each planet rocks on its axis rather than turning right round, so its picture always faces the viewer.
-    spinTime += dt;
-    for (const p of planets) p.mesh.rotation.y = SWAY * Math.sin(spinTime * p.spin + p.phase);
-    const ease = 1 - Math.exp(-dt * 5);
-    tilt.x += (tilt.toX - tilt.x) * ease;
-    tilt.y += (tilt.toY - tilt.y) * ease;
-    system.rotation.set(tilt.x, tilt.y, 0);
+    place(orbitTime);
+    for (const p of planets) p.body.rotation.y += dt * p.spin;
+    const ease = 1 - Math.exp(-dt * 4);
+    view.azimuth += (view.toAzimuth - view.azimuth) * ease;
+    view.elevation += (view.toElevation - view.elevation) * ease;
+    aim();
     if (hovering) pick();
     renderer.render(scene, camera);
     start();
@@ -251,7 +373,9 @@ onMounted(async () => {
     (still) => {
       if (still) {
         stop();
-        system.rotation.set(0, 0, 0);
+        view.azimuth = view.toAzimuth = 0;
+        view.elevation = view.toElevation = ELEVATION;
+        aim();
         redraw();
       } else start();
     },
@@ -264,6 +388,7 @@ onMounted(async () => {
   seen.observe(el);
   const sized = new ResizeObserver(resize);
   sized.observe(el);
+  place(0);
   resize();
 
   dispose = () => {
@@ -286,11 +411,6 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => dispose());
-watch(
-  () => props.items,
-  () => redraw(),
-  { deep: true },
-);
 </script>
 
 <template>
@@ -304,7 +424,7 @@ watch(
     <span
       v-if="label"
       class="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/75 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur"
-      :style="{ left: `${label.x}%`, top: `calc(${label.y}% + 2.75rem)` }"
+      :style="{ left: `${label.x}%`, top: `calc(${label.y}% + 0.5rem)` }"
     >
       {{ label.name }}
     </span>
