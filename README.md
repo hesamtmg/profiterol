@@ -242,6 +242,20 @@ gives it their own address, keeping everything. The owner can also let a site's 
 site's address (e.g. a web studio showing its customers), with a limit on how many and for how long; they see only
 their own, and ask the owner to move a bought one. See DEPLOY.md, "Preview sites".
 
+## Components: which sites get which blocks
+
+**Admin → Components** (owners only) shows a live preview of every built-in block, drawn with the site theme and the
+block's sample content. Click a preview to see it larger on desktop, tablet or phone. Search, filter by category, or
+show only the blocks you have restricted.
+
+Each block is on **Every site** (the default, new sites included) or on **Only chosen sites**: tick the sites that may
+use it. **By site** turns it around: pick a site and switch blocks on or off for it, or all the shown blocks at once.
+A block a site may not use is left out of its editor's block library and of new pages made from templates, and the API
+refuses pages that add it. Pages that already used it before it was taken away keep it and keep showing it, so nothing
+live breaks; each site's card says how many of its pages use the block. The rules are stored in the `block_access`
+table (a block with no row is on every site). Custom blocks built with AI already belong to one site and are not
+listed here; the sublimation designer also needs its own switch in Admin → Sites.
+
 ## Users and sign-in
 
 The first account comes from `ADMIN_EMAIL` / `ADMIN_PASSWORD`; it is the **owner**, who manages every site (Admin →

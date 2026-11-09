@@ -327,6 +327,72 @@ describe('SEO, sitemap and robots.txt (Admin → SEO)', () => {
   });
 });
 
+describe('components: which sites may use each block (Admin → Components)', () => {
+  test('the owner keeps a block to chosen sites; the others cannot add it, pages that had it keep it', async () => {
+    const page = await publishPage(B, 'Prices', 'prices', 'Plans');
+    const withPricing = (id) => [{ id, type: 'pricing', props: {} }];
+    // A page on B that already has the FAQ before the owner restricts it.
+    const faq = await call('POST', `/admin/pages/${page.id}/blocks`, {
+      host: B,
+      body: { locale: 'en', position: 'end', blocks: [{ id: 'f1', type: 'faq', props: {} }] },
+    });
+    assert.equal(faq.status, 200, JSON.stringify(faq.body));
+
+    const set = await call('PUT', '/admin/block-access', {
+      body: {
+        changes: [
+          { type: 'pricing', siteIds: [ids.a] },
+          { type: 'faq', siteIds: [] },
+        ],
+      },
+    });
+    assert.equal(set.status, 200, JSON.stringify(set.body));
+    assert.deepEqual(set.body.rules.pricing, [ids.a]);
+    assert.equal(set.body.usage[ids.b].faq, 1, 'usage counts the pages using it');
+
+    const schema = (host) => call('GET', '/admin/pages/schema', { host }).then((r) => r.body.hidden);
+    assert.ok(!(await schema(A)).includes('pricing'), 'A is allowed the pricing table');
+    assert.ok((await schema(B)).includes('pricing'), "B's editor leaves it out");
+    assert.ok((await schema(A)).includes('faq') && (await schema(B)).includes('faq'));
+
+    const add = (host, id) =>
+      call('POST', `/admin/pages/${id}/blocks`, { host, body: { locale: 'en', position: 'end', blocks: withPricing('p1') } });
+    assert.equal((await add(B, page.id)).status, 400, 'B cannot add it');
+    const created = await call('POST', '/admin/pages', {
+      host: B,
+      body: { name: 'New', translations: [{ locale: 'en', title: 'New', slug: 'new-prices', blocks: withPricing('p2') }] },
+    });
+    assert.equal(created.status, 400, 'nor make a page with it');
+
+    // The page that already had the FAQ can still be saved, and still shows it.
+    const current = (await call('GET', `/admin/pages/${page.id}`, { host: B })).body;
+    const translations = current.translations.map(({ locale, title, slug, blocks }) => ({ locale, title, slug, blocks }));
+    assert.equal((await call('PATCH', `/admin/pages/${page.id}`, { host: B, body: { translations } })).status, 200);
+    assert.equal((await call('POST', `/admin/pages/${page.id}/publish`, { host: B })).status, 200);
+    const live = await call('GET', '/public/en/page?slug=prices', { host: B, token: '' });
+    assert.ok(live.body.blocks.some((b) => b.type === 'faq'));
+
+    assert.equal((await call('PUT', '/admin/block-access', { body: { changes: [{ type: 'nope', siteIds: null }] } })).status, 400);
+    assert.equal(
+      (await call('PUT', '/admin/block-access', { host: B, token: ids.bAdmin, body: { changes: [{ type: 'faq', siteIds: null }] } }))
+        .status,
+      403,
+      "a site's admin cannot change it",
+    );
+
+    const reset = await call('PUT', '/admin/block-access', {
+      body: {
+        changes: [
+          { type: 'pricing', siteIds: null },
+          { type: 'faq', siteIds: null },
+        ],
+      },
+    });
+    assert.deepEqual(reset.body.rules, {});
+    assert.equal((await add(B, page.id)).status, 200, 'back on every site');
+  });
+});
+
 describe('certificates and the domains agent', () => {
   const agent = (method, path, body, token = INTERNAL) =>
     call(method, `/internal${path}`, { token: '', host: 'api', body, headers: token ? { 'x-internal-token': token } : {} });
