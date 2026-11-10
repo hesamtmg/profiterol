@@ -80,6 +80,7 @@ async function load() {
     s.siteName[l.code] ??= '';
     s.maintenanceText[l.code] ??= '';
     loader.text[l.code] ??= '';
+    loader.enterLabel[l.code] ??= '';
   }
   s.defaultLocale ??= '';
   s.customCss ??= '';
@@ -389,6 +390,18 @@ onMounted(load);
             >
               <i class="mdi mdi-plus" /> {{ $t('Add a planet') }}
             </button>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+              <div v-for="l in locales" :key="l.code">
+                <label class="field-label">{{ $t('Enter button ({lang})', { lang: l.label }) }}</label>
+                <input
+                  v-model="settings.loader.enterLabel[l.code]"
+                  class="input"
+                  :dir="l.dir"
+                  maxlength="40"
+                  :placeholder="l.code === 'fa' ? 'ورود به سایت' : 'Enter the site'"
+                />
+              </div>
+            </div>
             <label class="field-label mt-3" for="loader-planet-fill">{{
               $t('Planet size in the picture: {n}%', { n: settings.loader.planetFill })
             }}</label>
