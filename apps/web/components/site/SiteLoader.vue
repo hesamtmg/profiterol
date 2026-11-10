@@ -7,10 +7,12 @@
  * - Visitors who turn off motion do not get it at all.
  * `preview` (Site settings) replays it in place without remembering anything.
  * Styles: a percentage counter, a thin bar, the name filling with color, the logo in a filling ring, a spinning ring,
- * bouncing dots, pulsing circles, the name typed out, and a curtain that opens on the site.
+ * bouncing dots, pulsing circles, the name typed out, a curtain that opens on the site, and 3D planets gathering
+ * round the counter (LoaderPlanets).
  * Its colors, size, pictures (with a separate one for phones), logo and shortest time come from the settings.
  */
 import type { LoaderSettings } from '@profiterol/blocks';
+import LoaderPlanets from './LoaderPlanets.vue';
 
 const props = defineProps<{ loader: LoaderSettings; siteName: string; locale: string; logo?: string; preview?: boolean }>();
 const emit = defineEmits<{ done: [] }>();
@@ -18,6 +20,8 @@ const emit = defineEmits<{ done: [] }>();
 const SEEN = 'profiterol-loader-seen';
 const shown = ref(true);
 const percent = ref(0);
+/** The 3D planets style holds the count short of the end until its planets are on screen. */
+const planetsReady = ref(false);
 const finishing = ref(false);
 let frame = 0;
 let failsafe: ReturnType<typeof setTimeout> | undefined;
@@ -53,7 +57,7 @@ function finish() {
       shown.value = false;
       emit('done');
     },
-    props.loader.style === 'bar' ? 400 : props.loader.style === 'curtain' ? 1100 : 1400,
+    ({ bar: 400, curtain: 1100, planets: 1500 } as Record<string, number>)[props.loader.style] ?? 1400,
   );
 }
 
@@ -78,7 +82,8 @@ onMounted(() => {
   // The counter heads for a target based on what has loaded, never jumping, and takes at least `minSeconds`.
   const tick = (now: number) => {
     const loaded = images.length ? images.filter((i) => i.complete).length / images.length : 1;
-    const target = windowLoaded ? 100 : Math.min(92, 20 + loaded * 70 + Math.min(20, (now - started) / 150));
+    const waiting = props.loader.style === 'planets' && Boolean(props.loader.planets?.length) && !planetsReady.value;
+    const target = Math.min(waiting ? 90 : 100, windowLoaded ? 100 : Math.min(92, 20 + loaded * 70 + Math.min(20, (now - started) / 150)));
     const minTime = Math.min(100, ((now - started) / minMs) * 100);
     percent.value = Math.min(target, minTime, percent.value + Math.max(0.4, (target - percent.value) * 0.08));
     if (percent.value >= 99.5) finish();
@@ -195,6 +200,16 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
       </template>
       <div v-if="covered" class="absolute inset-0" :style="{ backgroundImage: shade }" aria-hidden="true" />
 
+      <!-- 3D planets orbiting the counter -->
+      <LoaderPlanets
+        v-if="loader.style === 'planets' && loader.planets?.length"
+        :pictures="loader.planets"
+        :fill="(loader.planetFill || 100) / 100"
+        :percent="percent"
+        :finishing="finishing"
+        @ready="planetsReady = true"
+      />
+
       <div
         class="relative px-6 text-center transition-opacity duration-300"
         :class="{ 'opacity-0': loader.style === 'curtain' && finishing }"
@@ -294,7 +309,7 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
             </p>
             <p v-else key="name" class="text-5xl font-black tracking-tight @3xl:text-7xl" dir="auto">{{ siteName }}</p>
           </Transition>
-          <div class="site-loader-track mx-auto mt-6 h-0.5 w-56 overflow-hidden rounded-full">
+          <div v-if="loader.style !== 'planets'" class="site-loader-track mx-auto mt-6 h-0.5 w-56 overflow-hidden rounded-full">
             <div class="h-full origin-left bg-primary" :style="{ transform: `scaleX(${percent / 100})` }" />
           </div>
         </template>

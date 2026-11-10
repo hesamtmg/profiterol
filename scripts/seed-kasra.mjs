@@ -403,6 +403,55 @@ await uploadKind('about', '', 'Kasra · About');
 for (const k of KINDS) await uploadKind(k.key, k.dir, `Kasra · ${k.name('en')}`);
 console.log();
 
+/**
+ * The NFT animals cut out of their cards (see scripts/kasra-animals/cut-out.py), for the 3D animals in the hero:
+ * how tall each stands next to the others (from Kasra's group pictures), and which way it faces.
+ */
+const ANIMALS_DIR = new URL('./kasra-animals/', import.meta.url).pathname;
+const heroAnimals = [];
+for (const [name, size, flip, flies] of [
+  ['tiger', 0.62, false, false],
+  ['bear', 1, false, false],
+  ['wolf', 0.55, true, false],
+  ['bull', 0.7, false, false],
+  ['unicorn', 0.95, false, false],
+  ['mammoth', 1.2, false, false],
+  ['rhino', 0.78, false, false],
+  ['owl', 0.5, false, true],
+]) {
+  const image = await upload(
+    () => readFileSync(join(ANIMALS_DIR, `${name}.webp`)),
+    `${name}-cut-out.webp`,
+    'image/webp',
+    'Kasra · 3D animals',
+  );
+  heroAnimals.push({ image, size, flip, flies, name });
+}
+/** The same animals for the jungle journey: named, and which way each looks in its picture. */
+const ANIMAL_NAMES = {
+  tiger: t('Tiger', 'ببر'),
+  bear: t('Bear', 'خرس'),
+  wolf: t('Wolf', 'گرگ'),
+  bull: t('Bull', 'گاو نر'),
+  unicorn: t('Unicorn', 'تک‌شاخ'),
+  mammoth: t('Mammoth', 'ماموت'),
+  rhino: t('Rhino', 'کرگدن'),
+  owl: t('Owl', 'جغد'),
+};
+const LOOKS_RIGHT = new Set(['tiger', 'bear']);
+const cosmosAnimals = (l) =>
+  heroAnimals.map(({ image, size, flies, name }) => ({
+    image,
+    name: ANIMAL_NAMES[name](l),
+    size,
+    faces: LOOKS_RIGHT.has(name) ? 'right' : 'left',
+    flies,
+  }));
+
+/** The eight NFT planets, named, for the galaxy journey. */
+const nftPlanets = (l) =>
+  files.nft.filter((f) => f.startsWith('Planet')).map((f) => ({ image: pic('nft', f), name: caption('nft', f, l) }));
+
 /** A picture's address; also notes that it is used, so the end of the script can prove every picture is. */
 function pic(key, file) {
   const url = pics[key]?.[file];
@@ -519,6 +568,9 @@ const story = (l) => [
       secondButtonLink: '#contact',
       color: '#f5c400',
       look: 'dark',
+      // Kasra's NFT animals made solid in 3D, rising out of black glass under the headline once the loader is gone.
+      scene: 'animals',
+      animals: heroAnimals.map(({ image, size, flip, flies }) => ({ image, size, flip, flies })),
     },
   },
   {
@@ -876,16 +928,33 @@ const story = (l) => [
     },
   },
   {
+    id: 'jungle',
+    type: 'cosmos-3d',
+    props: {
+      eyebrow: t('Low poly animals', 'حیوانات لوپلی')(l),
+      title: t('Into the jungle', 'به دل جنگل')(l),
+      text: t('Scroll down the path to meet Kasra’s animals one by one.', 'در مسیر اسکرول کنید تا حیوانات کسری را یکی‌یکی ببینید.')(l),
+      buttonLabel: t('See the low poly work', 'دیدن کارهای لوپلی')(l),
+      buttonLink: href(kind.lowpoly),
+      scene: 'jungle',
+      planets: [],
+      animals: cosmosAnimals(l),
+      fill: 62,
+    },
+  },
+  {
     id: 'planets',
-    type: 'orbit',
+    type: 'cosmos-3d',
     props: {
       eyebrow: t('NFT', 'ان‌اف‌تی')(l),
-      title: t('A small solar system', 'یک منظومه‌ی کوچک')(l),
+      title: t('A trip through the galaxy', 'سفری میان کهکشان')(l),
       text: t('Eight imaginary planets, each with a code name and a year.', 'هشت سیاره‌ی خیالی، هر کدام با یک رمز و یک سال.')(l),
       buttonLabel: t('See every NFT', 'دیدن همه‌ی ان‌اف‌تی‌ها')(l),
       buttonLink: href(kind.nft),
-      items: files.nft.filter((f) => f.startsWith('Planet')).map((f) => ({ image: pic('nft', f), icon: '', name: caption('nft', f, l) })),
-      seconds: 40,
+      scene: 'galaxy',
+      planets: nftPlanets(l),
+      animals: [],
+      fill: 62,
     },
   },
   {
@@ -1456,7 +1525,18 @@ if (HOME) {
     ],
     fonts: settings.fonts,
     savedThemes: settings.savedThemes,
-    loader: settings.loader,
+    // The loading screen: the eight NFT planets gathering round the counter in 3D (same pictures as the home page).
+    loader: {
+      ...settings.loader,
+      enabled: true,
+      style: 'planets',
+      planets: files.nft.filter((f) => f.startsWith('Planet')).map((f) => pic('nft', f)),
+      planetFill: 62,
+      background: '',
+      backgroundMobile: '',
+      minSeconds: 3,
+      oncePerSession: true,
+    },
     maintenance: settings.maintenance,
     maintenanceText: settings.maintenanceText,
     business: { ...settings.business, phone: PHONE, email: EMAIL, country: 'IR' },

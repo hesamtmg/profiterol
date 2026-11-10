@@ -45,6 +45,34 @@ export const animatedDefinitions: BlockDef[] = [
           { value: 'light', label: 'Light' },
         ],
       },
+      {
+        key: 'scene',
+        label: 'Below the headline',
+        type: 'select',
+        options: [
+          { value: 'glow', label: 'Nothing (just the glows)' },
+          { value: 'animals', label: '3D animals from pictures' },
+        ],
+      },
+      {
+        key: 'animals',
+        label: 'Animals (3D scene)',
+        type: 'list',
+        itemLabel: 'image',
+        max: 10,
+        help: 'Cut-out pictures (transparent background), made solid in 3D and standing side by side in this order. On phones only the middle three stand.',
+        fields: [
+          { key: 'image', label: 'Cut-out picture', type: 'image' },
+          {
+            key: 'size',
+            label: 'Height next to the others',
+            type: 'number',
+            help: '1 is the usual height; 0.5 half as tall, 1.5 half as tall again.',
+          },
+          { key: 'flip', label: 'Face the other way', type: 'boolean' },
+          { key: 'flies', label: 'Flies above the others', type: 'boolean' },
+        ],
+      },
     ],
     defaults: {
       eyebrow: 'Design studio',
@@ -57,6 +85,8 @@ export const animatedDefinitions: BlockDef[] = [
       secondButtonLink: '#projects',
       color: '#7c5cff',
       look: 'dark',
+      scene: 'glow',
+      animals: [],
     },
   },
   {
@@ -905,6 +935,76 @@ export const animatedDefinitions: BlockDef[] = [
     },
   },
   {
+    type: 'cosmos-3d',
+    label: '3D scroll journey',
+    icon: 'mdi-earth',
+    category: 'animated',
+    description:
+      'A 3D trip driven by scrolling: down a jungle path past your animals, or into a galaxy past your planets, naming each one on the way.',
+    fields: [
+      { key: 'eyebrow', label: 'Small line above', type: 'text' },
+      { key: 'title', label: 'Title', type: 'text' },
+      { key: 'text', label: 'Text', type: 'textarea' },
+      ...button(),
+      {
+        key: 'scene',
+        label: 'Scene',
+        type: 'select',
+        options: [
+          { value: 'jungle', label: 'Jungle: a path past the animals' },
+          { value: 'galaxy', label: 'Galaxy: a flight past the planets' },
+        ],
+      },
+      {
+        key: 'planets',
+        label: 'Planets',
+        type: 'list',
+        itemLabel: 'name',
+        max: 8,
+        help: 'For the galaxy: round pictures of planets, visited in this order.',
+        fields: [
+          { key: 'image', label: 'Planet picture', type: 'image' },
+          { key: 'name', label: 'Name', type: 'text' },
+        ],
+      },
+      { key: 'fill', label: 'Planet size in the picture (%)', type: 'number', help: '100 when the picture is just the planet.' },
+      {
+        key: 'animals',
+        label: 'Animals',
+        type: 'list',
+        itemLabel: 'name',
+        max: 8,
+        help: 'For the jungle: cut-out pictures (transparent background), made solid in 3D and met in this order.',
+        fields: [
+          { key: 'image', label: 'Cut-out picture', type: 'image' },
+          { key: 'name', label: 'Name', type: 'text' },
+          { key: 'size', label: 'Height next to the others', type: 'number', help: '1 is the usual height.' },
+          {
+            key: 'faces',
+            label: 'Looks to the',
+            type: 'select',
+            options: [
+              { value: 'right', label: 'Right' },
+              { value: 'left', label: 'Left' },
+            ],
+          },
+          { key: 'flies', label: 'Flies above the ground', type: 'boolean' },
+        ],
+      },
+    ],
+    defaults: {
+      eyebrow: 'A short trip',
+      title: 'Into the jungle',
+      text: 'Scroll to walk down the path.',
+      buttonLabel: '',
+      buttonLink: '',
+      scene: 'jungle',
+      planets: [],
+      fill: 100,
+      animals: [],
+    },
+  },
+  {
     type: 'orbit',
     label: 'Orbiting icons',
     icon: 'mdi-orbit',
@@ -928,6 +1028,22 @@ export const animatedDefinitions: BlockDef[] = [
         ],
       },
       { key: 'seconds', label: 'Seconds per turn', type: 'number' },
+      {
+        key: 'look',
+        label: 'Look',
+        type: 'select',
+        help: '3D wraps each logo or photo around a lit, spinning sphere — made for round pictures like planets.',
+        options: [
+          { value: 'flat', label: 'Flat tiles' },
+          { value: '3d', label: '3D spheres' },
+        ],
+      },
+      {
+        key: 'fill',
+        label: 'Planet size in the picture (%)',
+        type: 'number',
+        help: "For the 3D look: how much of each picture's width the round planet takes up. 100 when the picture is just the planet.",
+      },
     ],
     defaults: {
       eyebrow: 'Works with',
@@ -948,6 +1064,8 @@ export const animatedDefinitions: BlockDef[] = [
         ['mdi-youtube', 'YouTube'],
       ].map(([icon, name]) => ({ image: '', icon, name })),
       seconds: 40,
+      look: 'flat',
+      fill: 100,
     },
   },
   {

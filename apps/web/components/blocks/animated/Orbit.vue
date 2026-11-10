@@ -2,9 +2,11 @@
 /**
  * Logos or icons circling a title on two rings that turn opposite ways, each icon turning back against its ring
  * so it stays upright. Pure CSS: pointing at the rings pauses them, and in the editor and for visitors who turn
- * off motion they stand still.
+ * off motion they stand still. The 3D look swaps the tiles for lit spinning spheres drawn by OrbitScene; the flat
+ * rings stay on screen until it is ready, and come back if the browser can't draw 3D.
  */
 import EditableText from '../../site/EditableText.vue';
+import OrbitScene from './OrbitScene.vue';
 
 interface Item {
   image: string;
@@ -13,10 +15,31 @@ interface Item {
 }
 
 const props = defineProps<{
-  p: { eyebrow: string; title: string; text: string; buttonLabel: string; buttonLink: string; items: Item[]; seconds: number };
+  p: {
+    eyebrow: string;
+    title: string;
+    text: string;
+    buttonLabel: string;
+    buttonLink: string;
+    items: Item[];
+    seconds: number;
+    look?: string;
+    fill?: number;
+  };
   locale: string;
 }>();
 const editing = Boolean(useBlockEditing());
+const reduced = useReducedMotion();
+
+const solid = ref(false);
+const sceneReady = ref(false);
+const sceneFailed = ref(false);
+onMounted(() => (solid.value = true));
+/** 3D is drawn in the browser only, so the server and the first paint show the flat rings. */
+const threeD = computed(() => props.p.look === '3d' && solid.value && !sceneFailed.value);
+/** Rebuild the scene when the pictures change in the editor. */
+const sceneKey = computed(() => JSON.stringify([props.p.fill, (props.p.items ?? []).map((i) => [i.image, i.name])]));
+watch(sceneKey, () => (sceneReady.value = false));
 
 /** The inner ring takes up to five, the outer the rest. */
 const rings = computed(() => {
@@ -40,7 +63,17 @@ const iconClass = (item: Item) => (/^mdi-[a-z0-9-]+$/.test(item.icon ?? '') ? it
 <template>
   <section class="overflow-hidden bg-surface px-4 py-20 text-ink @3xl:py-28">
     <div class="orbit relative mx-auto aspect-square w-full max-w-[44rem]" :class="{ 'orbit-still': editing }">
-      <ul class="contents">
+      <OrbitScene
+        v-if="threeD"
+        :key="sceneKey"
+        :items="p.items ?? []"
+        :seconds="seconds"
+        :still="editing || reduced"
+        :fill="p.fill"
+        @ready="sceneReady = true"
+        @failed="sceneFailed = true"
+      />
+      <ul v-if="!(threeD && sceneReady)" class="contents">
         <template v-for="(ring, r) in rings" :key="r">
           <li
             class="orbit-ring absolute rounded-full border border-dashed border-slate-300"
