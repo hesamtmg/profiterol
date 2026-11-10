@@ -45,11 +45,17 @@ export interface PlanetKitOptions {
   accent: Three.Color;
   /** Drawn over a dark background: atmospheres glow (light added) and the fill light is lower. */
   dark: boolean;
+  /**
+   * 'light' for screens that must appear fast (the page loader): the 480 px copy of each picture (a few KB), half-size
+   * maps and fewer facets. Planets drawn small look the same.
+   */
+  quality?: 'full' | 'light';
 }
 
 export function planetKit(THREE: typeof Three, renderer: Three.WebGLRenderer, options: PlanetKitOptions) {
-  const sphere = new THREE.SphereGeometry(1, 96, 64);
-  const halo = new THREE.SphereGeometry(1.16, 48, 32);
+  const lite = options.quality === 'light';
+  const sphere = lite ? new THREE.SphereGeometry(1, 40, 28) : new THREE.SphereGeometry(1, 96, 64);
+  const halo = new THREE.SphereGeometry(1.16, lite ? 24 : 48, lite ? 16 : 32);
   const disposables: { dispose(): void }[] = [sphere, halo];
   const loader = new THREE.ImageLoader();
   loader.setCrossOrigin('anonymous');
@@ -70,11 +76,12 @@ export function planetKit(THREE: typeof Three, renderer: Three.WebGLRenderer, op
   }
 
   /**
-   * The planet pictures are only read at 512px, so take the 960px WebP copy the site makes of every uploaded photo
-   * (a fraction of the original's size), and the original if there is no such copy.
+   * The planet pictures are only read at 512 px (256 px when light), so take the 960 px (480 px) WebP copy the site
+   * makes of every uploaded photo, a fraction of the original's size, and the original if there is no such copy.
    */
   function loadPicture(url: string) {
-    const smaller = /^\/uploads\/[\w-]+\.(jpe?g|png|webp|avif)$/i.test(url) ? url.replace(/\.\w+$/, '-960.webp') : '';
+    const width = lite ? 480 : 960;
+    const smaller = /^\/uploads\/[\w-]+\.(jpe?g|png|webp|avif)$/i.test(url) ? url.replace(/\.\w+$/, `-${width}.webp`) : '';
     return smaller ? loader.loadAsync(smaller).catch(() => loader.loadAsync(url)) : loader.loadAsync(url);
   }
 
@@ -99,10 +106,10 @@ export function planetKit(THREE: typeof Three, renderer: Three.WebGLRenderer, op
     const loaded = image
       ? loadPicture(image)
           .then((picture) => {
-            const surface = planetSurface(picture, options.fill);
+            const surface = planetSurface(picture, options.fill, lite ? 'light' : 'full');
             const texture = new THREE.CanvasTexture(surface.canvas);
             texture.colorSpace = THREE.SRGBColorSpace;
-            texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+            texture.anisotropy = Math.min(lite ? 2 : 8, renderer.capabilities.getMaxAnisotropy());
             material.map = texture;
             // The picture's own light and dark doubles as a height map, for a little relief.
             material.bumpMap = texture;

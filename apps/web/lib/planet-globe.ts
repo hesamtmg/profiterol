@@ -15,9 +15,8 @@ export interface PlanetSurface {
   color: [number, number, number];
 }
 
-const WIDTH = 1024;
-const HEIGHT = 512;
-const SOURCE = 512;
+/** Full size: a 1024 × 512 map read from the picture at 512 px. `light` halves both, for fast loading screens. */
+const SIZES = { full: { width: 1024, source: 512 }, light: { width: 512, source: 256 } };
 const COPIES = 3;
 const KEEP = (75 / 180) * Math.PI;
 const FADE = (30 / 180) * Math.PI;
@@ -25,7 +24,10 @@ const FADE = (30 / 180) * Math.PI;
 /**
  * `fill` is how much of the picture's width the planet's disc takes up (0–1), centered in the picture.
  */
-export function planetSurface(image: CanvasImageSource, fill: number): PlanetSurface {
+export function planetSurface(image: CanvasImageSource, fill: number, quality: keyof typeof SIZES = 'full'): PlanetSurface {
+  const WIDTH = SIZES[quality].width;
+  const HEIGHT = WIDTH / 2;
+  const SOURCE = SIZES[quality].source;
   const source = document.createElement('canvas');
   source.width = source.height = SOURCE;
   const sctx = source.getContext('2d', { willReadFrequently: true })!;

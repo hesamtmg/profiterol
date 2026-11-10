@@ -55,6 +55,8 @@ export interface LoaderSettings {
   planets: string[];
   /** How much of each planet picture's width the round planet takes up (10–100, %). */
   planetFill: number;
+  /** The "3D planets" style's button into the site, per locale; "Enter the site" when empty. */
+  enterLabel: Record<string, string>;
 }
 
 export const defaultLoader: LoaderSettings = {
@@ -75,6 +77,7 @@ export const defaultLoader: LoaderSettings = {
   hideOnMobile: false,
   planets: [],
   planetFill: 100,
+  enterLabel: {},
 };
 
 /** Font names end up in CSS, so only letters (any script), digits, spaces, dashes and underscores. */
@@ -182,6 +185,7 @@ export function cleanLoader(input: unknown): LoaderSettings {
       .filter(Boolean)
       .slice(0, 8),
     planetFill: Math.round(clampNumber(src.planetFill, 10, 100, defaultLoader.planetFill)),
+    enterLabel: perLocale(src.enterLabel, 40),
   };
 }
 

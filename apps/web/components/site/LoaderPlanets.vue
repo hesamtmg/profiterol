@@ -1,16 +1,19 @@
 <script setup lang="ts">
 /**
  * The "3D planets" page loader's scene: the planets (see lib/planet-kit) orbit the loading counter on a tilted ring
- * that draws itself as the page loads, each planet arriving in turn as the count passes its share. When the page is
- * ready (`finishing`) the orbit speeds up and opens out past the edges of the screen while the camera rises, so the
- * planets fly off as the loader fades away. Three.js is fetched only when this style is chosen; until it is in, the
+ * that draws itself as the page loads, each planet arriving in turn as the count passes its share. Once every planet
+ * is in, `spinning` sends them round the orbit fast for a moment; then they turn slowly while the visitor reads the
+ * name and the "enter" button. When the visitor goes in (`finishing`) the orbit speeds up and opens out past the
+ * edges of the screen while the camera rises, so the planets fly off as the loader fades away. The planets are made
+ * light (small pictures, half-size maps), so they are in quickly. Three.js is fetched only when this style is chosen;
+ * until it is in, the
  * counter shows on its own, and each planet waits for its own picture. Emits `ready` once every planet has its
  * picture (or straight away when the browser can't draw WebGL), so the loader can hold the count until then.
  */
 import type * as Three from 'three';
 import { hash, onDarkBackground, planetKit } from '../../lib/planet-kit';
 
-const props = defineProps<{ pictures: string[]; fill: number; percent: number; finishing: boolean }>();
+const props = defineProps<{ pictures: string[]; fill: number; percent: number; spinning?: boolean; finishing: boolean }>();
 const emit = defineEmits<{ ready: [] }>();
 
 const box = ref<HTMLElement | null>(null);
@@ -21,7 +24,7 @@ const ready = ref(false);
 /** How high the camera looks down on the orbit, in radians. */
 const ELEVATION = 0.42;
 const RADIUS = 1;
-const PLANET = 0.17;
+const PLANET = 0.12;
 
 let dispose = () => {};
 
@@ -37,13 +40,13 @@ onMounted(async () => {
     return;
   }
   const el = box.value;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(34, 1, 0.05, 80);
   const accent = new THREE.Color(accentTone.value ? getComputedStyle(accentTone.value).color : '#ffffff');
-  const kit = planetKit(THREE, renderer, { fill: props.fill, accent, dark: onDarkBackground(el) });
+  const kit = planetKit(THREE, renderer, { fill: props.fill, accent, dark: onDarkBackground(el), quality: 'light' });
   kit.light(scene);
 
   const system = new THREE.Group();
@@ -159,6 +162,7 @@ onMounted(async () => {
   let orbitTime = 0;
   let shown = 0;
   let leaving = 0;
+  let rush = 0;
   const ease = (t: number) => 1 - Math.pow(1 - t, 3);
   /** Grows past full size and settles back. */
   const pop = (t: number) => 1 + 2.4 * Math.pow(t - 1, 3) + 1.4 * Math.pow(t - 1, 2);
@@ -169,15 +173,17 @@ onMounted(async () => {
     shown += (props.percent / 100 - shown) * (1 - Math.exp(-dt * 8));
     if (props.finishing) leaving = Math.min(1, leaving + dt / 1.4);
     const out = ease(leaving);
+    // The spin once everything is in: the orbit races round, then settles to a slow turn.
+    rush += ((props.spinning ? 1 : 0) - rush) * (1 - Math.exp(-dt * (props.spinning ? 6 : 2.5)));
 
-    orbitTime += dt * (1 + out * 5);
+    orbitTime += dt * (1 + rush * 14 + out * 5);
     orbitGeometry.setDrawRange(0, Math.ceil(Math.min(1, shown / 0.9) * SEGMENTS) + 1);
     for (const p of planets) {
       if (p.dressed && shown >= p.arrives) p.grown = Math.min(1, p.grown + dt / 0.7);
       const a = p.angle + orbitTime * 0.35;
       p.holder.position.set(Math.cos(a) * RADIUS, 0, Math.sin(a) * RADIUS);
       p.holder.scale.setScalar(p.grown ? pop(p.grown) : 0);
-      p.body.rotateY(dt * p.spin);
+      p.body.rotateY(dt * p.spin * (1 + rush * 4));
     }
     // Leaving: the orbit opens out past the screen while the camera rises over it.
     system.scale.setScalar(1 + out * 2.6);

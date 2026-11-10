@@ -8,7 +8,8 @@
  * `preview` (Site settings) replays it in place without remembering anything.
  * Styles: a percentage counter, a thin bar, the name filling with color, the logo in a filling ring, a spinning ring,
  * bouncing dots, pulsing circles, the name typed out, a curtain that opens on the site, and 3D planets gathering
- * round the counter (LoaderPlanets).
+ * round the counter (LoaderPlanets). The planets style does not open by itself: once everything is in, the planets
+ * spin round for a second, then the site's name and an "enter" button show, and the site opens when it is pressed.
  * Its colors, size, pictures (with a separate one for phones), logo and shortest time come from the settings.
  */
 import type { LoaderSettings } from '@profiterol/blocks';
@@ -23,6 +24,12 @@ const percent = ref(0);
 /** The 3D planets style holds the count short of the end until its planets are on screen. */
 const planetsReady = ref(false);
 const finishing = ref(false);
+/** The planets style, once loaded: 'spin' for a second, then 'enter' (the button shows) until the visitor goes in. */
+const stage = ref<'loading' | 'spin' | 'enter'>('loading');
+const withPlanets = computed(() => props.loader.style === 'planets' && Boolean(props.loader.planets?.length));
+const enterButton = ref<HTMLButtonElement | null>(null);
+/** Running in the browser: the CSS that removes the loader after 8 seconds without JavaScript is turned off. */
+const live = ref(false);
 let frame = 0;
 let failsafe: ReturnType<typeof setTimeout> | undefined;
 const root = ref<HTMLElement | null>(null);
@@ -38,18 +45,48 @@ if (!props.preview && props.loader.oncePerSession) {
   });
 }
 
+/** Everything is in. The planets style spins and waits for the visitor; the others open the site by themselves. */
 function finish() {
-  if (finishing.value) return;
+  if (finishing.value || stage.value !== 'loading') return;
   percent.value = 100;
-  finishing.value = true;
   cancelAnimationFrame(frame);
   clearTimeout(failsafe);
+  if (withPlanets.value) {
+    stage.value = 'spin';
+    setTimeout(() => {
+      stage.value = 'enter';
+      nextTick(() => enterButton.value?.focus({ preventScroll: true }));
+    }, 1000);
+    return;
+  }
+  open();
+}
+
+/**
+ * Remember the visit and open onto the site. The page under the loader is told at once (the `profiterol:site-open`
+ * event), so it plays its entrance while the loader is still leaving and the two run into each other. The planets
+ * style opens like an iris from the middle, the planets flying out past its edge, so the site appears from inside
+ * the solar system; the other styles fade.
+ */
+const IRIS_MS = 1250;
+function open() {
+  if (finishing.value) return;
+  finishing.value = true;
   if (!props.preview) {
     try {
       sessionStorage.setItem(SEEN, '1');
     } catch {
       /* private mode: show it again next time, nothing else changes */
     }
+    window.dispatchEvent(new CustomEvent('profiterol:site-open'));
+  }
+  if (withPlanets.value) {
+    iris();
+    setTimeout(() => {
+      shown.value = false;
+      emit('done');
+    }, IRIS_MS + 60);
+    return;
   }
   // Let the name show for a moment, then fade out.
   setTimeout(
@@ -57,11 +94,29 @@ function finish() {
       shown.value = false;
       emit('done');
     },
-    ({ bar: 400, curtain: 1100, planets: 1500 } as Record<string, number>)[props.loader.style] ?? 1400,
+    ({ bar: 400, curtain: 1100 } as Record<string, number>)[props.loader.style] ?? 1400,
   );
 }
 
+/** A hole in the middle of the loader that grows until it covers the screen, with a soft edge. */
+function iris() {
+  const el = root.value;
+  if (!el) return;
+  const started = performance.now();
+  const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const step = (now: number) => {
+    const t = Math.min(1, (now - started) / IRIS_MS);
+    const r = ease(t) * 120;
+    const mask = `radial-gradient(circle at 50% 50%, transparent ${r}%, black ${r + 12}%)`;
+    el.style.maskImage = mask;
+    el.style.webkitMaskImage = mask;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
 onMounted(() => {
+  live.value = true;
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!props.preview && (calm || document.documentElement.classList.contains('loader-seen'))) {
     shown.value = false;
@@ -105,6 +160,7 @@ const digits = computed(() =>
 // The color fills in reading direction: from the left, or from the right in Persian.
 const fillClip = computed(() => (props.locale === 'fa' ? `inset(0 0 0 ${100 - percent.value}%)` : `inset(0 ${100 - percent.value}% 0 0)`));
 const line = computed(() => props.loader.text?.[props.locale] ?? '');
+const enterLabel = computed(() => props.loader.enterLabel?.[props.locale] || (props.locale === 'fa' ? 'ورود به سایت' : 'Enter the site'));
 
 /** The logo ring: its length, and how much of it is still empty. */
 const RING = 2 * Math.PI * 54;
@@ -159,6 +215,7 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
       v-else-if="shown"
       ref="root"
       class="site-loader z-[120] flex flex-col items-center justify-center overflow-hidden text-white"
+      :data-live="live || undefined"
       :class="[preview ? 'absolute inset-0' : 'fixed inset-0', covered ? 'bg-dark' : '', { 'site-loader-wide-only': loader.hideOnMobile }]"
       :style="colors"
       role="progressbar"
@@ -206,13 +263,14 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
         :pictures="loader.planets"
         :fill="(loader.planetFill || 100) / 100"
         :percent="percent"
+        :spinning="stage === 'spin'"
         :finishing="finishing"
         @ready="planetsReady = true"
       />
 
       <div
         class="relative px-6 text-center transition-opacity duration-300"
-        :class="{ 'opacity-0': loader.style === 'curtain' && finishing }"
+        :class="{ 'opacity-0': (loader.style === 'curtain' || withPlanets) && finishing }"
         :style="scale !== 1 ? { transform: `scale(${scale})` } : undefined"
       >
         <!-- Name filling with color: both copies share one grid cell, so they wrap and sit exactly on top of each other -->
@@ -304,14 +362,40 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
             leave-active-class="transition duration-300"
             leave-to-class="opacity-0"
           >
-            <p v-if="!finishing" key="count" class="text-6xl font-black tabular-nums @3xl:text-8xl" dir="ltr">
+            <p v-if="!finishing && stage !== 'enter'" key="count" class="text-6xl font-black tabular-nums @3xl:text-8xl" dir="ltr">
               {{ digits }}<span class="text-primary">%</span>
             </p>
-            <p v-else key="name" class="text-5xl font-black tracking-tight @3xl:text-7xl" dir="auto">{{ siteName }}</p>
+            <p
+              v-else
+              key="name"
+              class="font-black tracking-tight"
+              :class="withPlanets ? 'text-4xl leading-tight drop-shadow-lg @3xl:text-6xl' : 'text-5xl @3xl:text-7xl'"
+              dir="auto"
+            >
+              {{ siteName }}
+            </p>
           </Transition>
           <div v-if="loader.style !== 'planets'" class="site-loader-track mx-auto mt-6 h-0.5 w-56 overflow-hidden rounded-full">
             <div class="h-full origin-left bg-primary" :style="{ transform: `scaleX(${percent / 100})` }" />
           </div>
+          <!-- The planets style: the way in -->
+          <Transition
+            enter-active-class="transition duration-500 ease-out"
+            enter-from-class="opacity-0 translate-y-3"
+            leave-active-class="transition duration-300"
+            leave-to-class="opacity-0"
+          >
+            <button
+              v-if="stage === 'enter' && !finishing"
+              ref="enterButton"
+              type="button"
+              class="mt-44 inline-flex items-center gap-2 rounded-full bg-primary @3xl:mt-32 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_10px_40px_-10px_var(--c-primary)] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+              @click="open"
+            >
+              {{ enterLabel }}
+              <i class="mdi mdi-arrow-right rtl:rotate-180" aria-hidden="true" />
+            </button>
+          </Transition>
         </template>
         <p v-if="line" class="mt-5 text-sm font-light opacity-70" :class="{ 'mt-16': loader.style === 'curtain' }">{{ line }}</p>
       </div>
@@ -320,9 +404,13 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
 </template>
 
 <style>
-/* No JavaScript: get out of the way after 8 seconds. */
+/* No JavaScript: get out of the way after 8 seconds. With it, the loader decides (the planets style waits for its
+   "enter" button). */
 .site-loader {
   animation: site-loader-failsafe 0.6s ease 8s forwards;
+}
+.site-loader[data-live] {
+  animation: none;
 }
 @keyframes site-loader-failsafe {
   to {
