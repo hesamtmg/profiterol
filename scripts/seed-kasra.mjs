@@ -427,7 +427,7 @@ for (const [name, size, flip, flies] of [
   );
   heroAnimals.push({ image, size, flip, flies, name });
 }
-/** The same animals for the animals-and-planets scenes: named, and which way each looks in its picture. */
+/** The same animals for the jungle journey: named, and which way each looks in its picture. */
 const ANIMAL_NAMES = {
   tiger: t('Tiger', 'ببر'),
   bear: t('Bear', 'خرس'),
@@ -448,7 +448,7 @@ const cosmosAnimals = (l) =>
     flies,
   }));
 
-/** The eight NFT planets, named, for the animals-and-planets scenes. DV-1958 first: it is the ground of the horizon. */
+/** The eight NFT planets, named, for the galaxy journey. */
 const nftPlanets = (l) =>
   files.nft.filter((f) => f.startsWith('Planet')).map((f) => ({ image: pic('nft', f), name: caption('nft', f, l) }));
 
@@ -928,34 +928,16 @@ const story = (l) => [
     },
   },
   {
-    id: 'worlds',
+    id: 'jungle',
     type: 'cosmos-3d',
     props: {
-      eyebrow: t('NFT', 'ان‌اف‌تی')(l),
-      title: t('Every animal has its own planet', 'هر حیوان سیاره‌ی خودش را دارد')(l),
-      text: t(
-        'Kasra’s low poly animals, each on one of his imaginary planets.',
-        'حیوانات لوپلی کسری، هر کدام روی یکی از سیاره‌های خیالی‌اش.',
-      )(l),
-      buttonLabel: '',
-      buttonLink: '',
-      scene: 'worlds',
-      planets: nftPlanets(l),
-      animals: cosmosAnimals(l),
-      fill: 62,
-    },
-  },
-  {
-    id: 'horizon',
-    type: 'cosmos-3d',
-    props: {
-      eyebrow: '',
-      title: t('A walk on Planet DV-1958', 'قدم‌زدن روی سیاره‌ی DV-1958')(l),
-      text: t('Scroll, and the planet turns under their feet.', 'اسکرول کنید تا سیاره زیر پایشان بچرخد.')(l),
-      buttonLabel: '',
-      buttonLink: '',
-      scene: 'horizon',
-      planets: nftPlanets(l),
+      eyebrow: t('Low poly animals', 'حیوانات لوپلی')(l),
+      title: t('Into the jungle', 'به دل جنگل')(l),
+      text: t('Scroll down the path to meet Kasra’s animals one by one.', 'در مسیر اسکرول کنید تا حیوانات کسری را یکی‌یکی ببینید.')(l),
+      buttonLabel: t('See the low poly work', 'دیدن کارهای لوپلی')(l),
+      buttonLink: href(kind.lowpoly),
+      scene: 'jungle',
+      planets: [],
       animals: cosmosAnimals(l),
       fill: 62,
     },
@@ -964,32 +946,14 @@ const story = (l) => [
     id: 'planets',
     type: 'cosmos-3d',
     props: {
-      eyebrow: '',
-      title: t('A small solar system', 'یک منظومه‌ی کوچک')(l),
-      text: t(
-        'Eight imaginary planets, each with a code name and a year, and a rider on each.',
-        'هشت سیاره‌ی خیالی، هر کدام با یک رمز و یک سال، و یک سوار روی هر کدام.',
-      )(l),
-      buttonLabel: '',
-      buttonLink: '',
-      scene: 'parade',
-      planets: nftPlanets(l),
-      animals: cosmosAnimals(l),
-      fill: 62,
-    },
-  },
-  {
-    id: 'journey',
-    type: 'cosmos-3d',
-    props: {
       eyebrow: t('NFT', 'ان‌اف‌تی')(l),
-      title: t('A trip through the NFTs', 'سفری میان ان‌اف‌تی‌ها')(l),
-      text: t('From planet to planet, meeting the animals on the way.', 'از سیاره‌ای به سیاره‌ی دیگر، و دیدار با حیوانات در راه.')(l),
+      title: t('A trip through the galaxy', 'سفری میان کهکشان')(l),
+      text: t('Eight imaginary planets, each with a code name and a year.', 'هشت سیاره‌ی خیالی، هر کدام با یک رمز و یک سال.')(l),
       buttonLabel: t('See every NFT', 'دیدن همه‌ی ان‌اف‌تی‌ها')(l),
       buttonLink: href(kind.nft),
-      scene: 'journey',
+      scene: 'galaxy',
       planets: nftPlanets(l),
-      animals: cosmosAnimals(l),
+      animals: [],
       fill: 62,
     },
   },

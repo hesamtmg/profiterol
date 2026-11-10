@@ -936,11 +936,11 @@ export const animatedDefinitions: BlockDef[] = [
   },
   {
     type: 'cosmos-3d',
-    label: 'Animals & planets in 3D',
+    label: '3D scroll journey',
     icon: 'mdi-earth',
     category: 'animated',
     description:
-      'Animals and planets from your pictures in 3D: tiny worlds on a ring, a walk along a huge planet, a parade round a sun, or a scroll journey past the planets.',
+      'A 3D trip driven by scrolling: down a jungle path past your animals, or into a galaxy past your planets, naming each one on the way.',
     fields: [
       { key: 'eyebrow', label: 'Small line above', type: 'text' },
       { key: 'title', label: 'Title', type: 'text' },
@@ -951,10 +951,8 @@ export const animatedDefinitions: BlockDef[] = [
         label: 'Scene',
         type: 'select',
         options: [
-          { value: 'worlds', label: 'Tiny worlds: each animal on its own planet' },
-          { value: 'horizon', label: 'Planet horizon: walking along a huge planet' },
-          { value: 'parade', label: 'Orbit parade: riding the planets round a sun' },
-          { value: 'journey', label: 'Scroll journey: flying past the planets' },
+          { value: 'jungle', label: 'Jungle: a path past the animals' },
+          { value: 'galaxy', label: 'Galaxy: a flight past the planets' },
         ],
       },
       {
@@ -963,7 +961,7 @@ export const animatedDefinitions: BlockDef[] = [
         type: 'list',
         itemLabel: 'name',
         max: 8,
-        help: 'Round pictures of planets. In the horizon scene the first one is the ground.',
+        help: 'For the galaxy: round pictures of planets, visited in this order.',
         fields: [
           { key: 'image', label: 'Planet picture', type: 'image' },
           { key: 'name', label: 'Name', type: 'text' },
@@ -976,7 +974,7 @@ export const animatedDefinitions: BlockDef[] = [
         type: 'list',
         itemLabel: 'name',
         max: 8,
-        help: 'Cut-out pictures (transparent background), made solid in 3D. Each stands on the planet of the same place in the list.',
+        help: 'For the jungle: cut-out pictures (transparent background), made solid in 3D and met in this order.',
         fields: [
           { key: 'image', label: 'Cut-out picture', type: 'image' },
           { key: 'name', label: 'Name', type: 'text' },
@@ -995,12 +993,12 @@ export const animatedDefinitions: BlockDef[] = [
       },
     ],
     defaults: {
-      eyebrow: 'Our worlds',
-      title: 'Every one has its own planet',
-      text: 'Add round planet pictures and cut-out animals to fill the scene.',
+      eyebrow: 'A short trip',
+      title: 'Into the jungle',
+      text: 'Scroll to walk down the path.',
       buttonLabel: '',
       buttonLink: '',
-      scene: 'worlds',
+      scene: 'jungle',
       planets: [],
       fill: 100,
       animals: [],

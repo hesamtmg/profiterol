@@ -1,11 +1,12 @@
 <script setup lang="ts">
 /**
- * Animals and planets together in 3D (see lib/cosmos): tiny worlds on a ring, a march along a huge planet's
- * horizon, a parade round a sun, or a scroll-driven journey past the planets. The title, text and button are
- * ordinary editable text around the scene. Three.js is only downloaded by pages that use the block; in the editor
- * and for visitors who asked for less motion the scene holds still.
+ * A scroll journey in 3D (see lib/cosmos): down a jungle path past the animals, or into a galaxy past the planets.
+ * The section is tall and its scene stays on screen while the page scrolls through it; the name of each animal or
+ * planet shows as the camera stops by it, and the button appears at the end. Three.js is only downloaded by pages
+ * that use the block, and the scene is built when the visitor gets near it. In the editor and for visitors who asked
+ * for less motion the scene holds still (scrolling still moves the camera).
  */
-import type { CosmosAnimal, CosmosKind, CosmosLabel, CosmosPlanet } from '../../../lib/cosmos';
+import type { CosmosAnimal, CosmosKind, CosmosPlanet } from '../../../lib/cosmos';
 import EditableText from '../../site/EditableText.vue';
 
 const props = defineProps<{
@@ -26,9 +27,8 @@ const props = defineProps<{
 const editing = Boolean(useBlockEditing());
 const reduced = useReducedMotion();
 const still = computed(() => editing || reduced.value);
-const kind = computed<CosmosKind>(() =>
-  ['worlds', 'horizon', 'parade', 'journey'].includes(props.p.scene) ? (props.p.scene as CosmosKind) : 'worlds',
-);
+const kind = computed<CosmosKind>(() => (props.p.scene === 'galaxy' ? 'galaxy' : 'jungle'));
+const galaxy = computed(() => kind.value === 'galaxy');
 const planets = computed<CosmosPlanet[]>(() =>
   (props.p.planets ?? []).filter((x) => x?.image).map((x) => ({ image: x.image, name: x.name ?? '' })),
 );
@@ -43,18 +43,17 @@ const animals = computed<CosmosAnimal[]>(() =>
       flies: Boolean(x.flies),
     })),
 );
-const empty = computed(() => !planets.value.length && !animals.value.length);
+const empty = computed(() => (galaxy.value ? !planets.value.length : !animals.value.length));
 /** Rebuild the scene when its pictures or kind change in the editor. */
 const sceneKey = computed(() => JSON.stringify([kind.value, props.p.fill, planets.value, animals.value]));
 
 const section = ref<HTMLElement | null>(null);
-const label = ref<CosmosLabel | null>(null);
+const label = ref<string | null>(null);
 const ready = ref(false);
-const journey = computed(() => kind.value === 'journey');
-// Scrolling: through the tall journey section (0 at its top, 1 at its end), or past the horizon section.
-const progress = useScrollProgress(section, (rect, vh) =>
-  journey.value ? -rect.top / Math.max(1, rect.height - vh) : (vh - rect.top) / (vh + rect.height),
-);
+// How far the page has scrolled through the tall section: 0 at its top, 1 at its end.
+const progress = useScrollProgress(section, (rect, vh) => -rect.top / Math.max(1, rect.height - vh));
+/** Taller with more stops, so each one gets its share of scrolling. */
+const stops = computed(() => (galaxy.value ? planets.value.length : animals.value.length));
 
 const box = ref<HTMLElement | null>(null);
 const canvas = ref<HTMLCanvasElement | null>(null);
@@ -71,8 +70,8 @@ async function start() {
     if (!canvas.value || !box.value) return;
     scene = cosmosScene(THREE, canvas.value, {
       kind: kind.value,
-      planets: planets.value,
-      animals: animals.value,
+      planets: galaxy.value ? planets.value : [],
+      animals: galaxy.value ? [] : animals.value,
       fill: Math.min(100, Math.max(10, Number(props.p.fill) || 100)) / 100,
       still: still.value,
       onLabel: (l) => (label.value = l),
@@ -127,19 +126,8 @@ async function start() {
   };
   const move = (e: PointerEvent) => scene.point(...at(e));
   const leave = () => scene.point(null);
-  const down = (e: PointerEvent) => {
-    scene.grab(at(e)[0]);
-    el.setPointerCapture(e.pointerId);
-  };
-  const up = (e: PointerEvent) => {
-    scene.grab(null);
-    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
-  };
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerleave', leave);
-  el.addEventListener('pointerdown', down);
-  el.addEventListener('pointerup', up);
-  el.addEventListener('pointercancel', up);
   scene.frame(0);
   run();
 
@@ -151,9 +139,6 @@ async function start() {
     stopStill();
     el.removeEventListener('pointermove', move);
     el.removeEventListener('pointerleave', leave);
-    el.removeEventListener('pointerdown', down);
-    el.removeEventListener('pointerup', up);
-    el.removeEventListener('pointercancel', up);
     scene.dispose();
     teardown = () => {};
   };
@@ -180,13 +165,16 @@ onBeforeUnmount(() => {
   approach?.disconnect();
   teardown();
 });
-
-const hint = computed(() => (kind.value === 'worlds' ? (props.locale === 'fa' ? 'برای چرخاندن بکشید' : 'Drag to turn the worlds') : ''));
 </script>
 
 <template>
-  <!-- The journey: a tall section whose scene stays on screen while the page scrolls through it -->
-  <section v-if="journey" ref="section" class="relative bg-[#07070c] text-white" :class="editing ? 'h-[100dvh]' : 'h-[420vh]'">
+  <!-- A tall section whose scene stays on screen while the page scrolls through it -->
+  <section
+    ref="section"
+    class="relative text-white"
+    :class="galaxy ? 'bg-[#05040b]' : 'bg-[#0d2418]'"
+    :style="{ height: editing ? '100dvh' : `${Math.max(3, stops + 2) * 70}vh` }"
+  >
     <div class="sticky top-0 h-[100dvh] overflow-hidden">
       <div
         ref="box"
@@ -196,22 +184,25 @@ const hint = computed(() => (kind.value === 'worlds' ? (props.locale === 'fa' ? 
       >
         <canvas ref="canvas" class="block h-full w-full" />
       </div>
+      <!-- Shade at the top and bottom, so the text reads over any scene -->
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-black/50 to-transparent" aria-hidden="true" />
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent" aria-hidden="true" />
       <div
         class="pointer-events-none absolute inset-x-0 top-0 px-6 pt-28 text-center transition-opacity duration-500"
-        :class="{ 'opacity-0': !editing && progress > 0.08 }"
+        :class="{ 'opacity-0': !editing && progress > 0.06 }"
       >
         <p v-if="p.eyebrow || editing" class="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-primary @3xl:text-sm">
           <EditableText :value="p.eyebrow" path="eyebrow" placeholder="Small line" />
         </p>
-        <h2 class="text-4xl font-black tracking-tight @3xl:text-6xl"><EditableText :value="p.title" path="title" /></h2>
-        <p v-if="p.text || editing" class="mx-auto mt-4 max-w-xl text-lg font-light text-white/70">
+        <h2 class="text-4xl font-black tracking-tight drop-shadow-lg @3xl:text-6xl"><EditableText :value="p.title" path="title" /></h2>
+        <p v-if="p.text || editing" class="mx-auto mt-4 max-w-xl text-lg font-light text-white/80">
           <EditableText :value="p.text" path="text" multiline />
         </p>
-        <p v-if="!editing" class="mt-8 text-xs uppercase tracking-[0.3em] text-white/40">
+        <p v-if="!editing" class="mt-8 text-xs uppercase tracking-[0.3em] text-white/50">
           <i class="mdi mdi-chevron-double-down motion-safe:animate-bounce" /> {{ locale === 'fa' ? 'اسکرول کنید' : 'Scroll' }}
         </p>
       </div>
-      <!-- The world being passed -->
+      <!-- The animal or planet being visited -->
       <Transition
         mode="out-in"
         enter-active-class="transition duration-500"
@@ -220,16 +211,16 @@ const hint = computed(() => (kind.value === 'worlds' ? (props.locale === 'fa' ? 
         leave-to-class="opacity-0"
       >
         <p
-          v-if="label && progress > 0.08"
-          :key="label.name"
-          class="pointer-events-none absolute inset-x-0 bottom-24 text-center text-3xl font-black tracking-tight @3xl:text-5xl"
+          v-if="label"
+          :key="label"
+          class="pointer-events-none absolute inset-x-0 bottom-24 text-center text-3xl font-black tracking-tight drop-shadow-lg @3xl:text-5xl"
         >
-          {{ label.name }}
+          {{ label }}
         </p>
       </Transition>
       <div
         class="absolute inset-x-0 bottom-10 text-center transition-opacity duration-500"
-        :class="editing || progress > 0.9 ? 'opacity-100' : 'pointer-events-none opacity-0'"
+        :class="editing || progress > 0.93 ? 'opacity-100' : 'pointer-events-none opacity-0'"
       >
         <a
           v-if="p.buttonLabel"
@@ -240,63 +231,12 @@ const hint = computed(() => (kind.value === 'worlds' ? (props.locale === 'fa' ? 
           <i class="mdi mdi-arrow-right rtl:rotate-180" />
         </a>
       </div>
-      <p v-if="editing && empty" class="absolute inset-0 flex items-center justify-center text-sm text-white/60">
-        {{ $t('Add planets and animals') }}
-      </p>
-    </div>
-  </section>
-
-  <!-- Tiny worlds, the horizon and the parade: a heading, the scene, then the button -->
-  <section v-else ref="section" class="overflow-hidden bg-[#07070c] px-4 py-20 text-white @3xl:py-28">
-    <div class="mx-auto max-w-2xl text-center">
-      <p v-if="p.eyebrow || editing" class="mb-3 text-xs font-semibold uppercase tracking-[0.25em] text-primary @3xl:text-sm">
-        <EditableText :value="p.eyebrow" path="eyebrow" placeholder="Small line" />
-      </p>
-      <h2 class="text-3xl font-black tracking-tight @3xl:text-5xl"><EditableText :value="p.title" path="title" /></h2>
-      <p v-if="p.text || editing" class="mt-4 text-lg font-light text-white/70"><EditableText :value="p.text" path="text" multiline /></p>
-    </div>
-    <div class="relative -mx-4 mt-6" :class="kind === 'horizon' ? 'h-[62vh] min-h-[380px]' : 'h-[72vh] min-h-[420px]'">
-      <div
-        ref="box"
-        class="cosmos-fade absolute inset-0 touch-pan-y transition-opacity duration-1000"
-        :class="[ready ? 'opacity-100' : 'opacity-0', kind === 'worlds' ? 'cursor-grab active:cursor-grabbing' : '']"
-        aria-hidden="true"
-      >
-        <canvas ref="canvas" class="block h-full w-full" />
-      </div>
-      <span
-        v-if="label"
-        class="pointer-events-none absolute z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/10 px-3 py-1 text-xs font-medium backdrop-blur"
-        :style="{ left: `${label.x}%`, top: `calc(${label.y}% + 0.5rem)` }"
-      >
-        {{ label.name }}
-      </span>
       <ul class="sr-only">
-        <li v-for="(a, i) in animals" :key="`a${i}`">{{ a.name }}</li>
-        <li v-for="(pl, i) in planets" :key="`p${i}`">{{ pl.name }}</li>
+        <li v-for="(a, i) in galaxy ? planets : animals" :key="i">{{ a.name }}</li>
       </ul>
       <p v-if="editing && empty" class="absolute inset-0 flex items-center justify-center text-sm text-white/60">
-        {{ $t('Add planets and animals') }}
+        {{ galaxy ? $t('Add planets') : $t('Add animals') }}
       </p>
-    </div>
-    <div class="mt-4 text-center">
-      <p v-if="hint && !editing" class="mb-6 text-xs uppercase tracking-[0.25em] text-white/40">{{ hint }}</p>
-      <a
-        v-if="p.buttonLabel"
-        :href="editing ? undefined : resolveHref(p.buttonLink, locale)"
-        class="inline-flex items-center gap-2 rounded-[var(--radius-button)] bg-primary px-7 py-3 text-sm font-semibold text-white shadow-lg transition hover:scale-105"
-      >
-        <EditableText :value="p.buttonLabel" path="buttonLabel" />
-        <i class="mdi mdi-arrow-right rtl:rotate-180" />
-      </a>
     </div>
   </section>
 </template>
-
-<style scoped>
-/* The scene melts into the section at its top and bottom edges, so nothing ends in a hard line. */
-.cosmos-fade {
-  mask-image: linear-gradient(to bottom, transparent, black 10%, black 82%, transparent);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, black 10%, black 82%, transparent);
-}
-</style>
