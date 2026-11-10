@@ -377,7 +377,7 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
         <template v-else>
           <!-- The planets style: the logo just above the counter and the name, which stay exactly in the middle -->
           <img
-            v-if="withPlanets && logoSrc"
+            v-if="withPlanets && loader.showLogo !== false && logoSrc"
             :src="logoSrc"
             :alt="siteName"
             class="absolute bottom-full left-1/2 mb-3 h-10 w-auto max-w-[45vw] -translate-x-1/2 object-contain drop-shadow-lg transition duration-700 @3xl:mb-4 @3xl:h-16"

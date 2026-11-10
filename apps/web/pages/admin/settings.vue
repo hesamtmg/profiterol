@@ -390,6 +390,10 @@ onMounted(load);
             >
               <i class="mdi mdi-plus" /> {{ $t('Add a planet') }}
             </button>
+            <label class="mt-3 flex items-center gap-2 text-sm">
+              <input v-model="settings.loader.showLogo" type="checkbox" class="h-4 w-4 rounded" />
+              {{ $t('Show the logo in the middle of the orbit (the loader logo, else the site logo)') }}
+            </label>
             <div class="mt-3 grid gap-3 sm:grid-cols-2">
               <div v-for="l in locales" :key="l.code">
                 <label class="field-label">{{ $t('Invitation to go in ({lang})', { lang: l.label }) }}</label>

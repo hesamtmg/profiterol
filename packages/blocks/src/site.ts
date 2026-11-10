@@ -57,6 +57,8 @@ export interface LoaderSettings {
   planetFill: number;
   /** The "3D planets" style's invitation to go in (anywhere opens the site), per locale; "Tap/Click anywhere to enter" when empty. */
   enterLabel: Record<string, string>;
+  /** The "3D planets" style: show the logo (the loader logo, else the site logo) above the name in the orbit. */
+  showLogo: boolean;
 }
 
 export const defaultLoader: LoaderSettings = {
@@ -78,6 +80,7 @@ export const defaultLoader: LoaderSettings = {
   planets: [],
   planetFill: 100,
   enterLabel: {},
+  showLogo: true,
 };
 
 /** Font names end up in CSS, so only letters (any script), digits, spaces, dashes and underscores. */
@@ -186,6 +189,7 @@ export function cleanLoader(input: unknown): LoaderSettings {
       .slice(0, 8),
     planetFill: Math.round(clampNumber(src.planetFill, 10, 100, defaultLoader.planetFill)),
     enterLabel: perLocale(src.enterLabel, 40),
+    showLogo: src.showLogo !== false,
   };
 }
 
