@@ -195,6 +195,18 @@ $C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -v /opt/kasra/kasra-app/public/
 
 `SITE` picks the site when one install runs several sites; leave it out otherwise. Without `--home` the story goes on a separate page, `/fa/kasra` and `/en/kasra`, with the colors set on the pages only. With `--home` it goes on the home page, and the script also sets the site name, a transparent copy of Kasra's logo, the favicon, the menu, the yellow and graphite colors, the contact details, and the loading screen (the eight NFT planets gathering round the counter in 3D). Running it again updates the same pages and does not upload the pictures twice. Add `--dry-run` to check the pictures and build the pages without signing in.
 
+**Only the 3D additions, on a site that is already live.** `scripts/kasra-3d-update.mjs` adds the 3D planets loader,
+the 3D animals in the hero, and the jungle and galaxy scroll journeys, without rebuilding anything: every page, text,
+picture, menu and setting you have stays as it is (it uploads only the eight animal cut-outs from `scripts/kasra-animals/`,
+and the galaxy takes the place of the old orbit section, keeping its words). The home page is saved as a new version (its
+history can restore the old one), and is only published if it had no unpublished changes of your own. Try it with
+`--dry-run` first; `--only=loader,hero,jungle,galaxy` picks parts. It needs no pictures folder:
+
+```sh
+$C run --rm --no-deps -v "$PWD/scripts:/seed:ro" -e API_URL=http://api:3001/api -e SITE=kasradesignstudio.com \
+  api node /seed/kasra-3d-update.mjs --dry-run
+```
+
 From your own computer instead:
 
 ```sh
