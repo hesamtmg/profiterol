@@ -55,7 +55,7 @@ export interface LoaderSettings {
   planets: string[];
   /** How much of each planet picture's width the round planet takes up (10–100, %). */
   planetFill: number;
-  /** The "3D planets" style's button into the site, per locale; "Enter the site" when empty. */
+  /** The "3D planets" style's invitation to go in (anywhere opens the site), per locale; "Tap/Click anywhere to enter" when empty. */
   enterLabel: Record<string, string>;
 }
 

@@ -606,7 +606,7 @@ export const adminFa: Record<string, string> = {
   "Planet pictures (round planets, up to 8)": "عکس سیاره‌ها (سیاره‌های گرد، تا ۸ تا)",
   "Planet {n}": "سیاره‌ی {n}",
   "Add a planet": "افزودن سیاره",
-  "Enter button ({lang})": "دکمه‌ی ورود ({lang})",
+  "Invitation to go in ({lang})": "دعوت به ورود ({lang})",
   "Planet size in the picture: {n}%": "اندازه‌ی سیاره در عکس: {n}٪",
   "Text color": "رنگ متن",
   "Bar, ring and dots color": "رنگ نوار، حلقه و نقطه‌ها",

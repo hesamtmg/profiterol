@@ -9,7 +9,8 @@
  * Styles: a percentage counter, a thin bar, the name filling with color, the logo in a filling ring, a spinning ring,
  * bouncing dots, pulsing circles, the name typed out, a curtain that opens on the site, and 3D planets gathering
  * round the counter (LoaderPlanets). The planets style does not open by itself: once everything is in, the planets
- * spin round for a second, then the site's name and an "enter" button show, and the site opens when it is pressed.
+ * spin round for a second, the site's name takes the counter's place in the middle of the orbit, and a click or tap
+ * anywhere (or Enter, Space) opens the site; a quiet line at the bottom says so.
  * Its colors, size, pictures (with a separate one for phones), logo and shortest time come from the settings.
  */
 import type { LoaderSettings } from '@profiterol/blocks';
@@ -27,7 +28,6 @@ const finishing = ref(false);
 /** The planets style, once loaded: 'spin' for a second, then 'enter' (the button shows) until the visitor goes in. */
 const stage = ref<'loading' | 'spin' | 'enter'>('loading');
 const withPlanets = computed(() => props.loader.style === 'planets' && Boolean(props.loader.planets?.length));
-const enterButton = ref<HTMLButtonElement | null>(null);
 /** Running in the browser: the CSS that removes the loader after 8 seconds without JavaScript is turned off. */
 const live = ref(false);
 let frame = 0;
@@ -55,7 +55,8 @@ function finish() {
     stage.value = 'spin';
     setTimeout(() => {
       stage.value = 'enter';
-      nextTick(() => enterButton.value?.focus({ preventScroll: true }));
+      // Focus the loader, so Enter or Space opens the site too.
+      nextTick(() => root.value?.focus({ preventScroll: true }));
     }, 1000);
     return;
   }
@@ -117,6 +118,7 @@ function iris() {
 
 onMounted(() => {
   live.value = true;
+  touch.value = window.matchMedia('(hover: none)').matches;
   const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (!props.preview && (calm || document.documentElement.classList.contains('loader-seen'))) {
     shown.value = false;
@@ -160,7 +162,21 @@ const digits = computed(() =>
 // The color fills in reading direction: from the left, or from the right in Persian.
 const fillClip = computed(() => (props.locale === 'fa' ? `inset(0 0 0 ${100 - percent.value}%)` : `inset(0 ${100 - percent.value}% 0 0)`));
 const line = computed(() => props.loader.text?.[props.locale] ?? '');
-const enterLabel = computed(() => props.loader.enterLabel?.[props.locale] || (props.locale === 'fa' ? 'ورود به سایت' : 'Enter the site'));
+/** Waiting for the visitor to go in (planets style): anywhere on the loader is the way in. */
+const waitingToEnter = computed(() => stage.value === 'enter' && !finishing.value);
+/** Touch screens are tapped, the others clicked. */
+const touch = ref(false);
+const enterLabel = computed(
+  () =>
+    props.loader.enterLabel?.[props.locale] ||
+    (props.locale === 'fa'
+      ? touch.value
+        ? 'برای ورود، هر جا را لمس کنید'
+        : 'برای ورود، هر جا کلیک کنید'
+      : touch.value
+        ? 'Tap anywhere to enter'
+        : 'Click anywhere to enter'),
+);
 
 /** The logo ring: its length, and how much of it is still empty. */
 const RING = 2 * Math.PI * 54;
@@ -218,11 +234,15 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
       :data-live="live || undefined"
       :class="[preview ? 'absolute inset-0' : 'fixed inset-0', covered ? 'bg-dark' : '', { 'site-loader-wide-only': loader.hideOnMobile }]"
       :style="colors"
-      role="progressbar"
-      :aria-valuenow="shownPercent"
-      aria-valuemin="0"
-      aria-valuemax="100"
-      :aria-label="siteName"
+      :role="waitingToEnter ? 'button' : 'progressbar'"
+      :tabindex="waitingToEnter ? 0 : undefined"
+      :aria-valuenow="waitingToEnter ? undefined : shownPercent"
+      :aria-valuemin="waitingToEnter ? undefined : 0"
+      :aria-valuemax="waitingToEnter ? undefined : 100"
+      :aria-label="waitingToEnter ? `${siteName}: ${enterLabel}` : siteName"
+      @click="waitingToEnter && open()"
+      @keydown.enter.prevent="waitingToEnter && open()"
+      @keydown.space.prevent="waitingToEnter && open()"
     >
       <!-- Curtain: two halves meeting at a progress line, sliding apart when the page is ready -->
       <template v-if="loader.style === 'curtain'">
@@ -369,7 +389,11 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
               v-else
               key="name"
               class="font-black tracking-tight"
-              :class="withPlanets ? 'text-4xl leading-tight drop-shadow-lg @3xl:text-6xl' : 'text-5xl @3xl:text-7xl'"
+              :class="
+                withPlanets
+                  ? 'max-w-[70vw] text-2xl leading-tight drop-shadow-lg @xl:text-4xl @3xl:max-w-none @3xl:text-6xl'
+                  : 'text-5xl @3xl:text-7xl'
+              "
               dir="auto"
             >
               {{ siteName }}
@@ -378,26 +402,25 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
           <div v-if="loader.style !== 'planets'" class="site-loader-track mx-auto mt-6 h-0.5 w-56 overflow-hidden rounded-full">
             <div class="h-full origin-left bg-primary" :style="{ transform: `scaleX(${percent / 100})` }" />
           </div>
-          <!-- The planets style: the way in -->
-          <Transition
-            enter-active-class="transition duration-500 ease-out"
-            enter-from-class="opacity-0 translate-y-3"
-            leave-active-class="transition duration-300"
-            leave-to-class="opacity-0"
-          >
-            <button
-              v-if="stage === 'enter' && !finishing"
-              ref="enterButton"
-              type="button"
-              class="mt-44 inline-flex items-center gap-2 rounded-full bg-primary @3xl:mt-32 px-8 py-3.5 text-sm font-semibold text-white shadow-[0_10px_40px_-10px_var(--c-primary)] transition hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-              @click="open"
-            >
-              {{ enterLabel }}
-              <i class="mdi mdi-arrow-right rtl:rotate-180" aria-hidden="true" />
-            </button>
-          </Transition>
         </template>
-        <p v-if="line" class="mt-5 text-sm font-light opacity-70" :class="{ 'mt-16': loader.style === 'curtain' }">{{ line }}</p>
+        <p v-if="line && !withPlanets" class="mt-5 text-sm font-light opacity-70" :class="{ 'mt-16': loader.style === 'curtain' }">
+          {{ line }}
+        </p>
+      </div>
+
+      <!-- The planets style: the counter and then the name stay alone in the middle of the orbit; the line and the
+           invitation to go in sit at the bottom. -->
+      <div
+        v-if="withPlanets"
+        class="pointer-events-none absolute inset-x-0 bottom-[9vh] px-6 text-center transition-opacity duration-300"
+        :class="{ 'opacity-0': finishing }"
+      >
+        <p v-if="line" class="text-sm font-light opacity-70">{{ line }}</p>
+        <Transition enter-active-class="transition duration-700 ease-out" enter-from-class="opacity-0 translate-y-2">
+          <p v-if="waitingToEnter" class="site-loader-invite mt-3 text-xs font-medium uppercase tracking-[0.3em] opacity-80">
+            {{ enterLabel }}
+          </p>
+        </Transition>
       </div>
     </div>
   </Transition>
@@ -411,6 +434,19 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
 }
 .site-loader[data-live] {
   animation: none;
+}
+.site-loader[role='button'] {
+  cursor: pointer;
+  outline: none;
+}
+/* The invitation to go in breathes gently. */
+.site-loader-invite {
+  animation: site-loader-invite 2.4s ease-in-out infinite;
+}
+@keyframes site-loader-invite {
+  50% {
+    opacity: 0.35;
+  }
 }
 @keyframes site-loader-failsafe {
   to {
