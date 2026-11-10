@@ -607,6 +607,7 @@ export const adminFa: Record<string, string> = {
   "Planet {n}": "سیاره‌ی {n}",
   "Add a planet": "افزودن سیاره",
   "Invitation to go in ({lang})": "دعوت به ورود ({lang})",
+  "Show the logo in the middle of the orbit (the loader logo, else the site logo)": "نمایش لوگو در وسط مدار (لوگوی صفحه‌ی بارگذاری، وگرنه لوگوی سایت)",
   "Planet size in the picture: {n}%": "اندازه‌ی سیاره در عکس: {n}٪",
   "Text color": "رنگ متن",
   "Bar, ring and dots color": "رنگ نوار، حلقه و نقطه‌ها",
