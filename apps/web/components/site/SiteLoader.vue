@@ -62,7 +62,13 @@ function finish() {
   open();
 }
 
-/** Remember the visit and fade the loader away. */
+/**
+ * Remember the visit and open onto the site. The page under the loader is told at once (the `profiterol:site-open`
+ * event), so it plays its entrance while the loader is still leaving and the two run into each other. The planets
+ * style opens like an iris from the middle, the planets flying out past its edge, so the site appears from inside
+ * the solar system; the other styles fade.
+ */
+const IRIS_MS = 1250;
 function open() {
   if (finishing.value) return;
   finishing.value = true;
@@ -72,6 +78,15 @@ function open() {
     } catch {
       /* private mode: show it again next time, nothing else changes */
     }
+    window.dispatchEvent(new CustomEvent('profiterol:site-open'));
+  }
+  if (withPlanets.value) {
+    iris();
+    setTimeout(() => {
+      shown.value = false;
+      emit('done');
+    }, IRIS_MS + 60);
+    return;
   }
   // Let the name show for a moment, then fade out.
   setTimeout(
@@ -79,8 +94,25 @@ function open() {
       shown.value = false;
       emit('done');
     },
-    ({ bar: 400, curtain: 1100, planets: 1500 } as Record<string, number>)[props.loader.style] ?? 1400,
+    ({ bar: 400, curtain: 1100 } as Record<string, number>)[props.loader.style] ?? 1400,
   );
+}
+
+/** A hole in the middle of the loader that grows until it covers the screen, with a soft edge. */
+function iris() {
+  const el = root.value;
+  if (!el) return;
+  const started = performance.now();
+  const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const step = (now: number) => {
+    const t = Math.min(1, (now - started) / IRIS_MS);
+    const r = ease(t) * 120;
+    const mask = `radial-gradient(circle at 50% 50%, transparent ${r}%, black ${r + 12}%)`;
+    el.style.maskImage = mask;
+    el.style.webkitMaskImage = mask;
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
 }
 
 onMounted(() => {
@@ -238,7 +270,7 @@ const pictureFilter = computed(() => (props.loader.blur ? `blur(${Math.max(0, 30
 
       <div
         class="relative px-6 text-center transition-opacity duration-300"
-        :class="{ 'opacity-0': loader.style === 'curtain' && finishing }"
+        :class="{ 'opacity-0': (loader.style === 'curtain' || withPlanets) && finishing }"
         :style="scale !== 1 ? { transform: `scale(${scale})` } : undefined"
       >
         <!-- Name filling with color: both copies share one grid cell, so they wrap and sit exactly on top of each other -->

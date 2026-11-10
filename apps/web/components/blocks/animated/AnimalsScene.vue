@@ -36,13 +36,17 @@ onMounted(async () => {
   ready.value = true;
 
   // Walk in once the page loader is out of the way (or after a few seconds whatever happens).
+  // …or as soon as the visitor goes in, so they rise while the loader opens onto them.
   const started = performance.now();
+  const go = () => {
+    clearInterval(waitForLoader);
+    window.removeEventListener('profiterol:site-open', go);
+    scene.enter();
+  };
   const waitForLoader = setInterval(() => {
-    if (!document.querySelector('.site-loader') || performance.now() - started > 10000) {
-      clearInterval(waitForLoader);
-      scene.enter();
-    }
+    if (!document.querySelector('.site-loader') || performance.now() - started > 10000) go();
   }, 150);
+  window.addEventListener('profiterol:site-open', go);
 
   // The clock only runs while the hero is on screen and allowed to move.
   let visible = true;
@@ -91,6 +95,7 @@ onMounted(async () => {
   dispose = () => {
     stop();
     clearInterval(waitForLoader);
+    window.removeEventListener('profiterol:site-open', go);
     stopWatching();
     seen.disconnect();
     sized.disconnect();

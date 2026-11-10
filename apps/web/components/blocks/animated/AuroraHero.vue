@@ -70,9 +70,27 @@ function onPointer(e: PointerEvent) {
   });
 }
 
+/**
+ * The entrance (words rising one by one) plays when the hero appears. Behind a page loader it would play unseen, so
+ * it plays again when the visitor goes in, with the whole hero easing in from slightly larger: the loader's opening
+ * runs straight into it.
+ */
+const intro = ref(0);
+const arriving = ref(false);
+function onSiteOpen() {
+  if (editing || reduced.value) return;
+  intro.value++;
+  arriving.value = true;
+  setTimeout(() => (arriving.value = false), 1600);
+}
+
 watch([reduced, () => changing.value.length], cycle);
-onMounted(cycle);
+onMounted(() => {
+  cycle();
+  window.addEventListener('profiterol:site-open', onSiteOpen);
+});
 onBeforeUnmount(() => {
+  window.removeEventListener('profiterol:site-open', onSiteOpen);
   clearInterval(timer);
   cancelAnimationFrame(frame);
 });
@@ -90,7 +108,7 @@ onBeforeUnmount(() => {
     @pointermove="onPointer"
   >
     <!-- Drifting glows -->
-    <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+    <div class="pointer-events-none absolute inset-0 -z-10" :class="{ 'hero-arrive-glow': arriving }" aria-hidden="true">
       <div
         class="motion-safe-only absolute -left-[10%] -top-[20%] h-[60vmax] w-[60vmax] rounded-full opacity-60 blur-[90px]"
         :class="{ 'mix-blend-screen': dark }"
@@ -127,7 +145,7 @@ onBeforeUnmount(() => {
       />
     </div>
 
-    <div class="mx-auto w-full max-w-5xl text-center">
+    <div :key="intro" class="mx-auto w-full max-w-5xl text-center" :class="{ 'hero-arrive': arriving }">
       <p
         v-if="p.eyebrow || editing"
         class="mx-auto mb-8 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-medium tracking-wide @3xl:text-sm"
@@ -228,3 +246,33 @@ onBeforeUnmount(() => {
     </div>
   </section>
 </template>
+
+<style scoped>
+/* Arriving from the page loader: the hero settles in from slightly larger and out of focus, as if the camera came
+   through the loader's opening, while its words rise again. */
+.hero-arrive {
+  animation: hero-arrive 1.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.hero-arrive-glow {
+  animation: hero-arrive-glow 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes hero-arrive {
+  from {
+    opacity: 0;
+    transform: scale(1.08);
+    filter: blur(8px);
+  }
+}
+@keyframes hero-arrive-glow {
+  from {
+    opacity: 0.2;
+    transform: scale(1.3);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-arrive,
+  .hero-arrive-glow {
+    animation: none;
+  }
+}
+</style>
