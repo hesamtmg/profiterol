@@ -2,8 +2,8 @@
 /**
  * The "3D planets" page loader's scene: the planets (see lib/planet-kit) orbit the loading counter on a tilted ring
  * that draws itself as the page loads, each planet arriving in turn as the count passes its share. Once every planet
- * is in, `spinning` sends them round the orbit fast for a moment; then they turn slowly while the visitor reads the
- * name and the "enter" button. When the visitor goes in (`finishing`) the orbit speeds up and opens out past the
+ * is in, `spinning` sends them round the orbit fast for a moment; then they turn slowly round the name, centred in
+ * the ring, until the visitor goes in. When the visitor goes in (`finishing`) the orbit speeds up and opens out past the
  * edges of the screen while the camera rises, so the planets fly off as the loader fades away. The planets are made
  * light (small pictures, half-size maps), so they are in quickly. Three.js is fetched only when this style is chosen;
  * until it is in, the
@@ -129,7 +129,7 @@ onMounted(async () => {
       for (let k = 0; k < 32; k++) {
         const a = (k / 32) * Math.PI * 2;
         probe.set(Math.cos(a) * reach, PLANET, Math.sin(a) * reach).project(camera);
-        if (Math.abs(probe.x) > 0.82 || Math.abs(probe.y) > 0.7) return false;
+        if (Math.abs(probe.x) > (camera.aspect < 1 ? 0.94 : 0.82) || Math.abs(probe.y) > 0.7) return false;
       }
       return true;
     };
@@ -142,6 +142,18 @@ onMounted(async () => {
     }
     distance = hi;
   }
+  /**
+   * Seen from above and in front, the near half of the orbit looks bigger than the far half, so the ring's middle
+   * on screen falls below the screen's middle, where the counter and the name sit. Shift the picture so the ring is
+   * centred on them exactly.
+   */
+  function centre() {
+    camera.updateMatrixWorld();
+    const far = new THREE.Vector3(0, 0, -RADIUS).project(camera).y;
+    const near = new THREE.Vector3(0, 0, RADIUS).project(camera).y;
+    camera.projectionMatrix.elements[9] = (far + near) / 2;
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  }
   function resize() {
     const { width, height } = el.getBoundingClientRect();
     if (!width || !height) return;
@@ -149,6 +161,8 @@ onMounted(async () => {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     fit();
+    aim(0);
+    centre();
   }
   const sized = new ResizeObserver(resize);
   sized.observe(el);

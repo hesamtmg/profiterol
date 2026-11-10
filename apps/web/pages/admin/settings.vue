@@ -392,13 +392,13 @@ onMounted(load);
             </button>
             <div class="mt-3 grid gap-3 sm:grid-cols-2">
               <div v-for="l in locales" :key="l.code">
-                <label class="field-label">{{ $t('Enter button ({lang})', { lang: l.label }) }}</label>
+                <label class="field-label">{{ $t('Invitation to go in ({lang})', { lang: l.label }) }}</label>
                 <input
                   v-model="settings.loader.enterLabel[l.code]"
                   class="input"
                   :dir="l.dir"
                   maxlength="40"
-                  :placeholder="l.code === 'fa' ? 'ورود به سایت' : 'Enter the site'"
+                  :placeholder="l.code === 'fa' ? 'برای ورود، هر جا را لمس کنید' : 'Tap anywhere to enter'"
                 />
               </div>
             </div>
